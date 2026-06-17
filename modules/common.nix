@@ -1,0 +1,51 @@
+# modules/common.nix
+
+{
+  pkgs,
+  modulesPath,
+  ...
+}:
+
+{
+  # container-related settings
+  imports = [ (modulesPath + "/virtualisation/proxmox-lxc.nix") ];
+
+  nix.settings = {
+    sandbox = false;
+  };
+  proxmoxLXC = {
+    manageNetwork = false;
+    privileged = true;
+  };
+  services.fstrim.enable = false; # Let Proxmox host handle fstrim
+
+  boot.isContainer = true;
+  boot.loader.grub.enable = false;
+
+  # have to be disabled, according to
+  # https://taoofmac.com/space/blog/2024/08/17/1530
+  systemd.suppressedSystemUnits = [
+    "dev-mqueue.mount"
+    "sys-kernel-debug.mount"
+    "sys-fs-fuse-connections.mount"
+  ];
+
+  time.timeZone = "Europe/Amsterdam";
+
+  # ssh settings
+  services.openssh = {
+    enable = true;
+    openFirewall = true;
+    settings = {
+      PermitRootLogin = "yes";
+      PasswordAuthentication = true;
+      PermitEmptyPasswords = "yes";
+    };
+  };
+  users.users.root.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAq2MnvCGfq5BvLzpxEcITRpMaNZ+ERlKP6+ecbb6LWb git@dennishilhorst.nl"
+  ];
+
+  # LXC container template based on 26.05 release
+  system.stateVersion = "26.05";
+}
