@@ -16,13 +16,34 @@
     in
     {
       nixosConfigurations = {
+        ahole = mkLxc {
+          hostname = "ahole";
+          ip = "192.168.50.2";
+
+          modules = [
+            ./hosts/ahole/hardware-configuration.nix
+            ./modules/pihole.nix
+            ./modules/tailscale.nix
+          ];
+        };
         bhole = mkLxc {
           hostname = "bhole";
-          ip = "192.168.50.215";
+          ip = "192.168.50.3";
 
           modules = [
             ./hosts/bhole/hardware-configuration.nix
             ./modules/pihole.nix
+            ./modules/tailscale.nix
+          ];
+        };
+        chole = mkLxc {
+          hostname = "chole";
+          ip = "192.168.50.4";
+
+          modules = [
+            ./hosts/chole/hardware-configuration.nix
+            ./modules/pihole.nix
+            ./modules/tailscale.nix
           ];
         };
       };

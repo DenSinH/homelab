@@ -107,20 +107,46 @@ in
     };
   };
 
-  system.activationScripts.piholeRegexAllow = ''
-    echo "Applying Pi-hole regex allowlist..."
+  systemd.services.pihole-regex-allowlist = {
+    description = "Configure Pi-hole regex allowlist";
+    wantedBy = [ "multi-user.target" ];
 
-    ${pkgs.pihole}/bin/pihole allow --allow-regex --list \
-      | ${pkgs.gnused}/bin/sed -n "s/^- \"\(.*\)\"$/\1/p" \
-      | while read -r rule; do
-          echo "Removing: $rule"
-          ${pkgs.pihole}/bin/pihole --allow-regex remove "$rule"
-        done
+    after = [ "pihole-ftl.service" ];
+    requires = [ "pihole-ftl.service" ];
 
-    ${pkgs.lib.concatMapStringsSep "\n" (r: "${pkgs.pihole}/bin/pihole --allow-regex '${r}'") allowlist}
-  '';
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    script = ''
+      set -euo pipefail
+
+      echo "Applying Pi-hole regex allowlist..."
+
+      PIHOLE=${pkgs.pihole}/bin/pihole
+
+      # Remove existing rules (safe cleanup)
+      $PIHOLE allow --regex --list \
+        | ${pkgs.gnused}/bin/sed -n "s/^- \"\(.*\)\"$/\1/p" \
+        | while read -r rule; do
+            echo "Removing: $rule"
+            $PIHOLE --allow-regex remove "$rule" || true
+          done
+
+      # Apply desired rules
+      ${pkgs.lib.concatMapStringsSep "\n" (r: "$PIHOLE --allow-regex '${r}'") allowlist}
+
+      echo "Done."
+    '';
+  };
 
   # this conflicts with the pihole port 53 mapping
   services.resolved.enable = false;
   networking.nameservers = upstreams;
+
+  # required for running as tailscale dns server
+  services.tailscale.extraUpFlags = [
+    "--accept-dns=true"
+  ];
 }
