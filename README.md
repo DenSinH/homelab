@@ -12,3 +12,12 @@ After a first deploy, the IP address should have been set. Subsequent deploys sh
 ```bash
 nix run .#deploy -- subnet-router
 ```
+
+## Todo
+
+Feels like the order of scariness to migrate these:
+- Grafana / InfluxDB
+- Cloudflared
+- Vaultwarden
+- Arr stack
+- Immich

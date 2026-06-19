@@ -22,6 +22,11 @@ let
     "8.8.4.4"
   ];
   localRecords = [
+    ### NETWORK
+    "192.168.50.2 ahole.home"
+    "192.168.50.3 bhole.home"
+    "192.168.50.4 chole.home"
+
     ### SERVER
     "192.168.50.11 proxmox1.home"
     "192.168.50.12 proxmox2.home"
