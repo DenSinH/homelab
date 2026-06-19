@@ -2,6 +2,7 @@
   lib,
   pkgs,
   lxcHosts,
+  proxmoxHosts ? { },
 }:
 
 let

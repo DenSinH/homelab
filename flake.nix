@@ -10,14 +10,44 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+
+      # Proxmox hosts definitions
+      proxmoxHosts = {
+        proxmox1 = {
+          hostname = "proxmox1.home";
+          ip = "192.168.50.11";
+          ctidRange = {
+            min = 100;
+            max = 199;
+          };
+        };
+        proxmox2 = {
+          hostname = "proxmox2.home";
+          ip = "192.168.50.12";
+          ctidRange = {
+            min = 200;
+            max = 299;
+          };
+        };
+        proxmox3 = {
+          hostname = "proxmox3.home";
+          ip = "192.168.50.13";
+          ctidRange = {
+            min = 300;
+            max = 399;
+          };
+        };
+      };
+
       mkLxc = import ./lib/mkLxc.nix {
-        inherit nixpkgs pkgs;
+        inherit nixpkgs pkgs proxmoxHosts;
       };
 
       lxcHosts = {
         ahole = mkLxc {
           hostname = "ahole";
           ip = "192.168.50.2";
+          pveHost = "proxmox1";
           ctid = 109;
 
           modules = [
@@ -28,6 +58,7 @@
         bhole = mkLxc {
           hostname = "bhole";
           ip = "192.168.50.3";
+          pveHost = "proxmox2";
           ctid = 204;
 
           modules = [
@@ -38,6 +69,7 @@
         chole = mkLxc {
           hostname = "chole";
           ip = "192.168.50.4";
+          pveHost = "proxmox3";
           ctid = 311;
 
           modules = [
@@ -49,6 +81,7 @@
         subnet-router = mkLxc {
           hostname = "subnet-router";
           ip = "192.168.50.8";
+          pveHost = "proxmox1";
           ctid = 113;
 
           modules = [
@@ -62,7 +95,7 @@
 
       apps.${system} =
         let
-          callScript = path: pkgs.callPackage path { inherit lxcHosts; };
+          callScript = path: pkgs.callPackage path { inherit lxcHosts proxmoxHosts; };
         in
         {
           tailscale-login = {
