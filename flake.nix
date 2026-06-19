@@ -107,6 +107,11 @@
             type = "app";
             program = toString (callScript ./scripts/deploy.nix);
           };
+
+          config-tun = {
+            type = "app";
+            program = toString (callScript ./scripts/config-tun.nix);
+          };
         };
 
       formatter.${system} = pkgs.nixfmt-tree;
