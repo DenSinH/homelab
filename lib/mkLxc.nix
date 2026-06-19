@@ -1,11 +1,13 @@
 {
   nixpkgs,
+  pkgs,
   ...
 }:
 
 {
   hostname,
   ip,
+  ctid,
   system ? "x86_64-linux",
   modules ? [ ],
 }:
@@ -38,6 +40,6 @@
   };
 
   meta = {
-    inherit hostname ip;
+    inherit hostname ip ctid;
   };
 }

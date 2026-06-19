@@ -10,5 +10,5 @@ nixos-rebuild switch --flake .#chole --target-host root@192.168.50.186 --sudo
 ```
 After a first deploy, the IP address should have been set. Subsequent deploys should be done with the configured IP in `flake.nix`:
 ```bash
-nixos-rebuild switch --flake .#chole --target-host root@192.168.50.8 --sudo
+nix run .#deploy -- subnet-router
 ```
