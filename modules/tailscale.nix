@@ -3,9 +3,8 @@
 {
   services.tailscale.enable = true;
 
-  # ----------------------------
-  # HARD FAIL: /dev/net/tun
-  # ----------------------------
+  # Check existence of /dev/net/tun
+  # this is required for tailscale to even work
   system.activationScripts.check-tun = ''
     RED='\033[1;31m'
     YELLOW='\033[1;33m'
@@ -24,10 +23,9 @@
     fi    
   '';
 
-  # ----------------------------
-  # SOFT CHECK: tailscale login
-  # (WARN ONLY, NEVER FAILS)
-  # ----------------------------
+  # Check if tailscale is already logged in
+  # this serves as a reminder on first deploy
+  # (or subsequent deploys if you forgot to log in)
   system.activationScripts.check-tailscale-login = ''
     RED='\033[1;31m'
     YELLOW='\033[1;33m'
