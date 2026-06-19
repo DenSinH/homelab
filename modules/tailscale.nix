@@ -2,24 +2,7 @@
 
 let
   # Define colors inline for activation scripts
-  colorsSetup = ''
-    RED='\033[1;31m'
-    YELLOW='\033[1;33m'
-    GREEN='\033[1;32m'
-    RESET='\033[0m'
-
-    print_error() {
-        printf "''${RED}ERROR: $1''${RESET}\n" >&2
-    }
-
-    print_warning() {
-        printf "''${YELLOW}WARNING: $1''${RESET}\n"
-    }
-
-    print_success() {
-        printf "''${GREEN}OK: $1''${RESET}\n"
-    }
-  '';
+  colorsScript = builtins.readFile ../scripts/colors.sh;
 in
 {
   services.tailscale.enable = true;
@@ -27,15 +10,16 @@ in
   # Check existence of /dev/net/tun
   # this is required for tailscale to even work
   system.activationScripts.check-tun = ''
-    ${colorsSetup}
+    ${colorsScript}
 
     if [[ ! -c /dev/net/tun ]]; then
       print_error "/dev/net/tun missing. Tailscale will not work in this LXC."
       print_warning "Fix this in your Proxmox container config (/etc/pve/lxc/<ctid>.conf):"
-      printf "\n"
-      printf "''${YELLOW}lxc.cgroup2.devices.allow: c 10:200 rwm''${RESET}\n"
-      printf "''${YELLOW}lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file''${RESET}\n"
-      printf "\n"
+      print_warning "\n"
+      print_warning "lxc.cgroup2.devices.allow: c 10:200 rwm\n"
+      print_warning "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file\n"
+      print_warning "\n"
+      print_warning "Or run 'nix build .#config-tun -- <lxc name>'\n"
     else
       print_success "/dev/net/tun exists"
     fi    
@@ -45,7 +29,7 @@ in
   # this serves as a reminder on first deploy
   # (or subsequent deploys if you forgot to log in)
   system.activationScripts.check-tailscale-login = ''
-    ${colorsSetup}
+    ${colorsScript}
 
     TAILSCALE="${pkgs.tailscale}/bin/tailscale"
     JQ="${pkgs.jq}/bin/jq"
