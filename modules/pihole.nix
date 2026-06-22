@@ -151,7 +151,8 @@ in
   networking.nameservers = upstreams;
 
   # required for running as tailscale dns server
+  # https://tailscale.com/docs/solutions/block-ads-all-devices-anywhere-using-raspberry-pi#step-3-install-tailscale-on-your-raspberry-pi
   services.tailscale.extraUpFlags = [
-    "--accept-dns=true"
+    "--accept-dns=false"
   ];
 }
