@@ -3,10 +3,19 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    { self, nixpkgs }:
+    {
+      self,
+      nixpkgs,
+      sops-nix,
+    }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
@@ -40,7 +49,12 @@
       };
 
       mkLxc = import ./lib/mkLxc.nix {
-        inherit nixpkgs pkgs proxmoxHosts;
+        inherit
+          nixpkgs
+          pkgs
+          sops-nix
+          proxmoxHosts
+          ;
       };
 
       lxcHosts = {
@@ -88,6 +102,17 @@
             ./modules/subnet-router.nix
           ];
         };
+
+        telemetry = mkLxc {
+          hostname = "subnet-router";
+          ip = "192.168.50.34";
+          pveHost = "proxmox1";
+          ctid = 114;
+
+          modules = [
+            ./modules/telemetry/default.nix
+          ];
+        };
       };
     in
     {
@@ -113,6 +138,21 @@
             program = toString (callScript ./scripts/config-tun.nix);
           };
         };
+
+      devShells.${system}.default = pkgs.mkShell {
+        packages = [
+          pkgs.sops
+          pkgs.age
+        ];
+
+        shellHook = ''
+          export EDITOR="code --wait"
+          export SOPS_EDITOR="code --wait"
+          export SOPS_AGE_KEY_FILE="/var/lib/sops-nix/keys.txt"
+
+          echo "Use: sops edit secrets/secrets.yaml"
+        '';
+      };
 
       formatter.${system} = pkgs.nixfmt-tree;
     };

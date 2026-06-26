@@ -13,10 +13,18 @@ After a first deploy, the IP address should have been set. Subsequent deploys sh
 nix run .#deploy -- subnet-router
 ```
 
+## Secrets
+
+Secrets are managed with `sops-nix`. The (age) `keys.txt` file is expected to be at
+```
+/var/lib/sops-nix/keys.txt
+```
+and may have to be provisioned to any hosts using it.
+
 ## Todo
 
 Feels like the order of scariness to migrate these:
-- Grafana / InfluxDB
+- Grafana / InfluxDB  (add age key file existence check)
 - Cloudflared
 - Vaultwarden
 - Arr stack

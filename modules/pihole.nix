@@ -47,8 +47,7 @@ let
 
     "192.168.50.32 firefly.home"
     "192.168.50.33 actual.home"
-    "192.168.50.34 grafana.home"
-    "192.168.50.35 influxdb.home"
+    "192.168.50.34 telemetry.home"
 
     "192.168.50.36 immich.home"
     "100.104.142.64 immich.vpn"

@@ -1,6 +1,7 @@
 {
   nixpkgs,
   pkgs,
+  sops-nix,
   proxmoxHosts,
   ...
 }:
@@ -32,6 +33,9 @@ in
     system = system;
 
     modules = [
+      sops-nix.nixosModules.sops
+      ../modules/common.nix
+      ../secrets/default.nix
       ({ ... }: {
         # networking config (fixed IP, hostname)
         networking = {
@@ -48,8 +52,6 @@ in
           ];
         };
       })
-
-      ./../modules/common.nix
     ]
     ++ modules;
   };
