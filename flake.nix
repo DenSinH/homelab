@@ -92,6 +92,17 @@
           ];
         };
 
+        cloudflared = mkLxc {
+          hostname = "cloudflared";
+          ip = "192.168.50.9";
+          pveHost = "proxmox1";
+          ctid = 115;
+
+          modules = [
+            ./modules/cloudflared.nix
+          ];
+        };
+
         subnet-router = mkLxc {
           hostname = "subnet-router";
           ip = "192.168.50.8";
