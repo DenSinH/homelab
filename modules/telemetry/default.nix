@@ -9,7 +9,8 @@ let
   retention = 7 * 24 * 60 * 60; # 7 days
   username = "admin";
 
-  grafanaSecretFile = secretName:
+  grafanaSecretFile =
+    secretName:
     let
       secret = config.sops.secrets.${secretName};
     in
