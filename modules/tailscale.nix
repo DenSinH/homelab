@@ -15,11 +15,11 @@ in
     if [[ ! -c /dev/net/tun ]]; then
       print_error "/dev/net/tun missing. Tailscale will not work in this LXC."
       print_warning "Fix this in your Proxmox container config (/etc/pve/lxc/<ctid>.conf):"
-      print_warning "\n"
-      print_warning "lxc.cgroup2.devices.allow: c 10:200 rwm\n"
-      print_warning "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file\n"
-      print_warning "\n"
-      print_warning "Or run 'nix build .#config-tun -- <lxc name>'\n"
+      print_warning ""
+      print_warning "lxc.cgroup2.devices.allow: c 10:200 rwm"
+      print_warning "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"
+      print_warning ""
+      print_warning "Or run 'nix run .#config-tun -- <lxc name>'"
     else
       print_success "/dev/net/tun exists"
     fi    

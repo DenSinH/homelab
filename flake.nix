@@ -124,6 +124,18 @@
             ./modules/telemetry/default.nix
           ];
         };
+
+        vaultwarden = mkLxc {
+          hostname = "vaultwarden";
+          ip = "192.168.50.215";
+          pveHost = "proxmox1";
+          ctid = 116;
+
+          modules = [
+            ./modules/vaultwarden.nix
+            ./modules/tailscale.nix
+          ];
+        };
       };
     in
     {
