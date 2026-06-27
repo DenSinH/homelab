@@ -24,7 +24,5 @@ and may have to be provisioned to any hosts using it.
 ## Todo
 
 Feels like the order of scariness to migrate these:
-- Cloudflared
-- Vaultwarden
 - Arr stack
 - Immich
