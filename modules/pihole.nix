@@ -53,7 +53,7 @@ let
     "100.104.142.64 immich.vpn"
 
     "192.168.50.37 vaultwarden.home"
-    "100.80.250.71 vaultwarden.vpn"
+    "100.119.210.127 vaultwarden.vpn"
 
     "192.168.50.38 nextcloud.home"
     "100.95.171.13 nextcloud.vpn"

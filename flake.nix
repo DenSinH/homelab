@@ -127,7 +127,7 @@
 
         vaultwarden = mkLxc {
           hostname = "vaultwarden";
-          ip = "192.168.50.215";
+          ip = "192.168.50.37";
           pveHost = "proxmox1";
           ctid = 116;
 
