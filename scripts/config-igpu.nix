@@ -8,7 +8,6 @@
 let
   colorsScript = builtins.readFile ./colors.sh;
 
-  # Generate case statements from lxcHosts with all needed info
   hostCases = builtins.concatStringsSep "\n" (
     builtins.attrValues (
       builtins.mapAttrs (
@@ -29,41 +28,34 @@ let
   );
 in
 
-pkgs.writeShellScript "config-tun" ''
+pkgs.writeShellScript "config-igpu" ''
   #!/usr/bin/env bash
   set -euo pipefail
 
   ${colorsScript}
 
   if [ $# -eq 0 ]; then
-      print_error "No host specified"
-      echo "Usage: $0 <hostname>"
-      echo ""
-      echo "This will configure /dev/net/tun for the specified LXC container"
-      echo "by adding the required lines to /etc/pve/lxc/<ctid>.conf on the Proxmox host"
-      exit 1
+    print_error "No host specified"
+    echo "Usage: $0 <hostname>"
+    exit 1
   fi
 
   host="$1"
 
   case "$host" in
-      ${hostCases}
-      *)
-          print_error "Unknown host: $host"
-          exit 1
-          ;;
+  ${hostCases}
+  *)
+    print_error "Unknown host: $host"
+    exit 1
+    ;;
   esac
 
-  print_info "Configuring /dev/net/tun for $host (CTID: $ctid) on $pve_hostname"
+  print_info "Configuring /dev/dri passthrough for $host (CTID: $ctid)"
 
-  # The lines we need to add
-  LINE1="lxc.cgroup2.devices.allow: c 10:200 rwm"
-  LINE2="lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"
   CONFIG_FILE="/etc/pve/lxc/$ctid.conf"
 
   print_info "Connecting to Proxmox host $pve_hostname ($pve_ip)..."
 
-  # Configure file
   OUTPUT=$(ssh root@$pve_ip bash -s <<EOF 2>&1 | tee /dev/stderr | tail -1
     set -e
 
@@ -79,42 +71,57 @@ pkgs.writeShellScript "config-tun" ''
         exit 1
     fi
 
-    print_info "Checking $CONFIG_FILE..."
+    print_info "Detecting DRM devices on host..."
 
-    # Check if both lines already exist
-    has_line1=false
-    has_line2=false
+    # --- Detect devices ---
+    CARDS=(/dev/dri/card*)
 
-    if grep -qF "$LINE1" "$CONFIG_FILE"; then
-        has_line1=true
-    fi
-
-    if grep -qF "$LINE2" "$CONFIG_FILE"; then
-        has_line2=true
-    fi
-
-    if [ "\$has_line1" = true ] && [ "\$has_line2" = true ]; then
-        print_success "Both lines already present in config"
-        echo "NO_CHANGES_NEEDED"
+    if compgen -G "/dev/dri/card*" > /dev/null; then
+      CARD_PATH="\$(ls /dev/dri/card* | head -n1)"
+      CARD_NAME="\$(basename "\$CARD_PATH")"
     else
-        print_warning "Adding missing configuration lines..."
-
-        # Backup the config
-        cp "$CONFIG_FILE" "$CONFIG_FILE.bak.\$(date +%Y%m%d-%H%M%S)"
-
-        # Add missing lines
-        if [ "\$has_line1" = false ]; then
-            echo "$LINE1" >> "$CONFIG_FILE"
-            print_success "Added: $LINE1"
-        fi
-
-        if [ "\$has_line2" = false ]; then
-            echo "$LINE2" >> "$CONFIG_FILE"
-            print_success "Added: $LINE2"
-        fi
-
-        echo "CHANGES_MADE"
+      CARD_PATH=""
+      CARD_NAME=""
     fi
+
+    if [ ! -e "/dev/dri/renderD128" ]; then
+      print_error "renderD128 not found on host"
+      exit 1
+    fi
+
+    # --- Resolve correct GIDs dynamically ---
+    VIDEO_GID=\$(getent group video | cut -d: -f3)
+    RENDER_GID=\$(getent group render | cut -d: -f3)
+
+    if [ -z "\$VIDEO_GID" ] || [ -z "\$RENDER_GID" ]; then
+      print_error "Could not resolve video/render GIDs"
+      exit 1
+    fi
+
+    print_info "video gid=\$VIDEO_GID, render gid=\$RENDER_GID"
+
+    # --- Build NEW config lines (NO dev0/dev1) ---
+    changed=false
+
+    add_line "lxc.cgroup2.devices.allow: c 226:1 rwm"
+
+    if [ -n "$CARD_NAME" ]; then
+      add_line "lxc.mount.entry: /dev/dri/$CARD_NAME dev/dri/$CARD_NAME none bind,create=file 0 0"
+    fi
+
+    add_line "lxc.cgroup2.devices.allow: c 226:128 rwm"
+    add_line "lxc.mount.entry: /dev/dri/renderD128 dev/dri/renderD128 none bind,create=file 0 0"
+
+    changed=false
+
+    add_line() {
+      local line="\$1"
+      if ! grep -qF "\$line" "$CONFIG_FILE"; then
+        echo "\$line" >> "$CONFIG_FILE"
+        print_success "Added: \$line"
+        changed=true
+      fi
+    }
   EOF
   )
 
@@ -129,7 +136,6 @@ pkgs.writeShellScript "config-tun" ''
       print_info "Waiting for container to come back online..."
       sleep 5
 
-      # Test if the container is reachable
       if ping -c 1 -W 2 $lxc_ip >/dev/null 2>&1; then
           print_success "Container $host is back online at $lxc_ip"
       else

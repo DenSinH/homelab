@@ -24,5 +24,5 @@ and may have to be provisioned to any hosts using it.
 ## Todo
 
 Feels like the order of scariness to migrate these:
-- Arr stack
+- Arr stack (use https://github.com/kiriwalawren/nixflix)
 - Immich

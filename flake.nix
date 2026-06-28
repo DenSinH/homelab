@@ -136,6 +136,17 @@
             ./modules/tailscale.nix
           ];
         };
+
+        immich = mkLxc {
+          hostname = "immich";
+          ip = "192.168.50.215";
+          pveHost = "proxmox3";
+          ctid = 307;
+
+          modules = [
+            ./modules/igpu.nix
+          ];
+        };
       };
     in
     {
@@ -159,6 +170,11 @@
           config-tun = {
             type = "app";
             program = toString (callScript ./scripts/config-tun.nix);
+          };
+
+          config-igpu = {
+            type = "app";
+            program = toString (callScript ./scripts/config-igpu.nix);
           };
         };
 

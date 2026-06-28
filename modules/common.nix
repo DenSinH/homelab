@@ -12,6 +12,10 @@
 
   nix.settings = {
     sandbox = false;
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
   };
   proxmoxLXC = {
     manageNetwork = false;
