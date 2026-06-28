@@ -7,7 +7,12 @@
 
 let
   configBase = import ./config-base.nix {
-    inherit lib pkgs lxcHosts proxmoxHosts;
+    inherit
+      lib
+      pkgs
+      lxcHosts
+      proxmoxHosts
+      ;
   };
 in
 

@@ -1,0 +1,99 @@
+web:
+  port: 80
+
+ui:
+  title: "Hilhorst Cloud Status"
+
+endpoints:
+  - name: Storage
+    group: server
+    url: "icmp://192.168.50.20"
+    conditions:
+      - "[CONNECTED] == true"
+    ui:
+      hide-url: true
+      
+  - name: Node 1
+    group: server
+    url: "icmp://192.168.50.11"
+    conditions:
+      - "[CONNECTED] == true"
+    ui:
+      hide-url: true
+      
+  - name: Node 2
+    group: server
+    url: "icmp://192.168.50.12"
+    conditions:
+      - "[CONNECTED] == true"
+    ui:
+      hide-url: true
+      
+  - name: Node 3
+    group: server
+    url: "icmp://192.168.50.13"
+    conditions:
+      - "[CONNECTED] == true"
+    ui:
+      hide-url: true
+      
+  - name: PBS
+    group: server
+    url: "icmp://192.168.50.19"
+    conditions:
+      - "[CONNECTED] == true"
+    ui:
+      hide-url: true
+      
+  - name: Router
+    group: network
+    url: "icmp://192.168.50.1"
+    conditions:
+      - "[CONNECTED] == true"
+    ui:
+      hide-url: true
+        
+  - name: Public Access
+    group: network
+    url: "icmp://1.1.1.1"
+    conditions:
+      - "[CONNECTED] == true"
+    ui:
+      hide-url: true
+
+  - name: Local DNS
+    group: network
+    url: "192.168.50.2"
+    dns:
+      query-name: "proxmox1.home"
+      query-type: "A"
+    conditions:
+      - "[BODY] == 192.168.50.11"
+      - "[DNS_RCODE] == NOERROR"
+    ui:
+      hide-url: true
+      
+  - name: Public DNS
+    group: network
+    url: "192.168.50.2"
+    dns:
+      query-name: "google.com"
+      query-type: "A"
+    conditions:
+      - "[DNS_RCODE] == NOERROR"
+    ui:
+      hide-url: true
+  
+  - name: Cookbook
+    group: web
+    url: "https://chef.dennishilhorst.nl/about"
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 2000"
+  
+  - name: Blog
+    group: web
+    url: "https://blog.dennishilhorst.nl/sitemap.xml"
+    conditions:
+      - "[STATUS] == 200"
+      - "[RESPONSE_TIME] < 1000"

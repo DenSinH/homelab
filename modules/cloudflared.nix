@@ -8,7 +8,9 @@
 let
   proxies = {
     "link.dennishilhorst.nl" = { };
-    "status.dennishilhorst.nl" = { };
+    "status.dennishilhorst.nl" = {
+      service = "http://192.168.50.35";
+    };
     "blog.dennishilhorst.nl" = { };
     "cdn-console.dennishilhorst.nl" = {
       originRequest = {

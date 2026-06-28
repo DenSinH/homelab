@@ -125,6 +125,17 @@
           ];
         };
 
+        gatus = mkLxc {
+          hostname = "gatus";
+          ip = "192.168.50.35";
+          pveHost = "proxmox1";
+          ctid = 100;
+
+          modules = [
+            ./modules/gatus/default.nix
+          ];
+        };
+
         vaultwarden = mkLxc {
           hostname = "vaultwarden";
           ip = "192.168.50.37";
