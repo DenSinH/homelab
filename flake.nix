@@ -20,8 +20,7 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
 
-      # Proxmox hosts definitions
-      proxmoxHosts = {
+      hosts = {
         proxmox1 = {
           hostname = "proxmox1.home";
           ip = "192.168.50.11";
@@ -30,6 +29,7 @@
             max = 199;
           };
         };
+
         proxmox2 = {
           hostname = "proxmox2.home";
           ip = "192.168.50.12";
@@ -38,6 +38,7 @@
             max = 299;
           };
         };
+
         proxmox3 = {
           hostname = "proxmox3.home";
           ip = "192.168.50.13";
@@ -48,17 +49,8 @@
         };
       };
 
-      mkLxc = import ./lib/mkLxc.nix {
-        inherit
-          nixpkgs
-          pkgs
-          sops-nix
-          proxmoxHosts
-          ;
-      };
-
-      lxcHosts = {
-        ahole = mkLxc {
+      lxcs = {
+        ahole = {
           hostname = "ahole";
           ip = "192.168.50.2";
           pveHost = "proxmox1";
@@ -69,7 +61,8 @@
             ./modules/tailscale.nix
           ];
         };
-        bhole = mkLxc {
+
+        bhole = {
           hostname = "bhole";
           ip = "192.168.50.3";
           pveHost = "proxmox2";
@@ -80,7 +73,8 @@
             ./modules/tailscale.nix
           ];
         };
-        chole = mkLxc {
+
+        chole = {
           hostname = "chole";
           ip = "192.168.50.4";
           pveHost = "proxmox3";
@@ -92,7 +86,7 @@
           ];
         };
 
-        cloudflared = mkLxc {
+        cloudflared = {
           hostname = "cloudflared";
           ip = "192.168.50.9";
           pveHost = "proxmox1";
@@ -103,7 +97,7 @@
           ];
         };
 
-        subnet-router = mkLxc {
+        subnet-router = {
           hostname = "subnet-router";
           ip = "192.168.50.8";
           pveHost = "proxmox1";
@@ -114,7 +108,7 @@
           ];
         };
 
-        telemetry = mkLxc {
+        telemetry = {
           hostname = "subnet-router";
           ip = "192.168.50.34";
           pveHost = "proxmox1";
@@ -125,7 +119,7 @@
           ];
         };
 
-        gatus = mkLxc {
+        gatus = {
           hostname = "gatus";
           ip = "192.168.50.35";
           pveHost = "proxmox1";
@@ -136,7 +130,7 @@
           ];
         };
 
-        vaultwarden = mkLxc {
+        vaultwarden = {
           hostname = "vaultwarden";
           ip = "192.168.50.37";
           pveHost = "proxmox1";
@@ -148,7 +142,7 @@
           ];
         };
 
-        immich = mkLxc {
+        immich = {
           hostname = "immich";
           ip = "192.168.50.215";
           pveHost = "proxmox3";
@@ -159,7 +153,7 @@
           ];
         };
 
-        blog = mkLxc {
+        blog = {
           hostname = "blog";
           ip = "192.168.50.39";
           pveHost = "proxmox1";
@@ -170,13 +164,30 @@
           ];
         };
       };
+
+      # make hosts and lxcs globally accessible
+      lib = nixpkgs.lib.extend (
+        final: prev: {
+          hosts = hosts;
+          lxcs = lxcs;
+        }
+      );
+
+      mkLxc = import ./lib/mkLxc.nix {
+        inherit
+          nixpkgs
+          pkgs
+          sops-nix
+          lib
+          ;
+      };
     in
     {
-      nixosConfigurations = nixpkgs.lib.mapAttrs (_: host: host.system) lxcHosts;
+      nixosConfigurations = nixpkgs.lib.mapAttrs (_: host: mkLxc host) lib.lxcs;
 
       apps.${system} =
         let
-          callScript = path: pkgs.callPackage path { inherit lxcHosts proxmoxHosts; };
+          callScript = path: pkgs.callPackage path { inherit lib; };
         in
         {
           tailscale-login = {

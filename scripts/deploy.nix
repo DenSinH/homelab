@@ -1,22 +1,20 @@
 {
   lib,
   pkgs,
-  lxcHosts,
-  proxmoxHosts ? { },
 }:
 
 let
   colorsScript = builtins.readFile ./colors.sh;
 
-  # Generate case statements from lxcHosts
-  hostCases = builtins.concatStringsSep "\n" (
+  # Generate case statements from lib.lxcs
+  lxcCases = builtins.concatStringsSep "\n" (
     builtins.attrValues (
-      builtins.mapAttrs (name: host: ''
+      builtins.mapAttrs (name: lxc: ''
         ${name})
-          ip="${host.meta.ip}"
-          ctid="${toString host.meta.ctid}"
+          ip="${lxc.ip}"
+          ctid="${toString lxc.ctid}"
           ;;
-      '') lxcHosts
+      '') lib.lxcs
     )
   );
 in
@@ -35,7 +33,7 @@ pkgs.writeShellScript "deploy" ''
 
   for host in "$@"; do
       case "$host" in
-          ${hostCases}
+          ${lxcCases}
           *)
               print_error "Unknown host: $host"
               exit 1

@@ -1,21 +1,19 @@
 {
   lib,
   pkgs,
-  lxcHosts,
-  proxmoxHosts ? { },
 }:
 
 let
   colorsScript = builtins.readFile ./colors.sh;
 
-  # Generate case statements from lxcHosts - only need IP for tailscale login
-  hostCases = builtins.concatStringsSep "\n" (
+  # Generate case statements from lib.lxcs - only need IP for tailscale login
+  lxcCases = builtins.concatStringsSep "\n" (
     builtins.attrValues (
-      builtins.mapAttrs (name: host: ''
+      builtins.mapAttrs (name: lxc: ''
         ${name})
-          ip="${host.meta.ip}"
+          ip="${lxc.ip}"
           ;;
-      '') lxcHosts
+      '') lib.lxcs
     )
   );
 in
@@ -35,7 +33,7 @@ pkgs.writeShellScript "tailscale-login" ''
   host="$1"
 
   case "$host" in
-      ${hostCases}
+      ${lxcCases}
       *)
           print_error "Unknown host: $host"
           exit 1

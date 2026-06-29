@@ -9,10 +9,10 @@ let
   proxies = {
     "link.dennishilhorst.nl" = { };
     "status.dennishilhorst.nl" = {
-      service = "http://192.168.50.35";
+      service = "http://${lib.lxcs.gatus.ip}";
     };
     "blog.dennishilhorst.nl" = {
-      service = "http://192.168.50.39";
+      service = "http://${lib.lxcs.blog.ip}";
     };
     "cdn-console.dennishilhorst.nl" = {
       originRequest = {

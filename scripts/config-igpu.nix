@@ -1,8 +1,6 @@
 {
   lib,
   pkgs,
-  lxcHosts,
-  proxmoxHosts,
 }:
 
 let
@@ -10,8 +8,6 @@ let
     inherit
       lib
       pkgs
-      lxcHosts
-      proxmoxHosts
       ;
   };
 in

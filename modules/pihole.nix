@@ -23,14 +23,14 @@ let
   ];
   localRecords = [
     ### NETWORK
-    "192.168.50.2 ahole.home"
-    "192.168.50.3 bhole.home"
-    "192.168.50.4 chole.home"
+    "${lib.lxcs.ahole.ip} ahole.home"
+    "${lib.lxcs.bhole.ip} bhole.home"
+    "${lib.lxcs.chole.ip} chole.home"
 
     ### SERVER
-    "192.168.50.11 proxmox1.home"
-    "192.168.50.12 proxmox2.home"
-    "192.168.50.13 proxmox3.home"
+    "${lib.hosts.proxmox1.ip} proxmox1.home"
+    "${lib.hosts.proxmox2.ip} proxmox2.home"
+    "${lib.hosts.proxmox3.ip} proxmox3.home"
     "192.168.50.18 pdm.home"
     "192.168.50.19 pbs.home"
 
@@ -47,17 +47,17 @@ let
 
     "192.168.50.32 firefly.home"
     "192.168.50.33 actual.home"
-    "192.168.50.34 telemetry.home"
-    "192.168.50.35 gatus.home"
-    "192.168.50.35 status.home" # alias
+    "${lib.lxcs.telemetry.ip} telemetry.home"
+    "${lib.lxcs.gatus.ip} gatus.home"
+    "${lib.lxcs.gatus.ip} status.home" # alias
 
     "192.168.50.36 immich.home"
     "100.104.142.64 immich.vpn"
 
-    "192.168.50.37 vaultwarden.home"
+    "${lib.lxcs.vaultwarden.ip} vaultwarden.home"
     "100.119.210.127 vaultwarden.vpn"
 
-    "192.168.50.39 blog.home"
+    "${lib.lxcs.blog.ip} blog.home"
 
     ### STREAMING
     "192.168.50.40 jellyfin.home"
