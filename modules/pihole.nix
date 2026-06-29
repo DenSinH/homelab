@@ -57,8 +57,7 @@ let
     "192.168.50.37 vaultwarden.home"
     "100.119.210.127 vaultwarden.vpn"
 
-    "192.168.50.38 nextcloud.home"
-    "100.95.171.13 nextcloud.vpn"
+    "192.168.50.39 blog.home"
 
     ### STREAMING
     "192.168.50.40 jellyfin.home"

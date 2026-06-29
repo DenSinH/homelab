@@ -158,6 +158,17 @@
             ./modules/igpu.nix
           ];
         };
+
+        blog = mkLxc {
+          hostname = "blog";
+          ip = "192.168.50.39";
+          pveHost = "proxmox1";
+          ctid = 101;
+
+          modules = [
+            ./modules/blog.nix
+          ];
+        };
       };
     in
     {

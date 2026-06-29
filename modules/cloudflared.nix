@@ -11,7 +11,9 @@ let
     "status.dennishilhorst.nl" = {
       service = "http://192.168.50.35";
     };
-    "blog.dennishilhorst.nl" = { };
+    "blog.dennishilhorst.nl" = {
+      service = "http://192.168.50.39";
+    };
     "cdn-console.dennishilhorst.nl" = {
       originRequest = {
         httpHostHeader = "cdn.console.dennishilhorst.nl";
