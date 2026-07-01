@@ -51,8 +51,8 @@ let
     "${lib.lxcs.gatus.ip} gatus.home"
     "${lib.lxcs.gatus.ip} status.home" # alias
 
-    "192.168.50.36 immich.home"
-    "100.104.142.64 immich.vpn"
+    "${lib.lxcs.immich.ip} immich.home"
+    "100.100.52.120 immich.vpn"
 
     "${lib.lxcs.vaultwarden.ip} vaultwarden.home"
     "100.119.210.127 vaultwarden.vpn"

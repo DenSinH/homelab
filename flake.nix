@@ -144,12 +144,14 @@
 
         immich = {
           hostname = "immich";
-          ip = "192.168.50.215";
+          ip = "192.168.50.36";
           pveHost = "proxmox3";
           ctid = 307;
 
           modules = [
             ./modules/igpu.nix
+            ./modules/immich.nix
+            ./modules/tailscale.nix
           ];
         };
 
