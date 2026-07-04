@@ -1,6 +1,7 @@
 {
   nixpkgs,
   pkgs,
+  nixflix,
   sops-nix,
   lib,
   ...
@@ -11,6 +12,7 @@
   ip,
   ctid,
   pveHost,
+  tailnet_ip ? null,
   system ? "x86_64-linux",
   modules ? [ ],
 }:
@@ -38,6 +40,7 @@ nixpkgs.lib.nixosSystem {
 
   modules = [
     sops-nix.nixosModules.sops
+    nixflix.nixosModules.default
     ../modules/common.nix
     ../secrets/default.nix
     ({ ... }: {

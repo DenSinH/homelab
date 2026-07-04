@@ -52,27 +52,33 @@ let
     "${lib.lxcs.gatus.ip} status.home" # alias
 
     "${lib.lxcs.immich.ip} immich.home"
-    "100.100.52.120 immich.vpn"
+    "${lib.lxcs.immich.tailnet_ip} immich.vpn"
 
     "${lib.lxcs.vaultwarden.ip} vaultwarden.home"
-    "100.119.210.127 vaultwarden.vpn"
+    "${lib.lxcs.vaultwarden.tailnet_ip} vaultwarden.vpn"
 
     "${lib.lxcs.blog.ip} blog.home"
 
     ### STREAMING
+    "${lib.lxcs.nixflix.ip} nixflix.home"
+    "${lib.lxcs.nixflix.tailnet_ip} nixflix.vpn"
+
     "192.168.50.40 jellyfin.home"
     "100.122.219.108 jellyfin.vpn"
 
-    "192.168.50.41 radarr.home"
-    "100.106.253.36 radarr.vpn"
+    "${lib.lxcs.nixflix.ip} radarr.home"
+    "${lib.lxcs.nixflix.tailnet_ip} radarr.vpn"
 
-    "192.168.50.42 sonarr.home"
-    "100.84.10.93 sonarr.vpn"
+    "${lib.lxcs.nixflix.ip} radarr.home"
+    "${lib.lxcs.nixflix.tailnet_ip} radarr.vpn"
 
-    "192.168.50.43 qbittorrent.home"
-    "100.91.139.126 qbittorrent.vpn"
+    "${lib.lxcs.nixflix.ip} sonarr.home"
+    "${lib.lxcs.nixflix.tailnet_ip} sonarr.vpn"
 
-    "192.168.50.44 prowlarr.home"
+    "${lib.lxcs.nixflix.ip} qbittorrent.home"
+    "${lib.lxcs.nixflix.tailnet_ip} qbittorrent.vpn"
+
+    "${lib.lxcs.nixflix.ip} prowlarr.home"
     "192.168.50.45 flaresolverr.home"
     "192.168.50.46 byparr.home"
     "192.168.50.47 bazarr.home"

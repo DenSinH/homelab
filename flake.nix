@@ -4,6 +4,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
+    nixflix = {
+      url = "github:kiriwalawren/nixflix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -15,6 +20,7 @@
       self,
       nixpkgs,
       sops-nix,
+      nixflix,
     }:
     let
       system = "x86_64-linux";
@@ -133,6 +139,7 @@
         vaultwarden = {
           hostname = "vaultwarden";
           ip = "192.168.50.37";
+          tailnet_ip = "100.119.210.127";
           pveHost = "proxmox1";
           ctid = 116;
 
@@ -145,6 +152,7 @@
         immich = {
           hostname = "immich";
           ip = "192.168.50.36";
+          tailnet_ip = "100.100.52.120";
           pveHost = "proxmox3";
           ctid = 307;
 
@@ -165,6 +173,18 @@
             ./modules/blog.nix
           ];
         };
+
+        nixflix = {
+          hostname = "nixflix";
+          ip = "192.168.50.215";
+          tailnet_ip = "100.84.251.29";
+          pveHost = "proxmox3";
+          ctid = 312;
+
+          modules = [
+            ./modules/nixflix/default.nix
+          ];
+        };
       };
 
       # make hosts and lxcs globally accessible
@@ -179,6 +199,7 @@
         inherit
           nixpkgs
           pkgs
+          nixflix
           sops-nix
           lib
           ;
