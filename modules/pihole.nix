@@ -63,8 +63,8 @@ let
     "${lib.lxcs.nixflix.ip} nixflix.home"
     "${lib.lxcs.nixflix.tailnet_ip} nixflix.vpn"
 
-    "192.168.50.40 jellyfin.home"
-    "100.122.219.108 jellyfin.vpn"
+    "${lib.lxcs.nixflix.ip} jellyfin.home"
+    "${lib.lxcs.nixflix.tailnet_ip} jellyfin.vpn"
 
     "${lib.lxcs.nixflix.ip} radarr.home"
     "${lib.lxcs.nixflix.tailnet_ip} radarr.vpn"

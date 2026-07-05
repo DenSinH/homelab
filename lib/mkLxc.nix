@@ -35,7 +35,7 @@ nixpkgs.lib.nixosSystem {
 
   # pass through extended lib with access to lxc / pve host configurations
   specialArgs = {
-    lib = lib;
+    inherit lib nixflix;
   };
 
   modules = [

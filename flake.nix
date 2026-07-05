@@ -176,7 +176,7 @@
 
         nixflix = {
           hostname = "nixflix";
-          ip = "192.168.50.215";
+          ip = "192.168.50.40";
           tailnet_ip = "100.84.251.29";
           pveHost = "proxmox3";
           ctid = 312;

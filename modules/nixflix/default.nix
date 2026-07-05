@@ -9,6 +9,7 @@
 
 let
   mediaMount = "/mnt/media";
+  fromRepo = nixflix.lib.jellyfinPlugins.fromRepo;
 in
 {
   # NFS settings
@@ -32,7 +33,10 @@ in
     "prowlarr/api_key" = { };
     "prowlarr/password" = { };
     "qbittorrent/password" = { };
-    # "jellyfin/alice_password" = { };
+    "jellyfin/api_key" = { };
+    "jellyfin/dennis_password" = { };
+    "jellyfin/merel_password" = { };
+    "jellyfin/opensubtitles/password" = { };
   };
 
   # enable tailscale
@@ -83,7 +87,6 @@ in
           password = {
             _secret = config.sops.secrets."radarr/password".path;
           };
-          # applicationUrl
         };
         rootFolders = [
           {
@@ -106,7 +109,6 @@ in
           password = {
             _secret = config.sops.secrets."sonarr/password".path;
           };
-          # applicationUrl
         };
         rootFolders = [
           {
@@ -131,7 +133,6 @@ in
           password = {
             _secret = config.sops.secrets."prowlarr/password".path;
           };
-          # applicationUrl
         };
         indexers = [
           # additional properties are injected into the schema
@@ -199,12 +200,92 @@ in
             # nix run git+https://codeberg.org/feathecutie/qbittorrent_password -p <password>
             # or
             # nix run git+https://codeberg.org/feathecutie/qbittorrent_password -i <password-file>
-            # for example run ./gen-password.sh to generate it from stdin
+            # for example run ./gen-qbittorrent-password.sh to generate it from stdin
             Password_PBKDF2 = "@ByteArray(kR+FfrNzdOkhVab2ph7Ocg==:kHtoKhAe64dbk7wQJl0eeUF1hYu767BObpRzn1DxON1drcgOBC5zlAA6aGrfRwZCRcaoPqp3K6Yu3UYK2O2sJg==)";
             LocalHostAuth = false;
             AuthSubnetWhitelist = "192.168.50.0/24";
             AuthSubnetWhitelistEnabled = true;
           };
+        };
+      };
+    };
+
+    jellyfin = {
+      enable = true;
+      openFirewall = true;
+
+      apiKey._secret = config.sops.secrets."jellyfin/api_key".path;
+      users = {
+        # user IDs taken from existing Jellyfin installation for easier
+        # migration of data
+        dennis = {
+          mutable = false;
+          id = "cbfb974aab8f41f98902458b28ccc372";
+          policy.isAdministrator = true;
+          password._secret = config.sops.secrets."jellyfin/dennis_password".path;
+        };
+        merel = {
+          mutable = false;
+          id = "33ff2447d0584ae480d4392f42ae17c9";
+          policy.isAdministrator = false;
+          password._secret = config.sops.secrets."jellyfin/merel_password".path;
+        };
+      };
+
+      libraries = {
+        Movies = lib.mkForce {
+          collectionType = "movies";
+          enableRealtimeMonitor = true;
+          paths = [
+            "${mediaMount}/movies"
+          ];
+          preferredMetadataLanguage = "en";
+        };
+        Shows = lib.mkForce {
+          collectionType = "tvshows";
+          enableRealtimeMonitor = true;
+          paths = [
+            "${mediaMount}/shows"
+          ];
+          seasonZeroDisplayName = "Specials";
+        };
+      };
+
+      encoding = {
+        allowAv1Encoding = true;
+        allowHevcEncoding = true;
+        hardwareAccelerationType = "qsv"; # Intel Quicksync (running on N100)
+      };
+
+      system.pluginRepositories = {
+        "Intro Skipper" = {
+          url = "https://raw.githubusercontent.com/intro-skipper/manifest/main/10.11/manifest.json";
+          hash = "sha256:0bkvcliywipn7k2cp15x5fkx3n7k3da47f4p8x2fzli2h5jqz5vd";
+          enabled = true;
+        };
+      };
+
+      plugins = {
+        # https://kiriwalawren.github.io/nixflix/examples/jellyfin-plugins/#configuration
+        "Intro Skipper" = {
+          package = fromRepo {
+            version = "1.10.11.22";
+            hash = "sha256-x8xxfJb2to3BIdneUj2FcPdMBbTt7kmhfvGtBqWlDQ4=";
+          };
+        };
+
+        # https://kiriwalawren.github.io/nixflix/examples/jellyfin-subtitles/#configuration
+        "Open Subtitles" = {
+          enable = true;
+          config = {
+            Username = "DenSinH";
+            Password._secret = config.sops.secrets."jellyfin/opensubtitles/password".path;
+          };
+        };
+
+        "Subtitle Extract" = {
+          enable = true;
+          config.ExtractionDuringLibraryScan = true;
         };
       };
     };
