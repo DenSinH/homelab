@@ -15,7 +15,7 @@
   tailnet_ip ? null,
   system ? "x86_64-linux",
   modules ? [ ],
-}:
+}@host:
 
 let
   # Validate that pveHost exists
@@ -35,7 +35,7 @@ nixpkgs.lib.nixosSystem {
 
   # pass through extended lib with access to lxc / pve host configurations
   specialArgs = {
-    inherit lib nixflix;
+    inherit lib nixflix host;
   };
 
   modules = [

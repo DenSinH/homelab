@@ -65,6 +65,7 @@
           modules = [
             ./modules/pihole.nix
             ./modules/tailscale.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -77,6 +78,7 @@
           modules = [
             ./modules/pihole.nix
             ./modules/tailscale.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -89,6 +91,7 @@
           modules = [
             ./modules/pihole.nix
             ./modules/tailscale.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -100,6 +103,7 @@
 
           modules = [
             ./modules/cloudflared.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -111,11 +115,12 @@
 
           modules = [
             ./modules/subnet-router.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
         telemetry = {
-          hostname = "subnet-router";
+          hostname = "telemetry";
           ip = "192.168.50.34";
           pveHost = "proxmox1";
           ctid = 114;
@@ -133,6 +138,7 @@
 
           modules = [
             ./modules/gatus/default.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -146,6 +152,7 @@
           modules = [
             ./modules/vaultwarden.nix
             ./modules/tailscale.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -160,6 +167,7 @@
             ./modules/igpu.nix
             ./modules/immich.nix
             ./modules/tailscale.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -171,6 +179,7 @@
 
           modules = [
             ./modules/blog.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -183,6 +192,7 @@
 
           modules = [
             ./modules/nixflix/default.nix
+            ./modules/telemetry/alloy.nix
           ];
         };
       };

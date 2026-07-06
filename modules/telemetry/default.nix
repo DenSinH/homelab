@@ -17,6 +17,10 @@ let
     "$__file{${secret.path}}";
 in
 {
+  imports = [
+    ./alloy.nix # gather own logs
+  ];
+
   # secret access management
   users.groups.metrics = { };
   users.users.grafana.extraGroups = [ "metrics" ];
@@ -250,8 +254,20 @@ in
             token = grafanaSecretFile "influxdb/tokens/truenas";
           };
         }
+
+        {
+          name = "Loki";
+          type = "loki";
+          url = "http://localhost:3100";
+          isDefault = false;
+        }
       ];
     };
+  };
+
+  services.loki = {
+    enable = true;
+    configFile = ./loki.yaml;
   };
 
   # Inspired by:
@@ -274,6 +290,7 @@ in
     allowedTCPPorts = [
       8086 # influxdb2
       3000 # grafana
+      3100 # loki
     ];
   };
 }
