@@ -1,6 +1,32 @@
 keys:
   - &admin age13j8gw6prh45a6w42swdtc2x25xlhjfygt0lsjx58qq6tmwzr4pfsv83yva
+  - &telemetry age185mc2dkelltkf3q2p6u20td4l228t6nud58tewrxrrgqtmkzdv2qgywnag
+  - &cloudflared age1g8uwy0fj9qwc59v2fvuakqn84uluet3h0sv3teyvalfhjqf0uf0q2d8jul
+  - &vaultwarden age1kqmnfy286wa2jg2zsnssqlttt75g93q3zcu6fggmug2vmhhm0vksufyfyd
+  - &immich age1ywhn34rxjws6cuz73hju2szr8r735zyghzvzldyzn0qwz7xl5essmvvjpq
+  - &nixflix age15e7m3c8f0jxe8qp96ypm2laa88qtx8u2achr8nm53uzrm2tsav6syhgya0
 creation_rules:
+  - path_regex: secrets/telemetry\.yaml$
+    key_groups:
+    - age: [*admin, *telemetry]
+
+  - path_regex: secrets/cloudflared\.yaml$
+    key_groups:
+    - age: [*admin, *cloudflared]
+
+  - path_regex: secrets/vaultwarden\.yaml$
+    key_groups:
+    - age: [*admin, *vaultwarden]
+
+  - path_regex: secrets/immich\.yaml$
+    key_groups:
+    - age: [*admin, *immich]
+
+  - path_regex: secrets/nixflix\.yaml$
+    key_groups:
+    - age: [*admin, *nixflix]
+
+  # fallback: admin only
   - path_regex: secrets/[^/]+\.(yaml|json|env|ini)$
     key_groups:
     - age:

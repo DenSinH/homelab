@@ -49,6 +49,7 @@ in
   #
   # These last 2 steps do NOT need to be done when setting up on a new host
   # though I have not copied over the cert.pem file
+  sops.defaultSopsFile = ../secrets/cloudflared.yaml;
   sops.secrets = {
     # influxdb2 service runs as user `influxdb2` in group `influxdb2
     "cloudflared/tunnel-creds" = {

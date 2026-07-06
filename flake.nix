@@ -122,6 +122,8 @@
         telemetry = {
           hostname = "telemetry";
           ip = "192.168.50.34";
+          ssh_key = "";
+          age_key = "";
           pveHost = "proxmox1";
           ctid = 114;
 

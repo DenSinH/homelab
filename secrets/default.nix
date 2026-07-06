@@ -1,6 +1,7 @@
 { ... }:
 
 {
-  sops.defaultSopsFile = ./secrets.yaml;
-  sops.age.keyFile = "/var/lib/sops-nix/keys.txt";
+  sops.age.sshKeyPaths = [
+    "/etc/ssh/ssh_host_ed25519_key"
+  ];
 }

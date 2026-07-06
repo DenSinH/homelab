@@ -10,6 +10,11 @@
 let
   mediaMount = "/mnt/media";
   fromRepo = nixflix.lib.jellyfinPlugins.fromRepo;
+
+  defaultSecretSettings = { 
+    group = "media";
+    mode = "0440";
+  };
 in
 {
   # NFS settings
@@ -25,18 +30,19 @@ in
     ];
   };
 
+  sops.defaultSopsFile = ../../secrets/nixflix.yaml;
   sops.secrets = {
-    "sonarr/api_key" = { };
-    "sonarr/password" = { };
-    "radarr/api_key" = { };
-    "radarr/password" = { };
-    "prowlarr/api_key" = { };
-    "prowlarr/password" = { };
-    "qbittorrent/password" = { };
-    "jellyfin/api_key" = { };
-    "jellyfin/dennis_password" = { };
-    "jellyfin/merel_password" = { };
-    "jellyfin/opensubtitles/password" = { };
+    "sonarr/api_key" = defaultSecretSettings;
+    "sonarr/password" = defaultSecretSettings;
+    "radarr/api_key" = defaultSecretSettings;
+    "radarr/password" = defaultSecretSettings;
+    "prowlarr/api_key" = defaultSecretSettings;
+    "prowlarr/password" = defaultSecretSettings;
+    "qbittorrent/password" = defaultSecretSettings;
+    "jellyfin/api_key" = defaultSecretSettings;
+    "jellyfin/dennis_password" = defaultSecretSettings;
+    "jellyfin/merel_password" = defaultSecretSettings;
+    "jellyfin/opensubtitles/password" = defaultSecretSettings;
   };
 
   # enable tailscale

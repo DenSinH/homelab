@@ -6,6 +6,7 @@
 }:
 
 {
+  sops.defaultSopsFile = ../secrets/immich.yaml;
   sops.secrets = {
     "immich/secrets" = {
       group = "immich";

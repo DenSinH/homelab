@@ -11,8 +11,12 @@ let
   domain = "vault.dennishilhorst.nl";
 in
 {
+  sops.defaultSopsFile = ../secrets/vaultwarden.yaml;
   sops.secrets = {
-    "vaultwarden/cloudflare_dns_api_key" = { };
+    "vaultwarden/cloudflare_dns_api_key" = { 
+      group = "vaultwarden";
+      mode = "0440";
+    };
   };
 
   # NFS share for vaultwarden data backup

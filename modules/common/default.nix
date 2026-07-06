@@ -1,5 +1,3 @@
-# modules/common.nix
-
 {
   pkgs,
   modulesPath,
@@ -52,4 +50,10 @@
 
   # LXC container template based on 26.05 release
   system.stateVersion = "26.05";
+
+  # inject LXC rotation script
+  environment.etc."init-lxc.sh" = {
+    source = ./init-lxc.sh;
+    mode = "0500";  # root-only, executable
+  };
 }

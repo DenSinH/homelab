@@ -15,6 +15,7 @@
   tailnet_ip ? null,
   system ? "x86_64-linux",
   modules ? [ ],
+  ...
 }@host:
 
 let
@@ -41,7 +42,7 @@ nixpkgs.lib.nixosSystem {
   modules = [
     sops-nix.nixosModules.sops
     nixflix.nixosModules.default
-    ../modules/common.nix
+    ../modules/common/default.nix
     ../secrets/default.nix
     ({ ... }: {
       # networking config (fixed IP, hostname)

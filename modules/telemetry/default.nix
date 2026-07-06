@@ -27,6 +27,7 @@ in
   users.users.influxdb2.extraGroups = [ "metrics" ];
 
   # configure secrets used on telemetry hosts
+  sops.defaultSopsFile = ../../secrets/telemetry.yaml;
   sops.secrets = {
     # influxdb2 service runs as user `influxdb2` in group `influxdb2
     "influxdb/admin_pass" = {
