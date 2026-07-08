@@ -77,7 +77,9 @@ in
       # see
       # https://github.com/NixOS/nixpkgs/blob/80d591ed473cfc46329932c2aadac9b435342c7c/nixos/modules/tasks/filesystems/overlayfs.nix#L31
       "${utils.escapeSystemdPath mediaMount}.mount"
-      "tailscaled.service"
+      # We may enable this, but qBitTorrent is configured to only
+      # run over the tailscale NIC anyway...
+      # "tailscaled.service"
     ];
 
     radarr = {
@@ -246,6 +248,7 @@ in
             "${mediaMount}/movies"
           ];
           preferredMetadataLanguage = "en";
+          saveTrickplayWithMedia = true;
         };
         Shows = lib.mkForce {
           collectionType = "tvshows";
@@ -254,6 +257,7 @@ in
             "${mediaMount}/shows"
           ];
           seasonZeroDisplayName = "Specials";
+          saveTrickplayWithMedia = true;
         };
       };
 

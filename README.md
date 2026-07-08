@@ -12,6 +12,12 @@ After a first deploy, the IP address should have been set. Subsequent deploys sh
 ```bash
 nix run .#deploy -- subnet-router
 ```
+After a first deploy, it is wise to run 
+```bash
+/etc/init-lxc.sh
+```
+from the LXC, it will rotate the SSH key and machine id, as well as generate a derived age key for sops.
+It will tell you how to update `.sops.yaml` if you need secrets on this LXC.
 
 ## Secrets
 
