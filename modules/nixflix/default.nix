@@ -248,6 +248,8 @@ in
             "${mediaMount}/movies"
           ];
           preferredMetadataLanguage = "en";
+          enableTrickplayImageExtraction = false;
+          extractTrickplayImagesDuringLibraryScan = false;
           saveTrickplayWithMedia = true;
         };
         Shows = lib.mkForce {
@@ -257,6 +259,8 @@ in
             "${mediaMount}/shows"
           ];
           seasonZeroDisplayName = "Specials";
+          enableTrickplayImageExtraction = false;
+          extractTrickplayImagesDuringLibraryScan = false;
           saveTrickplayWithMedia = true;
         };
       };
