@@ -19,7 +19,7 @@
   boot.supportedFilesystems = [ "nfs" ];
   fileSystems."/mnt/photos" = {
     # Expects primary/vaultwarden dataset / NFS share in TrueNAS
-    device = "192.168.50.20:/mnt/primary/photos";
+    device = "${lib.storage.nas.ip}:/tank/photos";
     fsType = "nfs";
     options = [
       "_netdev" # after network is available

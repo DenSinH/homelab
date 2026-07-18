@@ -11,7 +11,7 @@ let
   mediaMount = "/mnt/media";
   fromRepo = nixflix.lib.jellyfinPlugins.fromRepo;
 
-  defaultSecretSettings = { 
+  defaultSecretSettings = {
     group = "media";
     mode = "0440";
   };
@@ -22,7 +22,7 @@ in
   boot.supportedFilesystems = [ "nfs" ];
   fileSystems.${mediaMount} = {
     # Expects primary/vaultwarden dataset / NFS share in TrueNAS
-    device = "192.168.50.20:/mnt/primary/media";
+    device = "${lib.storage.nas.ip}:/tank/media";
     fsType = "nfs";
     options = [
       "_netdev" # after network is available

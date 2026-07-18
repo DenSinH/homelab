@@ -55,6 +55,13 @@
         };
       };
 
+      storage = {
+        nas = {
+          hostname = "nas.home";
+          ip = "192.168.50.20";
+        };
+      };
+
       lxcs = {
         ahole = {
           hostname = "ahole";
@@ -204,6 +211,10 @@
         final: prev: {
           hosts = hosts;
           lxcs = lxcs;
+          storage = storage;
+          admin = {
+            ssh_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAq2MnvCGfq5BvLzpxEcITRpMaNZ+ERlKP6+ecbb6LWb git@dennishilhorst.nl";
+          };
         }
       );
 
@@ -218,7 +229,21 @@
       };
     in
     {
-      nixosConfigurations = nixpkgs.lib.mapAttrs (_: host: mkLxc host) lib.lxcs;
+      nixosConfigurations = {
+        nas = nixpkgs.lib.nixosSystem {
+          system = system;
+
+          specialArgs = {
+            # pass through lxc data
+            inherit lib;
+          };
+
+          modules = [
+            ./hosts/nas/default.nix
+          ];
+        };
+      }
+      // nixpkgs.lib.mapAttrs (_: host: mkLxc host) lib.lxcs;
 
       apps.${system} =
         let

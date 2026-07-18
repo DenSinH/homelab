@@ -1,6 +1,7 @@
 {
   pkgs,
   modulesPath,
+  lib,
   ...
 }:
 
@@ -44,8 +45,9 @@
       PermitEmptyPasswords = "yes";
     };
   };
+
   users.users.root.openssh.authorizedKeys.keys = [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAq2MnvCGfq5BvLzpxEcITRpMaNZ+ERlKP6+ecbb6LWb git@dennishilhorst.nl"
+    lib.admin.ssh_key
   ];
 
   # LXC container template based on 26.05 release
@@ -54,6 +56,6 @@
   # inject LXC rotation script
   environment.etc."init-lxc.sh" = {
     source = ./init-lxc.sh;
-    mode = "0500";  # root-only, executable
+    mode = "0500"; # root-only, executable
   };
 }

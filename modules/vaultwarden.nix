@@ -13,7 +13,7 @@ in
 {
   sops.defaultSopsFile = ../secrets/vaultwarden.yaml;
   sops.secrets = {
-    "vaultwarden/cloudflare_dns_api_key" = { 
+    "vaultwarden/cloudflare_dns_api_key" = {
       group = "vaultwarden";
       mode = "0440";
     };
@@ -43,8 +43,8 @@ in
   services.rpcbind.enable = true;
   boot.supportedFilesystems = [ "nfs" ];
   fileSystems."/mnt/vaultwarden-backup" = {
-    # Expects primary/vaultwarden dataset / NFS share in TrueNAS
-    device = "nas.home:/mnt/primary/vaultwarden";
+    # Expects tank/vaultwarden dataset / NFS share in TrueNAS
+    device = "${lib.storage.nas.ip}:/tank/vaultwarden";
     fsType = "nfs";
     options = [
       "x-systemd.automount"
