@@ -5,8 +5,8 @@
     "name": "advzc6f",
     "namespace": "default",
     "uid": "a7ffa89a-e6ff-4607-9562-5a2a14b86fcb",
-    "resourceVersion": "1784469385547988",
-    "generation": 12,
+    "resourceVersion": "1784475895462989",
+    "generation": 13,
     "creationTimestamp": "2026-06-26T12:55:38Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "3338945286201344"
@@ -15,11 +15,11 @@
       "grafana.app/createdBy": "access-policy:service",
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerId": "default",
-      "grafana.app/sourceChecksum": "7b123be5371aa3ee50cae0ab769304f7",
+      "grafana.app/sourceChecksum": "50ec206d49db0a46baf24337c83514c7",
       "grafana.app/sourcePath": "/var/lib/grafana/dashboards/kiosk.json",
-      "grafana.app/sourceTimestamp": "1784469367000",
+      "grafana.app/sourceTimestamp": "1784475877000",
       "grafana.app/updatedBy": "access-policy:service",
-      "grafana.app/updatedTimestamp": "2026-07-19T13:56:25Z",
+      "grafana.app/updatedTimestamp": "2026-07-19T15:44:55Z",
       "grafana.app/folder": ""
     }
   },
@@ -716,6 +716,28 @@
                     },
                     "refId": "A"
                   }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "PEF08601FF7F09F97"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "1 - (\n  avg by(instance) (\n    rate(node_cpu_seconds_total{mode=\"idle\"}[$__interval])\n  )\n)",
+                        "instant": false,
+                        "legendFormat": "nas",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "B"
+                  }
                 }
               ],
               "queryOptions": {},
@@ -740,7 +762,7 @@
                     "axisBorderShow": false,
                     "axisCenteredZero": false,
                     "axisColorMode": "text",
-                    "axisLabel": "Percent",
+                    "axisLabel": "",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
@@ -790,51 +812,14 @@
                 "overrides": [
                   {
                     "matcher": {
-                      "id": "byName",
-                      "options": "I/O Wait"
+                      "id": "byRegexp",
+                      "options": "/.*host.*/",
+                      "scope": "series"
                     },
                     "properties": [
                       {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "dark-blue",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Load Average (1 Min)"
-                    },
-                    "properties": [
-                      {
-                        "id": "color",
-                        "value": {
-                          "fixedColor": "dark-red",
-                          "mode": "fixed"
-                        }
-                      }
-                    ]
-                  },
-                  {
-                    "matcher": {
-                      "id": "byName",
-                      "options": "Load Average (1 Min)"
-                    },
-                    "properties": [
-                      {
-                        "id": "unit",
-                        "value": "short"
-                      },
-                      {
-                        "id": "max",
-                        "value": 10
-                      },
-                      {
-                        "id": "custom.axisLabel",
-                        "value": "Load"
+                        "id": "displayName",
+                        "value": "${__field.labels.host}"
                       }
                     ]
                   }
