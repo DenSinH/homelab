@@ -1,4 +1,9 @@
-{ config, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   # NFS settings
@@ -12,11 +17,11 @@
 
     # todo: manage access properly
     exports = ''
-      /tank/media 192.168.50.0/24(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
-      /tank/proxmox-backup 192.168.50.0/24(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
+      /tank/media ${lib.lxcs.nixflix.ip}(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
+      /tank/proxmox-backup 192.168.50.0/28(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
       /tank/drive 192.168.50.0/24(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
-      /tank/vaultwarden 192.168.50.0/24(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
-      /tank/photos 192.168.50.0/24(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
+      /tank/vaultwarden ${lib.lxcs.vaultwarden.ip}(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
+      /tank/photos ${lib.lxcs.immich.ip}(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
     '';
   };
 
