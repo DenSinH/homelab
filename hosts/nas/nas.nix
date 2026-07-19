@@ -18,5 +18,4 @@
   };
 
   # todo: add backup management (ZFS send / rcv from / to PBS? USB backup disk?)
-  # todo: ZFS dataset settings (oneshot systemd service?)
 }

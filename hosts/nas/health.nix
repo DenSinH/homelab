@@ -1,11 +1,16 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   imports = [
     # same alloy monitoring as LXCs
     (import ../../modules/telemetry/alloy.nix {
       inherit config pkgs lib;
-      host = lib.storage.nas; 
+      host = lib.storage.nas;
     })
   ];
 
