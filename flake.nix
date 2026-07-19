@@ -57,7 +57,7 @@
 
       storage = {
         nas = {
-          hostname = "nas.home";
+          hostname = "nas";
           ip = "192.168.50.20";
         };
       };

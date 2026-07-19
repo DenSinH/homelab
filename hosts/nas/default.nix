@@ -84,6 +84,7 @@
   environment.systemPackages = with pkgs; [
     git
     nano
+    htop
   ];
 
   system.stateVersion = "25.11";

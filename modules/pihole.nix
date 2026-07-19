@@ -35,7 +35,7 @@ let
     "192.168.50.19 pbs.home"
 
     ### STORAGE
-    "192.168.50.20 nas.home"
+    "${lib.storage.nas.ip} nas.home"
     "100.127.98.109 nas.vpn"
     "192.168.50.22 hp-ilo.home"
 

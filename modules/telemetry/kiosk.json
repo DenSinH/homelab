@@ -5,8 +5,8 @@
     "name": "advzc6f",
     "namespace": "default",
     "uid": "a7ffa89a-e6ff-4607-9562-5a2a14b86fcb",
-    "resourceVersion": "1784139473877981",
-    "generation": 8,
+    "resourceVersion": "1784466715472991",
+    "generation": 10,
     "creationTimestamp": "2026-06-26T12:55:38Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "3338945286201344"
@@ -15,11 +15,11 @@
       "grafana.app/createdBy": "access-policy:service",
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerId": "default",
-      "grafana.app/sourceChecksum": "febde349b879dd5c28620057b2a28c52",
+      "grafana.app/sourceChecksum": "5cd77b7d25921234b38106fb64fcf188",
       "grafana.app/sourcePath": "/var/lib/grafana/dashboards/kiosk.json",
-      "grafana.app/sourceTimestamp": "1784139451000",
+      "grafana.app/sourceTimestamp": "1784466705000",
       "grafana.app/updatedBy": "access-policy:service",
-      "grafana.app/updatedTimestamp": "2026-07-15T18:17:53Z",
+      "grafana.app/updatedTimestamp": "2026-07-19T13:11:55Z",
       "grafana.app/folder": ""
     }
   },
@@ -184,32 +184,16 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "P42B4D6FEB0134187"
+                        "name": "PEF08601FF7F09F97"
                       },
-                      "group": "influxdb",
+                      "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "groupBy": [],
-                        "measurement": "system",
-                        "orderByTime": "ASC",
-                        "policy": "default",
-                        "query": "from(bucket: \"scale\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"system\" and\n    r._field == \"uptime\" and\n    r.host == \"truenas\"\n  )\n  |> last()",
-                        "resultFormat": "time_series",
-                        "select": [
-                          [
-                            {
-                              "params": [
-                                "uptime"
-                              ],
-                              "type": "field"
-                            },
-                            {
-                              "params": [],
-                              "type": "last"
-                            }
-                          ]
-                        ],
-                        "tags": []
+                        "editorMode": "code",
+                        "expr": "time() - node_boot_time_seconds{job=\"node\"}",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
                       },
                       "version": "v0"
                     },
@@ -302,46 +286,16 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "P42B4D6FEB0134187"
+                        "name": "PEF08601FF7F09F97"
                       },
-                      "group": "influxdb",
+                      "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "groupBy": [
-                          {
-                            "params": [
-                              "$__interval"
-                            ],
-                            "type": "time"
-                          },
-                          {
-                            "params": [
-                              "null"
-                            ],
-                            "type": "fill"
-                          }
-                        ],
-                        "measurement": "cpu",
-                        "orderByTime": "ASC",
-                        "policy": "default",
-                        "query": "from(bucket: \"scale\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"cpu\" and\n    r._field == \"usage_idle\" and\n    r.cpu == \"cpu-total\" and\n    r.host == \"truenas\"\n  )\n  |> mean()\n  |> keep(columns: [\"_value\"])",
-                        "rawQuery": true,
-                        "resultFormat": "time_series",
-                        "select": [
-                          [
-                            {
-                              "params": [
-                                "usage_idle"
-                              ],
-                              "type": "field"
-                            },
-                            {
-                              "params": [],
-                              "type": "mean"
-                            }
-                          ]
-                        ],
-                        "tags": []
+                        "editorMode": "code",
+                        "expr": "100 - (\n  avg by(instance) (\n    rate(node_cpu_seconds_total{mode=~\"idle|iowait\"}[$__interval])\n  ) * 100\n)",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
                       },
                       "version": "v0"
                     },
@@ -350,34 +304,7 @@
                 }
               ],
               "queryOptions": {},
-              "transformations": [
-                {
-                  "group": "calculateField",
-                  "kind": "Transformation",
-                  "spec": {
-                    "options": {
-                      "alias": "usage",
-                      "binary": {
-                        "left": {
-                          "fixed": "100"
-                        },
-                        "operator": "-",
-                        "right": {
-                          "matcher": {
-                            "id": "byName",
-                            "options": "_value"
-                          }
-                        }
-                      },
-                      "mode": "binary",
-                      "reduce": {
-                        "reducer": "sum"
-                      },
-                      "replaceFields": true
-                    }
-                  }
-                }
-              ]
+              "transformations": []
             }
           },
           "description": "",
@@ -431,7 +358,7 @@
                   "calcs": [
                     "lastNotNull"
                   ],
-                  "fields": "",
+                  "fields": "/^localhost:9100$/",
                   "values": false
                 },
                 "showUnfilled": true,
@@ -456,42 +383,42 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "P42B4D6FEB0134187"
+                        "name": "PEF08601FF7F09F97"
                       },
-                      "group": "influxdb",
+                      "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "groupBy": [],
-                        "limit": "1",
-                        "measurement": "mem",
-                        "orderByTime": "DESC",
-                        "policy": "default",
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"scale\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"mem\" and\n    (r._field == \"used\" or r._field == \"total\") and\n    r.host == \"truenas\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"used\", \"total\"])\n",
-                        "rawQuery": false,
-                        "resultFormat": "time_series",
-                        "select": [
-                          [
-                            {
-                              "params": [
-                                "used"
-                              ],
-                              "type": "field"
-                            }
-                          ],
-                          [
-                            {
-                              "params": [
-                                "total"
-                              ],
-                              "type": "field"
-                            }
-                          ]
-                        ],
-                        "tags": []
+                        "editorMode": "code",
+                        "expr": "node_memory_MemTotal_bytes{job=\"node\"}",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
                       },
                       "version": "v0"
                     },
                     "refId": "A"
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "PEF08601FF7F09F97"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "node_memory_MemTotal_bytes{job=\"node\"} - node_memory_MemAvailable_bytes{job=\"node\"}",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "B"
                   }
                 }
               ],
@@ -566,7 +493,7 @@
                   "calcs": [
                     "lastNotNull"
                   ],
-                  "fields": "/^used$/",
+                  "fields": "/^\\{instance=\"localhost:9100\", job=\"node\"\\}$/",
                   "values": false
                 },
                 "showUnfilled": true,
@@ -951,74 +878,42 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "P42B4D6FEB0134187"
+                        "name": "PEF08601FF7F09F97"
                       },
-                      "group": "influxdb",
+                      "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "groupBy": [
-                          {
-                            "params": [
-                              "$__interval"
-                            ],
-                            "type": "time"
-                          },
-                          {
-                            "params": [
-                              "null"
-                            ],
-                            "type": "fill"
-                          }
-                        ],
-                        "measurement": "zfs_dataset",
-                        "orderByTime": "ASC",
-                        "policy": "default",
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"scale\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"zfs_dataset\" and\n    (r._field == \"avail\" or r._field == \"used\") and\n    r.host == \"truenas\" and\n    r.name == \"primary/media\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"used\", \"avail\"])\n",
-                        "rawQuery": true,
-                        "resultFormat": "time_series",
-                        "select": [
-                          [
-                            {
-                              "params": [
-                                "used"
-                              ],
-                              "type": "field"
-                            },
-                            {
-                              "params": [],
-                              "type": "mean"
-                            }
-                          ],
-                          [
-                            {
-                              "params": [
-                                "avail"
-                              ],
-                              "type": "field"
-                            },
-                            {
-                              "params": [],
-                              "type": "mean"
-                            },
-                            {
-                              "params": [
-                                " +"
-                              ],
-                              "type": "math"
-                            }
-                          ]
-                        ],
-                        "tags": [
-                          {
-                            "key": "name::tag",
-                            "operator": "=",
-                            "value": "primary/media"
-                          }
-                        ]
+                        "editorMode": "code",
+                        "expr": "zfs_dataset_used_bytes{name=\"tank/media\"}",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
                       },
                       "version": "v0"
                     },
                     "refId": "A"
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "PEF08601FF7F09F97"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "zfs_dataset_available_bytes{name=\"tank/media\"} + zfs_dataset_used_bytes{name=\"tank/media\"}",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "B"
                   }
                 }
               ],
@@ -1104,7 +999,7 @@
                   "calcs": [
                     "lastNotNull"
                   ],
-                  "fields": "/^avail$/",
+                  "fields": "/^\\{__name__=\"zfs_dataset_used_bytes\", instance=\"localhost:9134\", job=\"zfs\", name=\"tank/media\", pool=\"tank\", type=\"filesystem\"\\}$/",
                   "values": false
                 },
                 "showUnfilled": true,
@@ -1484,7 +1379,7 @@
                         "measurement": "cpustat",
                         "orderByTime": "ASC",
                         "policy": "default",
-                        "query": "from(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"cpustat\" and\n    r._field == \"cpu\"\n  )\n  |> mean()\n  |> group(columns: [\"host\"])\n  |> keep(columns: [\"host\", \"_value\"])\n",
+                        "query": "from(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"cpustat\" and\n    r._field == \"cpu\"\n  )\n  |> last()\n  |> group(columns: [\"host\"])\n  |> keep(columns: [\"host\", \"_value\"])\n",
                         "resultFormat": "time_series",
                         "select": [
                           [
@@ -1514,9 +1409,7 @@
                   }
                 }
               ],
-              "queryOptions": {
-                "maxDataPoints": 100
-              },
+              "queryOptions": {},
               "transformations": []
             }
           },
@@ -1753,48 +1646,42 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "P42B4D6FEB0134187"
+                        "name": "PEF08601FF7F09F97"
                       },
-                      "group": "influxdb",
+                      "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "groupBy": [],
-                        "limit": "1",
-                        "measurement": "zpool_stats",
-                        "orderByTime": "DESC",
-                        "policy": "default",
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"scale\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"zpool_stats\" and\n    r.host == \"truenas\" and\n    r.vdev == \"root/mirror-0\" and\n    (r._field == \"alloc\" or r._field == \"size\")\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"alloc\", \"size\"])\n",
-                        "rawQuery": false,
-                        "resultFormat": "time_series",
-                        "select": [
-                          [
-                            {
-                              "params": [
-                                "alloc"
-                              ],
-                              "type": "field"
-                            }
-                          ],
-                          [
-                            {
-                              "params": [
-                                "size"
-                              ],
-                              "type": "field"
-                            }
-                          ]
-                        ],
-                        "tags": [
-                          {
-                            "key": "vdev::tag",
-                            "operator": "=",
-                            "value": "root/mirror-0"
-                          }
-                        ]
+                        "editorMode": "code",
+                        "expr": "zfs_pool_allocated_bytes{pool=\"tank\"}",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
                       },
                       "version": "v0"
                     },
                     "refId": "A"
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "PEF08601FF7F09F97"
+                      },
+                      "group": "prometheus",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "zfs_pool_size_bytes{pool=\"tank\"}",
+                        "instant": false,
+                        "legendFormat": "__auto",
+                        "range": true
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "B"
                   }
                 }
               ],
@@ -1807,7 +1694,7 @@
           "description": "",
           "id": 21,
           "links": [],
-          "title": "Primary",
+          "title": "Tank",
           "transparent": true,
           "vizConfig": {
             "group": "bargauge",
@@ -1869,7 +1756,7 @@
                   "calcs": [
                     "lastNotNull"
                   ],
-                  "fields": "/^alloc$/",
+                  "fields": "/^\\{__name__=\"zfs_pool_allocated_bytes\", instance=\"localhost:9134\", job=\"zfs\", pool=\"tank\"\\}$/",
                   "values": false
                 },
                 "showUnfilled": true,

@@ -44,7 +44,7 @@ in
       group = "metrics";
       mode = "0440";
     };
-    "influxdb/tokens/truenas" = {
+    "influxdb/tokens/nas" = {
       group = "metrics";
       mode = "0440";
     };
@@ -133,17 +133,17 @@ in
           };
         };
 
-        truenas = {
-          description = "Organization for TrueNAS data";
+        nas = {
+          description = "Organization for NAS data";
 
           buckets."scale" = {
-            description = "Bucket for TrueNAS SCALE host data";
+            description = "Bucket for NAS host data";
             retention = retention;
           };
 
           auths."Host" = {
-            description = "Token used by TrueNAS host";
-            tokenFile = config.sops.secrets."influxdb/tokens/truenas".path;
+            description = "Token used by NAS host";
+            tokenFile = config.sops.secrets."influxdb/tokens/nas".path;
             readBuckets = [
               "scale"
             ];
@@ -239,21 +239,10 @@ in
         }
 
         {
-          name = "InfluxDB - TrueNAS";
-          type = "influxdb";
-          url = "http://localhost:8086";
+          name = "Prometheus - NAS";
+          type = "prometheus";
+          url = "http://${lib.storage.nas.ip}:9090";
           isDefault = false;
-
-          jsonData = {
-            version = "Flux";
-            organization = "truenas";
-            defaultBucket = "scale";
-            tlsSkipVerify = true;
-          };
-
-          secureJsonData = {
-            token = grafanaSecretFile "influxdb/tokens/truenas";
-          };
         }
 
         {
