@@ -44,10 +44,6 @@ in
       group = "metrics";
       mode = "0440";
     };
-    "influxdb/tokens/nas" = {
-      group = "metrics";
-      mode = "0440";
-    };
     "influxdb/tokens/homeassistant" = {
       group = "metrics";
       mode = "0440";
@@ -126,32 +122,6 @@ in
             ];
             writeBuckets = [
               "homeassistant"
-            ];
-            writePermissions = [
-              "buckets"
-            ];
-          };
-        };
-
-        nas = {
-          description = "Organization for NAS data";
-
-          buckets."scale" = {
-            description = "Bucket for NAS host data";
-            retention = retention;
-          };
-
-          auths."Host" = {
-            description = "Token used by NAS host";
-            tokenFile = config.sops.secrets."influxdb/tokens/nas".path;
-            readBuckets = [
-              "scale"
-            ];
-            readPermissions = [
-              "buckets"
-            ];
-            writeBuckets = [
-              "scale"
             ];
             writePermissions = [
               "buckets"
