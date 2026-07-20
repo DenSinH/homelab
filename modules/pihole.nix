@@ -17,9 +17,7 @@ let
     "(\\.|^)googleadservices\\.com$"
   ];
   upstreams = [
-    "1.1.1.1"
-    "8.8.8.8"
-    "8.8.4.4"
+    "127.0.0.1#5335" # unbound
   ];
   localRecords = [
     ### NETWORK
@@ -147,6 +145,53 @@ in
 
       echo "Done."
     '';
+  };
+
+  services.unbound = {
+    enable = true;
+    settings = {
+      server = {
+        interface = "127.0.0.1";
+        port = 5335;
+        do-ip4 = "yes";
+        do-udp = "yes";
+        do-tcp = "yes";
+        do-ip6 = "no";
+        prefer-ip6 = "no";
+
+        # Cache slabs reduce lock contention
+        msg-cache-slabs = 2;
+        rrset-cache-slabs = 2;
+        infra-cache-slabs = 2;
+        key-cache-slabs = 2;
+
+        # Performance
+        msg-cache-size = "64m";
+        rrset-cache-size = "128m"; # ~2x msg-cache-size
+
+        # Hardening / privacy
+        # Based on recommended settings in
+        # https://docs.pi-hole.net/guides/dns/unbound/#configure-unbound
+        harden-glue = "yes";
+        harden-dnssec-stripped = "yes";
+        use-caps-for-id = "no";
+        edns-buffer-size = 1232;
+        prefetch = "yes";
+        prefetch-key = "yes";
+        num-threads = 1;
+
+        # Local/private networks
+        private-address = [
+          "192.168.0.0/16"
+          "169.254.0.0/16"
+          "172.16.0.0/12"
+          "10.0.0.0/8"
+          "fd00::/8"
+          "fe80::/10"
+          "100.0.0.0/8" # tailnet
+        ];
+      };
+    };
   };
 
   # this conflicts with the pihole port 53 mapping
