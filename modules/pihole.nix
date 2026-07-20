@@ -36,7 +36,6 @@ let
 
     ### STORAGE
     "${lib.storage.nas.ip} nas.home"
-    "100.127.98.109 nas.vpn"
     "192.168.50.22 hp-ilo.home"
 
     ### SERVICES
@@ -62,28 +61,25 @@ let
     ### STREAMING
     "${lib.lxcs.nixflix.ip} nixflix.home"
     "${lib.lxcs.nixflix.tailnet_ip} nixflix.vpn"
-
-    "${lib.lxcs.nixflix.ip} jellyfin.home"
-    "${lib.lxcs.nixflix.tailnet_ip} jellyfin.vpn"
-
-    "${lib.lxcs.nixflix.ip} radarr.home"
-    "${lib.lxcs.nixflix.tailnet_ip} radarr.vpn"
-
-    "${lib.lxcs.nixflix.ip} radarr.home"
-    "${lib.lxcs.nixflix.tailnet_ip} radarr.vpn"
-
-    "${lib.lxcs.nixflix.ip} sonarr.home"
-    "${lib.lxcs.nixflix.tailnet_ip} sonarr.vpn"
-
-    "${lib.lxcs.nixflix.ip} qbittorrent.home"
-    "${lib.lxcs.nixflix.tailnet_ip} qbittorrent.vpn"
-
-    "${lib.lxcs.nixflix.ip} prowlarr.home"
-    "192.168.50.45 flaresolverr.home"
     "192.168.50.46 byparr.home"
     "192.168.50.47 bazarr.home"
 
     "192.168.50.203 playstation.home"
+  ];
+
+  # subdomain mappings for (exposed) nixflix services
+  cnameRecords = [
+    "radarr.nixflix.home,nixflix.home"
+    "sonarr.nixflix.home,nixflix.home"
+    "jellyfin.nixflix.home,nixflix.home"
+    "prowlarr.nixflix.home,nixflix.home"
+    "qbittorrent.nixflix.home,nixflix.home"
+
+    "radarr.nixflix.vpn,nixflix.vpn"
+    "sonarr.nixflix.vpn,nixflix.vpn"
+    "jellyfin.nixflix.vpn,nixflix.vpn"
+    "prowlarr.nixflix.vpn,nixflix.vpn"
+    "qbittorrent.nixflix.vpn,nixflix.vpn"
   ];
 in
 {
@@ -112,6 +108,7 @@ in
     settings = {
       dns.upstreams = upstreams;
       dns.hosts = localRecords;
+      dns.cnameRecords = cnameRecords;
 
       # needed for tailscale DNS
       dns.listeningMode = "ALL";

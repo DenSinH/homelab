@@ -15,6 +15,8 @@ let
     group = "media";
     mode = "0440";
   };
+
+  domain = "nixflix.*"; # both nixflix.home AND nixflix.vpn
 in
 {
   # NFS settings
@@ -52,7 +54,7 @@ in
 
   services.tailscale.extraSetFlags = [
     # find mullvad exit nodes with
-    # tailscale exit-node list
+    #   tailscale exit-node list
     "--exit-node=nl-ams-wg-201.mullvad.ts.net"
     "--exit-node-allow-lan-access"
   ];
@@ -68,8 +70,10 @@ in
     # todo: put this somewhere else? NFS? Backed up?
     stateDir = "/data/.state";
 
-    # I don't want nginx, since multiple domains do not seem to be
-    # implemented, and I just couldn't get it working...
+    nginx = {
+      enable = true;
+      domain = domain;
+    };
     postgres.enable = true;
 
     serviceDependencies = [
@@ -84,7 +88,6 @@ in
 
     radarr = {
       enable = true;
-      openFirewall = true;
 
       config = {
         apiKey = {
@@ -106,7 +109,6 @@ in
 
     sonarr = {
       enable = true;
-      openFirewall = true;
 
       config = {
         apiKey = {
@@ -130,7 +132,6 @@ in
 
     prowlarr = {
       enable = true;
-      openFirewall = true;
 
       config = {
         apiKey = {
@@ -180,7 +181,6 @@ in
 
     torrentClients.qbittorrent = {
       enable = true;
-      openFirewall = true;
 
       password = {
         _secret = config.sops.secrets."prowlarr/password".path;
@@ -220,7 +220,6 @@ in
 
     jellyfin = {
       enable = true;
-      openFirewall = true;
 
       apiKey._secret = config.sops.secrets."jellyfin/api_key".path;
       users = {
@@ -304,4 +303,13 @@ in
       };
     };
   };
+
+  # add root domain mapping to jellyfin
+  services.nginx.virtualHosts."jellyfin.${domain}".serverAliases = [
+    domain
+  ];
+
+  networking.firewall.allowedTCPPorts = [
+    80 # nginx
+  ];
 }
