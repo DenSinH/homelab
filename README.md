@@ -27,8 +27,13 @@ Secrets are managed with `sops-nix`. The (age) `keys.txt` file is expected to be
 ```
 and may have to be provisioned to any hosts using it.
 
-## Todo
+## Deploying
 
-Feels like the order of scariness to migrate these:
-- Arr stack (use https://github.com/kiriwalawren/nixflix)
-- Immich
+For an LXC, run
+```bash
+nix run .#deploy -- <lxc-name>
+```
+For the NAS, run
+```bash
+nixos-rebuild switch --flake .#nas --target-host root@nas.home --sudo
+```
