@@ -42,7 +42,7 @@ nixpkgs.lib.nixosSystem {
   modules = [
     sops-nix.nixosModules.sops
     nixflix.nixosModules.default
-    ../modules/common/default.nix
+    ../modules/lxc/default.nix
     ../secrets/default.nix
     ({ ... }: {
       # networking config (fixed IP, hostname)
