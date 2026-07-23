@@ -69,6 +69,8 @@
           pveHost = "proxmox1";
           ctid = 109;
 
+          stateVersion = "26.05";
+
           modules = [
             ./modules/pihole.nix
             ./modules/tailscale.nix
@@ -81,6 +83,8 @@
           ip = "192.168.50.3";
           pveHost = "proxmox2";
           ctid = 204;
+
+          stateVersion = "26.05";
 
           modules = [
             ./modules/pihole.nix
@@ -95,6 +99,8 @@
           pveHost = "proxmox3";
           ctid = 311;
 
+          stateVersion = "26.05";
+
           modules = [
             ./modules/pihole.nix
             ./modules/tailscale.nix
@@ -108,6 +114,8 @@
           pveHost = "proxmox1";
           ctid = 115;
 
+          stateVersion = "26.05";
+
           modules = [
             ./modules/cloudflared.nix
             ./modules/telemetry/alloy.nix
@@ -119,6 +127,8 @@
           ip = "192.168.50.8";
           pveHost = "proxmox1";
           ctid = 113;
+
+          stateVersion = "26.05";
 
           modules = [
             ./modules/subnet-router.nix
@@ -134,6 +144,8 @@
           pveHost = "proxmox1";
           ctid = 114;
 
+          stateVersion = "26.05";
+
           modules = [
             ./modules/telemetry/default.nix
           ];
@@ -144,6 +156,8 @@
           ip = "192.168.50.35";
           pveHost = "proxmox1";
           ctid = 100;
+
+          stateVersion = "26.05";
 
           modules = [
             ./modules/gatus/default.nix
@@ -157,6 +171,8 @@
           tailnet_ip = "100.119.210.127";
           pveHost = "proxmox1";
           ctid = 116;
+
+          stateVersion = "26.05";
 
           modules = [
             ./modules/vaultwarden.nix
@@ -172,6 +188,8 @@
           pveHost = "proxmox3";
           ctid = 307;
 
+          stateVersion = "26.05";
+
           modules = [
             ./modules/igpu.nix
             ./modules/immich.nix
@@ -186,6 +204,8 @@
           pveHost = "proxmox1";
           ctid = 101;
 
+          stateVersion = "26.05";
+
           modules = [
             ./modules/blog.nix
             ./modules/telemetry/alloy.nix
@@ -198,6 +218,8 @@
           tailnet_ip = "100.84.251.29";
           pveHost = "proxmox3";
           ctid = 312;
+
+          stateVersion = "26.05";
 
           modules = [
             ./modules/nixflix/default.nix

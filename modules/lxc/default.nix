@@ -2,6 +2,7 @@
   pkgs,
   modulesPath,
   lib,
+  host,
   ...
 }:
 
@@ -51,7 +52,7 @@
   ];
 
   # LXC container template based on 26.05 release
-  system.stateVersion = "26.05";
+  system.stateVersion = host.stateVersion;
 
   # inject LXC rotation script
   environment.etc."init-lxc.sh" = {
