@@ -300,6 +300,7 @@ in
   # has no real NICs, so resolving the flowtable's physical device names
   # (enp1s0/enp1s0.300/enp2s0) fails there even though they exist fine at
   # actual boot. Swap in "lo" - which always exists - for the check copy only.
+  # https://discourse.nixos.org/t/33031
   networking.nftables.preCheckRuleset = ''
     sed -E 's/devices = \{[^}]*\}/devices = { "lo" }/' -i ruleset.conf
   '';
