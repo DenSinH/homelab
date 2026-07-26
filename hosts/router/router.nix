@@ -197,6 +197,17 @@ let
     }
   ];
   iotWanAllowed = builtins.filter (h: h.wan) iotHosts;
+
+  # Services (.30-49): MAC is tagged via dhcp-host = "mac,set:services" (no
+  # fixed IP) so it may take a lease from the tag:services dhcp-range;
+  # unregistered MACs requesting that range are refused and fall through
+  # to dynamic instead.
+  servicesHosts = [
+    {
+      mac = "bc:24:11:f4:1f:43";
+      name = "home-assistant";
+    }
+  ];
 in
 {
   ###########################################################################
@@ -394,10 +405,7 @@ in
       dhcp-host =
         (map (h: "${h.mac},${h.ip},${h.name}") fixedHosts)
         ++ (map (h: "${h.mac},${h.ip},${h.name}") iotHosts)
-        ++ [
-          # services: tag only, no fixed IP - proves the MAC may use .30-49
-          "bc:24:11:f4:1f:43,set:services" # home-assistant
-        ];
+        ++ (map (h: "${h.mac},set:services # ${h.name}") servicesHosts);
     };
   };
 
