@@ -296,6 +296,14 @@ in
   networking.nftables.enable = true;
   networking.firewall.enable = false; # fully replaced by nftables.ruleset below
 
+  # The build-time `nft --check` sandbox (see networking.nftables.checkRuleset)
+  # has no real NICs, so resolving the flowtable's physical device names
+  # (enp1s0/enp1s0.300/enp2s0) fails there even though they exist fine at
+  # actual boot. Swap in "lo" - which always exists - for the check copy only.
+  networking.nftables.preCheckRuleset = ''
+    sed -E 's/devices = \{[^}]*\}/devices = { "lo" }/' -i ruleset.conf
+  '';
+
   networking.nftables.ruleset = ''
     # both WAN paths (plain + Odido VLAN 300, see interfaces above) count as WAN
     define wan_ifs = { ${lib.concatMapStringsSep ", " (i: "\"${i}\"") wanIfs} }
