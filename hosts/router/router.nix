@@ -49,6 +49,13 @@ let
     wanVlanIf
   ];
 
+  # TEMPORARY TESTING SWITCH: flip to true to allow SSH from WAN (e.g. when
+  # the WAN side is plugged into a network you don't have LAN access to
+  # yet). Still key-only auth (PasswordAuthentication=false below), but
+  # this is otherwise a real hole in the WAN default-drop - set back to
+  # false once testing is done, don't leave it on.
+  testAllowSshFromWan = false;
+
   # Same /24, just different address bands - keep ranges non-overlapping.
   lanSubnet = "192.168.50";
   lanGateway = "${lanSubnet}.1";
@@ -345,6 +352,9 @@ in
 
         # WAN: only reply to a few diagnostic ICMP types, nothing else unsolicited
         iifname $wan_ifs icmp type { echo-request, destination-unreachable, time-exceeded } accept comment "allow diagnostic ICMP"
+        ${lib.optionalString testAllowSshFromWan ''
+          iifname $wan_ifs tcp dport 22 accept comment "TEMPORARY: SSH from WAN for testing - see testAllowSshFromWan in router.nix"
+        ''}
         iifname $wan_ifs counter drop comment "drop all other unsolicited WAN traffic"
 
         # SSH: allowed from everywhere except net/services/iot ranges (key-only
