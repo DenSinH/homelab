@@ -66,6 +66,7 @@
         ahole = {
           hostname = "ahole";
           ip = "192.168.50.2";
+          mac = "bc:24:11:4e:81:b0";
           pveHost = "proxmox1";
           ctid = 109;
 
@@ -81,6 +82,7 @@
         bhole = {
           hostname = "bhole";
           ip = "192.168.50.3";
+          mac = "bc:24:11:7d:98:4a";
           pveHost = "proxmox2";
           ctid = 204;
 
@@ -96,6 +98,7 @@
         chole = {
           hostname = "chole";
           ip = "192.168.50.4";
+          mac = "bc:24:11:f1:b2:39";
           pveHost = "proxmox3";
           ctid = 311;
 
@@ -111,6 +114,7 @@
         cloudflared = {
           hostname = "cloudflared";
           ip = "192.168.50.9";
+          mac = "bc:24:11:2f:5f:8b";
           pveHost = "proxmox1";
           ctid = 115;
 
@@ -154,6 +158,7 @@
         gatus = {
           hostname = "gatus";
           ip = "192.168.50.35";
+          mac = "bc:24:11:a5:a6:f0";
           pveHost = "proxmox1";
           ctid = 100;
 
@@ -168,6 +173,7 @@
         vaultwarden = {
           hostname = "vaultwarden";
           ip = "192.168.50.37";
+          mac = "bc:24:11:e1:2e:dd";
           tailnet_ip = "100.119.210.127";
           pveHost = "proxmox1";
           ctid = 116;
@@ -184,6 +190,7 @@
         immich = {
           hostname = "immich";
           ip = "192.168.50.36";
+          mac = "bc:24:11:a9:1a:9c";
           tailnet_ip = "100.100.52.120";
           pveHost = "proxmox3";
           ctid = 307;
@@ -215,6 +222,7 @@
         nixflix = {
           hostname = "nixflix";
           ip = "192.168.50.40";
+          mac = "bc:24:11:0f:2d:1a";
           tailnet_ip = "100.84.251.29";
           pveHost = "proxmox3";
           ctid = 312;

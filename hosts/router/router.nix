@@ -1,44 +1,28 @@
 ########################################################################
-# NixOS router — WAN + ONE FLAT LAN, with MAC-based static IP "profiles"
-# (trusted / iot) and a dynamic fallback pool for anything unrecognized.
+# NixOS router — WAN + ONE FLAT LAN, split into IP ranges by convention:
 #
-# !!! This is deliberately NOT VLANs. !!!
-# The original design used 802.1Q VLAN trunking, but that requires a
-# VLAN-aware ("managed") switch to split the trunk into separate
-# broadcast domains downstream. With only unmanaged switches and
-# non-SDN-capable Asus APs (AX57/AX55) in the loop, there's nothing
-# downstream that can honor VLAN tags, so trunking would just be
-# tags nothing understands.
+#   .1   - .9   net      static  DNS (pihole), subnet router, cloudflared
+#   .10  - .19  compute  static  proxmox nodes, PBS
+#   .20  - .29  storage  static  NAS (both NICs, iLO)
+#   .30  - .49  services dhcp    services, self-assigned IP, MAC-gated
+#   .50  - .99  iot      dhcp    IoT, fixed IP by MAC, no WAN by default
+#   .100 - .199 dynamic  dhcp    unrecognized MACs (guest-equivalent)
+#   .200 - .254 fixed    dhcp    known devices, fixed IP by MAC
 #
-# What this file gives you instead:
-#   - Devices with a known MAC get a fixed IP in either the "trusted" or
-#     "iot" range via dnsmasq's dhcp-host, decided purely by MAC address.
-#   - Anything with an unrecognized MAC falls through to a general
-#     dynamic pool (the guest-equivalent fallback) automatically -
-#     that's just how dnsmasq behaves when a MAC has no dhcp-host entry.
-#   - The router's firewall enforces different WAN/admin-access policy
-#     per range (e.g. only "trusted" can SSH in).
+# NOT VLANs on the LAN side: the unmanaged switches + non-SDN Asus APs
+# (AX57/AX55) can't honor 802.1Q tags, so ranges are enforced by dnsmasq
+# (MAC -> IP/tag) + nftables (policy per source-IP range), not by real
+# broadcast-domain separation. See README for what a ~$25 managed switch
+# would additionally get you.
 #
-# What this file CANNOT give you, and no nftables config can fix without
-# a VLAN-capable switch: isolation *between* devices on the same wire.
-# Traffic between two hosts on the same flat LAN is switched directly at
-# layer 2 and never reaches the router's forward chain, so e.g. an IoT
-# device can still directly probe a laptop sitting on the same switch.
-# See the README for what would close this gap (a ~$25 managed switch).
+# WAN side does use a VLAN (802.1Q id 300), for Odido ISP replacement mode
+# - see README "WAN / ISP replacement" for why and the AON/GPON caveats.
 #
 # Written for, and adapting patterns from:
-#   - Solene Rapenne, "NixOS with a live-usb router"
-#     https://dataswamp.org/~solene/2022-08-03-nixos-with-live-usb-router.html
-#   - Johan (skogsbrus), "Building a Router with NixOS"
-#     https://skogsbrus.xyz/building-a-router-with-nixos/
-#     (dnsmasq static leases, per-interface firewall ports,
-#      services.openssh.openFirewall = false)
-#   - Francis Begyn, "Setting up my own router with NixOS"
-#     https://francis.begyn.be/blog/nixos-home-router
-#     (APU install-over-serial, GRUB w/ serial console)
-#   - Josh Pearce (jjpdev), "DIY Home Router with NixOS"
-#     https://www.jjpdev.com/posts/home-router-nixos/
-#     (nftables input/forward chain layout, DHCP-bypasses-firewall gotcha)
+#   - Solene Rapenne: https://dataswamp.org/~solene/2022-08-03-nixos-with-live-usb-router.html
+#   - Johan (skogsbrus): https://skogsbrus.xyz/building-a-router-with-nixos/
+#   - Francis Begyn: https://francis.begyn.be/blog/nixos-home-router
+#   - Josh Pearce (jjpdev): https://www.jjpdev.com/posts/home-router-nixos/
 ########################################################################
 
 {
@@ -52,17 +36,158 @@ let
   wanIf = "enp1s0"; # 1Gbit
   lanIf = "enp2s0"; # 2.5Gbit
 
-  # One flat LAN, carved into ranges by convention (not by VLAN/subnet -
-  # they're all the same /24, just different address bands). Adjust to
-  # taste, just keep them non-overlapping and inside lanSubnet.
-  lanSubnet = "192.168.27";
+  # Odido (ISP) dual-mode WAN, see README "WAN / ISP replacement":
+  #   - behind Odido's own router: wanIf gets a plain DHCP lease, untagged.
+  #   - replacing Odido's router (straight into their ONT): needs 802.1Q
+  #     VLAN 300 + DHCP. Both are brought up at once so either cabling
+  #     works without editing config; only the one actually connected
+  #     gets a lease.
+  wanVlanId = 300;
+  wanVlanIf = "${wanIf}.${toString wanVlanId}";
+  wanIfs = [
+    wanIf
+    wanVlanIf
+  ];
+
+  # Same /24, just different address bands - keep ranges non-overlapping.
+  lanSubnet = "192.168.50";
   lanGateway = "${lanSubnet}.1";
-  trustedLo = "${lanSubnet}.10";
-  trustedHi = "${lanSubnet}.99";
-  iotLo = "${lanSubnet}.100";
-  iotHi = "${lanSubnet}.149";
-  fallbackLo = "${lanSubnet}.150"; # unrecognized MACs land here (guest-equivalent)
-  fallbackHi = "${lanSubnet}.250";
+
+  netLo = "${lanSubnet}.1";
+  netHi = "${lanSubnet}.9";
+  computeLo = "${lanSubnet}.10";
+  computeHi = "${lanSubnet}.19";
+  storageLo = "${lanSubnet}.20";
+  storageHi = "${lanSubnet}.29";
+  servicesLo = "${lanSubnet}.30";
+  servicesHi = "${lanSubnet}.49";
+  iotLo = "${lanSubnet}.50";
+  iotHi = "${lanSubnet}.99";
+  dynamicLo = "${lanSubnet}.100";
+  dynamicHi = "${lanSubnet}.199";
+  fixedLo = "${lanSubnet}.200";
+  fixedHi = "${lanSubnet}.254";
+
+  # Known devices in the fixed range (.200-254): listed once here, used to
+  # generate both the dnsmasq dhcp-host reservation and an nftables MAC+IP
+  # binding, so a device can't just self-assign an unused fixed-range IP
+  # and inherit SSH access without also spoofing the matching MAC.
+  fixedHosts = [
+    {
+      mac = "1a:a3:ef:b4:53:46";
+      ip = "${lanSubnet}.200";
+      name = "dennis-telefoon";
+    }
+    {
+      mac = "50:5a:65:34:0e:19";
+      ip = "${lanSubnet}.201";
+      name = "dennis-laptop";
+    }
+    {
+      mac = "5c:2f:af:36:55:d8";
+      ip = "${lanSubnet}.205";
+      name = "p1-meter-homewizard";
+    }
+    {
+      mac = "34:5f:45:19:d8:28";
+      ip = "${lanSubnet}.206";
+      name = "shellyplus2pm";
+    }
+    {
+      mac = "fc:f5:c4:98:e3:ee";
+      ip = "${lanSubnet}.207";
+      name = "otgw";
+    }
+    {
+      mac = "38:7a:cc:70:25:4a";
+      ip = "${lanSubnet}.208";
+      name = "eufy-vacuum";
+    }
+    {
+      mac = "b8:e9:37:32:72:ec";
+      ip = "${lanSubnet}.230";
+      name = "sonos-zp";
+    }
+
+    # Not yet renumbered into the .200-254 band - kept at their old IPs for
+    # now (still functions, just outside the intended range convention).
+    {
+      mac = "b8:e9:37:82:35:18";
+      ip = "${lanSubnet}.109";
+      name = "sonos-1";
+    }
+    {
+      mac = "28:49:e9:76:15:8d";
+      ip = "${lanSubnet}.124";
+      name = "iphone-merel";
+    }
+    {
+      mac = "2c:7b:a0:11:f9:54";
+      ip = "${lanSubnet}.131";
+      name = "hvee113-work-laptop";
+    }
+    {
+      mac = "d8:a0:11:e1:07:8b";
+      ip = "${lanSubnet}.132";
+      name = "wiz-e1078b";
+    }
+    {
+      mac = "f4:4d:ad:04:1c:d4";
+      ip = "${lanSubnet}.140";
+      name = "chromecast-badkamer";
+    }
+    {
+      mac = "5c:aa:fd:46:b3:c6";
+      ip = "${lanSubnet}.144";
+      name = "sonos-2";
+    }
+    {
+      mac = "d8:a0:11:e1:07:9f";
+      ip = "${lanSubnet}.152";
+      name = "wiz-e1079f";
+    }
+    {
+      mac = "b8:e9:37:56:28:b4";
+      ip = "${lanSubnet}.154";
+      name = "sonos-3";
+    }
+    {
+      mac = "d8:a0:11:b2:c4:3d";
+      ip = "${lanSubnet}.180";
+      name = "wiz-b2c43d";
+    }
+    {
+      mac = "64:c9:01:b7:41:9f";
+      ip = "${lanSubnet}.195";
+      name = "msft-5-0";
+    }
+  ];
+
+  # IoT devices (.50-99): listed once here, used to generate the dnsmasq
+  # dhcp-host reservation. Set wan = true to also let that device reach
+  # the public internet (see iot_wan_allowed set); everything else in
+  # this range is blocked from WAN by default.
+  iotHosts = [
+    {
+      mac = "d8:a0:11:49:43:c0";
+      ip = "${lanSubnet}.65";
+      name = "wiz-4943c0";
+      wan = true;
+    }
+    {
+      mac = "6c:29:90:80:42:a8";
+      ip = "${lanSubnet}.79";
+      name = "wiz-8042a8";
+      wan = true;
+    }
+    {
+      mac = "d8:a0:11:e2:30:53";
+      ip = "${lanSubnet}.90";
+      name = "wiz-e23053";
+      wan = true;
+    }
+  ];
+  iotWanAllowed = builtins.filter (h: h.wan) iotHosts;
 in
 {
   ###########################################################################
@@ -86,7 +211,8 @@ in
   };
 
   ###########################################################################
-  # Interfaces: physical WAN, physical flat LAN (no VLAN sub-interfaces)
+  # Interfaces: physical WAN (+ tagged VLAN 300 for Odido, see above),
+  # physical flat LAN (no VLAN sub-interfaces on that side)
   ###########################################################################
 
   networking = {
@@ -94,9 +220,17 @@ in
     useDHCP = false; # we set DHCP per-interface explicitly below
     nameservers = [ "127.0.0.1" ]; # the router itself resolves via dnsmasq (see below)
 
+    vlans."${wanVlanIf}" = {
+      id = wanVlanId;
+      interface = wanIf;
+    };
+
     interfaces = {
       "${wanIf}" = {
-        useDHCP = true; # get a public/CGNAT IP + gateway from the ISP
+        useDHCP = true; # behind Odido's router: plain DHCP lease
+      };
+      "${wanVlanIf}" = {
+        useDHCP = true; # replacing Odido's router: tagged DHCP straight to their ONT
       };
       "${lanIf}" = {
         useDHCP = false;
@@ -113,48 +247,56 @@ in
   ###########################################################################
   # Firewall (nftables directly, not the networking.firewall wrapper)
   #
-  # IMPORTANT LIMITATION: since lanIf is one flat LAN (see the big comment
-  # at the top of this file for why), these rules can only govern:
-  #   (a) what reaches the router itself (input chain), and
-  #   (b) what crosses from LAN to WAN, or would cross between two
-  #       *routed* subnets if you ever add one (forward chain).
-  # They cannot stop two devices on the same LAN from talking directly to
-  # each other - that traffic is switched, not routed, and never reaches
-  # this ruleset. The forward-chain rules below are still worth having
-  # (they're correct, and become fully meaningful again the day you add a
-  # managed switch and turn these ranges into real VLANs), just don't
-  # mistake them for device-to-device isolation today.
+  # LIMITATION: on this flat LAN, rules only govern (a) traffic reaching
+  # the router itself (input) and (b) LAN<->WAN traffic (forward) - not
+  # device-to-device traffic on the same wire (switched, never hits the
+  # router). See top-of-file comment / README.
   ###########################################################################
 
   networking.nftables.enable = true;
   networking.firewall.enable = false; # fully replaced by nftables.ruleset below
 
   networking.nftables.ruleset = ''
+    # both WAN paths (plain + Odido VLAN 300, see interfaces above) count as WAN
+    define wan_ifs = { ${lib.concatMapStringsSep ", " (i: "\"${i}\"") wanIfs} }
+
     table ip filter {
+      # iot is blocked from WAN by default (see forward chain)
+      set iot_wan_allowed {
+        type ipv4_addr
+        flags interval
+        ${lib.optionalString (iotWanAllowed != [ ])
+          "elements = { ${lib.concatMapStringsSep ", " (h: h.ip) iotWanAllowed} }"
+        }
+      }
+
+      # fixed-range devices only get SSH if their MAC also matches - stops
+      # a device from just claiming an unused fixed-range IP for access
+      set fixed_hosts {
+        type ether_addr . ipv4_addr
+        ${lib.optionalString (fixedHosts != [ ])
+          "elements = { ${lib.concatMapStringsSep ", " (h: "${h.mac} . ${h.ip}") fixedHosts} }"
+        }
+      }
+
       chain input {
         type filter hook input priority 0; policy drop;
 
-        # Always allow loopback and already-established/related traffic.
         iifname "lo" accept comment "loopback"
         ct state { established, related } accept comment "return traffic for existing connections"
 
-        # --- WAN (untrusted) ---
-        # Only reply to a small set of ICMP types; drop everything else
-        # unsolicited from the internet. https://shouldiblockicmp.com/
-        iifname "${wanIf}" icmp type { echo-request, destination-unreachable, time-exceeded } accept comment "allow diagnostic ICMP"
-        iifname "${wanIf}" counter drop comment "drop all other unsolicited WAN traffic"
+        # WAN: only reply to a few diagnostic ICMP types, nothing else unsolicited
+        iifname $wan_ifs icmp type { echo-request, destination-unreachable, time-exceeded } accept comment "allow diagnostic ICMP"
+        iifname $wan_ifs counter drop comment "drop all other unsolicited WAN traffic"
 
-        # --- LAN, admin services gated by IP range ---
-        # Only the trusted range may SSH into the router. Since this
-        # traffic terminates at the router itself, this restriction is
-        # fully enforced regardless of the flat-LAN limitation above.
-        iifname "${lanIf}" ip saddr ${trustedLo}-${trustedHi} tcp dport 22 accept comment "SSH from trusted range only"
+        # SSH: allowed from everywhere except net/services/iot ranges (key-only
+        # auth via PasswordAuthentication=false below). dynamic is included so a
+        # brand-new/unrecognized device can still get in. fixed additionally
+        # requires the MAC to match (see fixed_hosts set above).
+        iifname "${lanIf}" ip saddr { ${computeLo}-${computeHi}, ${storageLo}-${storageHi}, ${dynamicLo}-${dynamicHi} } tcp dport 22 accept comment "SSH from compute/storage/dynamic"
+        iifname "${lanIf}" ip saddr ${fixedLo}-${fixedHi} ether saddr . ip saddr @fixed_hosts tcp dport 22 accept comment "SSH from fixed range, MAC-bound"
 
-        # DNS/DHCP must be reachable by every device on the LAN
-        # (trusted, iot, and the dynamic/guest-equivalent fallback alike),
-        # or nothing gets an address or can resolve names. Per jjpdev,
-        # DHCP broadcast/ARP traffic bypasses some of this anyway, but we
-        # keep it explicit: https://www.jjpdev.com/posts/home-router-nixos/#debugging-with-nftrace
+        # DNS/DHCP must reach every range or nothing gets an address/can resolve names
         iifname "${lanIf}" udp dport { 53, 67 } accept comment "DNS+DHCP for all LAN clients"
         iifname "${lanIf}" tcp dport 53 accept comment "DNS (TCP fallback) for all LAN clients"
 
@@ -166,17 +308,10 @@ in
 
         ct state { established, related } accept comment "return traffic for existing connections"
 
-        # Every device on the LAN gets outbound internet access,
-        # regardless of range.
-        iifname "${lanIf}" oifname "${wanIf}" accept comment "LAN -> WAN for all clients"
+        iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} ip saddr @iot_wan_allowed accept comment "explicit iot -> WAN exceptions (see iotHosts wan=true in router.nix)"
+        iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} counter drop comment "iot blocked from WAN by default"
 
-        # Kept for clarity and for when this becomes a real routed
-        # boundary later (e.g. after adding a managed switch): trusted
-        # devices may initiate connections toward the iot range.
-        # On today's flat LAN this rule is largely inert, since
-        # same-subnet traffic never reaches the forward chain - see the
-        # limitation notice above.
-        iifname "${lanIf}" oifname "${lanIf}" ip saddr ${trustedLo}-${trustedHi} ip daddr ${iotLo}-${iotHi} accept comment "trusted -> iot management (only affects routed hops, see README)"
+        iifname "${lanIf}" oifname $wan_ifs accept comment "LAN -> WAN for all other clients"
 
         counter drop comment "default-deny anything not explicitly allowed above"
       }
@@ -185,13 +320,11 @@ in
     table ip nat {
       chain postrouting {
         type nat hook postrouting priority 100; policy accept;
-        oifname "${wanIf}" masquerade comment "NAT all outbound LAN traffic to the WAN IP"
+        oifname $wan_ifs masquerade comment "NAT all outbound LAN traffic to the WAN IP"
       }
     }
 
-    # IPv6 is not configured on this router (see README for why + how to add
-    # it later). Default-deny both hooks so nothing leaks out unfiltered if
-    # the ISP link happens to hand out SLAAC/DHCPv6 addresses anyway.
+    # IPv6 out of scope for now (see README); default-deny both hooks.
     table ip6 filter {
       chain input {
         type filter hook input priority 0; policy drop;
@@ -203,39 +336,33 @@ in
   '';
 
   ###########################################################################
-  # DHCP + DNS via dnsmasq: MAC -> profile assignment lives entirely here.
+  # DHCP + DNS via dnsmasq: MAC -> range assignment lives entirely here.
   #
-  # How the "assign by MAC, fallback to guest" behaviour works:
-  #   - Every dhcp-host line below pins one known MAC to a fixed IP inside
-  #     either the trusted or iot range.
-  #   - Any device whose MAC is NOT listed gets an address from the
-  #     `dhcp-range` pool instead (the fallback/guest-equivalent range) -
-  #     this is standard dnsmasq behaviour, nothing extra to configure.
-  #   - The firewall rules in the ruleset above then key off which range
-  #     an IP falls in.
-  #
-  # dnsmasq is preferred here over isc-dhcpd for one simple combined
-  # DNS+DHCP+static-lease config, matching skogsbrus's setup:
-  # https://skogsbrus.xyz/building-a-router-with-nixos/#dnsmasq
+  #   - iot / fixed: plain dhcp-host = "mac,ip,name" pins a fixed IP.
+  #   - services: hosts request/keep their own IP; the .30-49 dhcp-range is
+  #     gated with tag:services, so only MACs tagged via
+  #     dhcp-host = "mac,set:services" (no fixed IP) can get a lease there -
+  #     an unregistered MAC requesting .30-49 is refused and falls through
+  #     to dynamic instead.
+  #   - dynamic: unlisted MACs land here automatically.
+  #   - net / compute / storage: static, never touch DHCP.
   ###########################################################################
 
   services.dnsmasq = {
     enable = true;
     settings = {
-      # Upstream resolvers the router itself queries on behalf of clients.
-      # Let's just use the Pi-holes for this.
+      # Upstream resolvers: the Pi-holes.
       server = [
         lib.lxcs.ahole.ip
         lib.lxcs.bhole.ip
         lib.lxcs.chole.ip
       ];
 
-      # Ignore DNS queries with no dots that aren't in /etc/hosts - cuts
-      # down on noise from malformed/broadcast-y IoT queries.
+      # cuts down on noise from malformed/broadcast-y IoT DNS queries
       domain-needed = true;
       bogus-priv = true;
 
-      # Only listen on the LAN interface + loopback, never on WAN.
+      # listen on LAN + loopback only, never WAN
       interface = [
         lanIf
         "lo"
@@ -243,39 +370,31 @@ in
       bind-interfaces = true;
       except-interface = wanIf;
 
-      # Only the fallback/guest-equivalent band needs a dhcp-range - the
-      # trusted/iot bands are populated entirely by the dhcp-host static
-      # reservations below. dnsmasq still requires at least one dhcp-range
-      # to enable DHCP service on this interface at all.
-      dhcp-range = "${fallbackLo},${fallbackHi},12h"; # shorter lease: unknown/guest devices churn more
+      # services is gated to tag:services (see dhcp-host below); dynamic is
+      # the untagged catch-all for everything else
+      dhcp-range = [
+        "tag:services,${servicesLo},${servicesHi},1h"
+        "${dynamicLo},${dynamicHi},12h"
+      ];
 
-      # Point DHCP clients at Pi-hole for DNS
       dhcp-option = [
         "6,${lib.lxcs.ahole.ip},${lib.lxcs.bhole.ip},${lib.lxcs.bhole.ip}"
       ];
 
-      # !!! Fill these in with your actual devices' MAC addresses !!!
-      # Format: "mac,ip,hostname". Anything not listed here lands in the
-      # fallback range above automatically.
-      dhcp-host = [
-        # --- trusted (10.10.0.10-10.10.0.99) ---
-        # "aa:bb:cc:dd:ee:01,10.10.0.20,alices-laptop"
-        # "aa:bb:cc:dd:ee:02,10.10.0.21,bobs-phone"
-
-        # --- iot (10.10.0.100-10.10.0.149) ---
-        # "aa:bb:cc:dd:ee:10,10.10.0.100,smart-plug"
-        # "aa:bb:cc:dd:ee:11,10.10.0.101,robot-vacuum"
-      ];
+      # fill in real MACs; unlisted MACs land in dynamic automatically
+      dhcp-host =
+        (map (h: "${h.mac},${h.ip},${h.name}") fixedHosts)
+        ++ (map (h: "${h.mac},${h.ip},${h.name}") iotHosts)
+        ++ [
+          # services: tag only, no fixed IP - proves the MAC may use .30-49
+          "bc:24:11:f4:1f:43,set:services" # home-assistant
+        ];
     };
   };
 
-  ###########################################################################
-  # SSH: enabled, but NOT auto-opened in the firewall (nftables input chain
-  # above explicitly only allows it from the trusted IP range, and never
-  # from WAN). Without openFirewall = false, NixOS's ssh module would
-  # punch its own hole in the firewall regardless of our rules.
+  # openFirewall=false: nftables above already governs SSH access; the ssh
+  # module must not punch its own hole in the firewall
   # https://skogsbrus.xyz/building-a-router-with-nixos/#ssh-port-22
-  ###########################################################################
 
   services.openssh = {
     enable = true;
@@ -286,12 +405,8 @@ in
     };
   };
 
-  ###########################################################################
   # Stability/performance tweaks for low-end hardware running headless
-  ###########################################################################
-
-  # Keep the store lean; low-end mSATA/SD storage fills up fast otherwise.
-  nix.settings.auto-optimise-store = true;
+  nix.settings.auto-optimise-store = true; # keep the store lean; storage is small
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -299,8 +414,6 @@ in
   };
   boot.loader.timeout = lib.mkDefault 3; # don't sit at a GRUB menu with no monitor attached
 
-  # A router doesn't need the local manual/docs build eating CPU/disk on
-  # every rebuild.
   documentation.enable = false;
   documentation.nixos.enable = false;
 
