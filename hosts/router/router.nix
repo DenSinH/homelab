@@ -224,11 +224,31 @@ in
     # A few conservative tweaks that help a low-power router stay stable
     # under load without needing much RAM (APU4D4 usually has 2/4 GB):
     "net.netfilter.nf_conntrack_max" = 65536;
+    # Bucket count isn't derived automatically like the in-tree module
+    # default (ram/16k, roughly) - size it explicitly against max so the
+    # hash table doesn't get walked as long chains once IoT/guest devices
+    # fill up conntrack.
+    "net.netfilter.nf_conntrack_buckets" = 16384;
     "net.ipv4.tcp_syncookies" = true; # basic SYN-flood mitigation
     # Don't let a burst of tiny broadcast/multicast traffic from IoT gear
     # cause log spam or CPU spikes from the router talking back to itself.
     "net.ipv4.icmp_echo_ignore_broadcasts" = true;
+
+    # Throughput tuning for NAT'ing a 2.5Gbit LAN through a 1Gbit WAN: raise
+    # the socket buffer ceilings and the pre-softirq packet queue so bursts
+    # don't get dropped/throttled before they even reach conntrack/nftables.
+    "net.core.rmem_max" = 16777216;
+    "net.core.wmem_max" = 16777216;
+    "net.core.netdev_max_backlog" = 5000;
+
+    # BBR generally outperforms cubic on the kind of consumer WAN link this
+    # box sits behind; fq is the companion qdisc BBR expects.
+    "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.core.default_qdisc" = "fq";
   };
+
+  # BBR isn't builtin on all kernels/configs - make sure the module is loaded.
+  boot.kernelModules = [ "tcp_bbr" ];
 
   ###########################################################################
   # Interfaces: physical WAN (+ tagged VLAN 300 for Odido, see above),
@@ -281,6 +301,15 @@ in
     define wan_ifs = { ${lib.concatMapStringsSep ", " (i: "\"${i}\"") wanIfs} }
 
     table ip filter {
+      # Software flow offload: once a TCP/UDP flow has been accepted below,
+      # hand it off here so its remaining packets bypass this whole chain
+      # (and conntrack lookups) instead of being routed/filtered per-packet.
+      # Big CPU win for NAT throughput on low-power hardware like the APU4D4.
+      flowtable fastpath {
+        hook ingress priority 0;
+        devices = { ${lib.concatMapStringsSep ", " (i: "\"${i}\"") (wanIfs ++ [ lanIf ])} }
+      }
+
       # iot is blocked from WAN by default (see forward chain)
       set iot_wan_allowed {
         type ipv4_addr
@@ -328,9 +357,11 @@ in
 
         ct state { established, related } accept comment "return traffic for existing connections"
 
+        iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} ip saddr @iot_wan_allowed meta l4proto { tcp, udp } flow add @fastpath comment "offload explicit iot -> WAN exceptions to the fastpath"
         iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} ip saddr @iot_wan_allowed accept comment "explicit iot -> WAN exceptions (see iotHosts wan=true in router.nix)"
         iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} counter drop comment "iot blocked from WAN by default"
 
+        iifname "${lanIf}" oifname $wan_ifs meta l4proto { tcp, udp } flow add @fastpath comment "offload LAN -> WAN TCP/UDP flows to the fastpath"
         iifname "${lanIf}" oifname $wan_ifs accept comment "LAN -> WAN for all other clients"
 
         counter drop comment "default-deny anything not explicitly allowed above"
@@ -430,6 +461,38 @@ in
     options = "--delete-older-than 30d";
   };
   boot.loader.timeout = lib.mkDefault 3; # don't sit at a GRUB menu with no monitor attached
+
+  # Keep the CPU pinned at full clock instead of scaling with load - avoids
+  # frequency-transition latency spikes on the packet-forwarding hot path.
+  powerManagement.cpuFreqGovernor = "performance";
+
+  # Spread NIC interrupts across cores instead of pinning everything to CPU0.
+  services.irqbalance.enable = true;
+
+  # Enable NIC hardware offloads (checksum/TSO/GSO/GRO) on both physical
+  # interfaces. NixOS' scripted networking has no first-class option for
+  # this, so set it explicitly once the device exists.
+  systemd.services."router-nic-offload" = {
+    description = "Enable NIC hardware offloads on router interfaces";
+    after = [
+      "sys-subsystem-net-devices-${wanIf}.device"
+      "sys-subsystem-net-devices-${lanIf}.device"
+    ];
+    bindsTo = [
+      "sys-subsystem-net-devices-${wanIf}.device"
+      "sys-subsystem-net-devices-${lanIf}.device"
+    ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for dev in ${wanIf} ${lanIf}; do
+        ${pkgs.ethtool}/bin/ethtool -K "$dev" rx on tx on tso on gso on gro on || true
+      done
+    '';
+  };
 
   documentation.enable = false;
   documentation.nixos.enable = false;
