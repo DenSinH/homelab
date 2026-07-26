@@ -485,6 +485,16 @@ in
   # frequency-transition latency spikes on the packet-forwarding hot path.
   powerManagement.cpuFreqGovernor = "performance";
 
+  # cpuFreqGovernor only controls clock speed, not idle depth. Without this,
+  # the CPU can still drop into deep C-states when idle between packets, and
+  # waking from one to service the first interrupt after a quiet period can
+  # add tens of ms of one-off latency (the classic "first ping is slow"
+  # symptom on an otherwise-idle router). Cap how deep it's allowed to sleep.
+  boot.kernelParams = [
+    "processor.max_cstate=1"
+    "intel_idle.max_cstate=0"
+  ];
+
   # Spread NIC interrupts across cores instead of pinning everything to CPU0.
   services.irqbalance.enable = true;
 
@@ -509,6 +519,11 @@ in
     script = ''
       for dev in ${wanIf} ${lanIf}; do
         ${pkgs.ethtool}/bin/ethtool -K "$dev" rx on tx on tso on gso on gro on || true
+        # Disable Energy Efficient Ethernet - the link partner drops into a
+        # low-power idle mode after inactivity, and waking it back up for the
+        # first frame adds noticeable one-off latency (same symptom class as
+        # CPU C-states above, just on the wire instead of on the CPU).
+        ${pkgs.ethtool}/bin/ethtool --set-eee "$dev" eee off || true
       done
     '';
   };
