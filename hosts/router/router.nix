@@ -93,7 +93,7 @@ let
     }
     {
       mac = "2c:7b:a0:11:f9:54";
-      ip = "${lanSubnet}.131";
+      ip = "${lanSubnet}.202";
       name = "hvee113-work-laptop";
     }
 
