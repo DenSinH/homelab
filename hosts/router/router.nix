@@ -196,7 +196,7 @@ let
       wan = true;
     }
   ];
-  iotWanAllowed = builtins.filter (h: h.wan) iotHosts;
+  iotWanAllowed = builtins.filter (h: h.wan or false) iotHosts;
 
   # Services (.30-49): MAC is tagged via dhcp-host = "mac,set:services" (no
   # fixed IP) so it may take a lease from the tag:services dhcp-range;
