@@ -272,6 +272,19 @@
             ./hosts/nas/default.nix
           ];
         };
+
+        router = nixpkgs.lib.nixosSystem {
+          system = system;
+
+          specialArgs = {
+            # pass through lxc data
+            inherit lib;
+          };
+
+          modules = [
+            ./hosts/router/default.nix
+          ];
+        };
       }
       // nixpkgs.lib.mapAttrs (_: host: mkLxc host) lib.lxcs;
 
