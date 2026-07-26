@@ -42,14 +42,6 @@
     variant = "";
   };
 
-  services.openssh = {
-    enable = true;
-    openFirewall = true;
-    settings = {
-      PermitRootLogin = "yes";
-    };
-  };
-
   users.users.root.openssh.authorizedKeys.keys = [
     lib.admin.ssh_key
   ];
