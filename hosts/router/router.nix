@@ -73,6 +73,7 @@ let
   # binding, so a device can't just self-assign an unused fixed-range IP
   # and inherit SSH access without also spoofing the matching MAC.
   fixedHosts = [
+    # Dennis devices
     {
       mac = "1a:a3:ef:b4:53:46";
       ip = "${lanSubnet}.200";
@@ -84,82 +85,28 @@ let
       name = "dennis-laptop";
     }
     {
-      mac = "5c:2f:af:36:55:d8";
-      ip = "${lanSubnet}.205";
-      name = "p1-meter-homewizard";
-    }
-    {
-      mac = "34:5f:45:19:d8:28";
-      ip = "${lanSubnet}.206";
-      name = "shellyplus2pm";
-    }
-    {
-      mac = "fc:f5:c4:98:e3:ee";
-      ip = "${lanSubnet}.207";
-      name = "otgw";
-    }
-    {
-      mac = "38:7a:cc:70:25:4a";
-      ip = "${lanSubnet}.208";
-      name = "eufy-vacuum";
-    }
-    {
-      mac = "b8:e9:37:32:72:ec";
-      ip = "${lanSubnet}.230";
-      name = "sonos-zp";
-    }
-
-    # Not yet renumbered into the .200-254 band - kept at their old IPs for
-    # now (still functions, just outside the intended range convention).
-    {
-      mac = "b8:e9:37:82:35:18";
-      ip = "${lanSubnet}.109";
-      name = "sonos-1";
-    }
-    {
-      mac = "28:49:e9:76:15:8d";
-      ip = "${lanSubnet}.124";
-      name = "iphone-merel";
-    }
-    {
       mac = "2c:7b:a0:11:f9:54";
       ip = "${lanSubnet}.131";
       name = "hvee113-work-laptop";
     }
+
+    # Merel devices
     {
-      mac = "d8:a0:11:e1:07:8b";
-      ip = "${lanSubnet}.132";
-      name = "wiz-e1078b";
+      mac = "28:49:e9:76:15:8d";
+      ip = "${lanSubnet}.210";
+      name = "iphone-merel";
     }
+
+    # Multimedia
     {
       mac = "f4:4d:ad:04:1c:d4";
-      ip = "${lanSubnet}.140";
+      ip = "${lanSubnet}.240";
       name = "chromecast-badkamer";
     }
     {
-      mac = "5c:aa:fd:46:b3:c6";
-      ip = "${lanSubnet}.144";
-      name = "sonos-2";
-    }
-    {
-      mac = "d8:a0:11:e1:07:9f";
-      ip = "${lanSubnet}.152";
-      name = "wiz-e1079f";
-    }
-    {
-      mac = "b8:e9:37:56:28:b4";
-      ip = "${lanSubnet}.154";
-      name = "sonos-3";
-    }
-    {
-      mac = "d8:a0:11:b2:c4:3d";
-      ip = "${lanSubnet}.180";
-      name = "wiz-b2c43d";
-    }
-    {
       mac = "64:c9:01:b7:41:9f";
-      ip = "${lanSubnet}.195";
-      name = "msft-5-0";
+      ip = "${lanSubnet}.241";
+      name = "lenovo-tiny-gaming";
     }
   ];
 
@@ -168,22 +115,84 @@ let
   # the public internet (see iot_wan_allowed set); everything else in
   # this range is blocked from WAN by default.
   iotHosts = [
+    # Automation
+    {
+      mac = "5c:2f:af:36:55:d8";
+      ip = "${lanSubnet}.50"; # todo: reconfigure HA
+      name = "p1-meter-homewizard";
+    }
+    {
+      mac = "34:5f:45:19:d8:28";
+      ip = "${lanSubnet}.51"; # todo: reconfigure HA
+      name = "shellyplus2pm";
+    }
+    {
+      mac = "fc:f5:c4:98:e3:ee";
+      ip = "${lanSubnet}.52"; # todo: reconfigure HA
+      name = "otgw";
+    }
+    {
+      mac = "38:7a:cc:70:25:4a";
+      ip = "${lanSubnet}.53"; # todo: reconfigure HA
+      name = "eufy-vacuum";
+      wan = true;
+    }
+
+    # Smart bulbs
     {
       mac = "d8:a0:11:49:43:c0";
-      ip = "${lanSubnet}.65";
+      ip = "${lanSubnet}.60";
       name = "wiz-4943c0";
-      wan = true;
     }
     {
       mac = "6c:29:90:80:42:a8";
-      ip = "${lanSubnet}.79";
+      ip = "${lanSubnet}.61";
       name = "wiz-8042a8";
-      wan = true;
     }
     {
       mac = "d8:a0:11:e2:30:53";
-      ip = "${lanSubnet}.90";
+      ip = "${lanSubnet}.62";
       name = "wiz-e23053";
+    }
+    {
+      mac = "d8:a0:11:e1:07:8b";
+      ip = "${lanSubnet}.63";
+      name = "wiz-e1078b";
+    }
+    {
+      mac = "d8:a0:11:e1:07:9f";
+      ip = "${lanSubnet}.64";
+      name = "wiz-e1079f";
+    }
+    {
+      mac = "d8:a0:11:b2:c4:3d";
+      ip = "${lanSubnet}.65";
+      name = "wiz-b2c43d";
+    }
+
+    # Sonos speakers
+    {
+      mac = "b8:e9:37:32:72:ec";
+      ip = "${lanSubnet}.70";
+      name = "sonos-zp";
+      wan = true;
+    }
+    {
+      mac = "b8:e9:37:82:35:18";
+      ip = "${lanSubnet}.71";
+      name = "sonos-1";
+      wan = true;
+    }
+    {
+      mac = "5c:aa:fd:46:b3:c6";
+      ip = "${lanSubnet}.72";
+      name = "sonos-2";
+      wan = true;
+    }
+    {
+      mac = "b8:e9:37:56:28:b4";
+      ip = "${lanSubnet}.73";
+      name = "sonos-3";
       wan = true;
     }
   ];
