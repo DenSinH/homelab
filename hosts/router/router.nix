@@ -80,9 +80,22 @@ let
   # binding, so a device can't just self-assign an unused fixed-range IP
   # and inherit SSH access without also spoofing the matching MAC.
   fixedHosts = [
+    # Networking equipment
+    {
+      mac = "60:cf:84:af:52:c8";
+      ip = "${lanSubnet}.250";
+      name = "asus-ax57";
+    }
+    # Networking equipment
+    {
+      mac = "24:4b:fe:1d:34:50";
+      ip = "${lanSubnet}.251";
+      name = "asus-ax55";
+    }
+
     # Dennis devices
     {
-      mac = "1a:a3:ef:b4:53:46";
+      mac = "7c:f0:e5:52:96:17";
       ip = "${lanSubnet}.200";
       name = "dennis-telefoon";
     }
@@ -125,22 +138,24 @@ let
     # Automation
     {
       mac = "5c:2f:af:36:55:d8";
-      ip = "${lanSubnet}.50"; # todo: reconfigure HA
+      ip = "${lanSubnet}.50";
       name = "p1-meter-homewizard";
     }
     {
       mac = "34:5f:45:19:d8:28";
-      ip = "${lanSubnet}.51"; # todo: reconfigure HA
+      ip = "${lanSubnet}.51";
       name = "shellyplus2pm";
     }
     {
       mac = "fc:f5:c4:98:e3:ee";
-      ip = "${lanSubnet}.52"; # todo: reconfigure HA
+      # Had to be changed in /config/.storage/core.config_entries
+      # https://community.home-assistant.io/t/594055
+      ip = "${lanSubnet}.52";
       name = "otgw";
     }
     {
       mac = "38:7a:cc:70:25:4a";
-      ip = "${lanSubnet}.53"; # todo: reconfigure HA
+      ip = "${lanSubnet}.53";
       name = "eufy-vacuum";
       wan = true;
     }
@@ -213,6 +228,10 @@ let
     {
       mac = "bc:24:11:f4:1f:43";
       name = "home-assistant";
+    }
+    {
+      mac = "bc:24:11:0c:5c:f4";
+      name = "vps";
     }
   ];
 in
