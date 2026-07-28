@@ -273,7 +273,7 @@ in
       system.pluginRepositories = {
         "Intro Skipper" = {
           url = "https://raw.githubusercontent.com/intro-skipper/manifest/main/10.11/manifest.json";
-          hash = "sha256:0wh2iszaapyha52z9zxj95562mcph5dj0m0bvkm3q0217r51vq3f";
+          hash = "sha256:1amscar6lg15lf9xj7iblfy4wl8h1g2mas5hpk7irawrwwqqg3i7";
           enabled = true;
         };
       };

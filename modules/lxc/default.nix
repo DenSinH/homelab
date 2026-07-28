@@ -47,9 +47,7 @@
     };
   };
 
-  users.users.root.openssh.authorizedKeys.keys = [
-    lib.admin.ssh_key
-  ];
+  users.users.root.openssh.authorizedKeys.keys = lib.admin.ssh_keys;
 
   # LXC container template based on 26.05 release
   system.stateVersion = host.stateVersion;

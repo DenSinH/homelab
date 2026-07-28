@@ -59,6 +59,7 @@
         nas = {
           hostname = "nas";
           ip = "192.168.50.20";
+          mac = "34:64:a9:9a:44:bc";
         };
       };
 
@@ -129,6 +130,7 @@
         subnet-router = {
           hostname = "subnet-router";
           ip = "192.168.50.8";
+          mac = "bc:24:11:d4:c8:f5";
           pveHost = "proxmox1";
           ctid = 113;
 
@@ -143,8 +145,7 @@
         telemetry = {
           hostname = "telemetry";
           ip = "192.168.50.34";
-          ssh_key = "";
-          age_key = "";
+          mac = "bc:24:11:d6:ef:b6";
           pveHost = "proxmox1";
           ctid = 114;
 
@@ -208,6 +209,7 @@
         blog = {
           hostname = "blog";
           ip = "192.168.50.39";
+          mac = "bc:24:11:34:1b:83";
           pveHost = "proxmox1";
           ctid = 101;
 
@@ -243,7 +245,12 @@
           lxcs = lxcs;
           storage = storage;
           admin = {
-            ssh_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAq2MnvCGfq5BvLzpxEcITRpMaNZ+ERlKP6+ecbb6LWb git@dennishilhorst.nl";
+            ssh_keys = [
+              # laptop
+              "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAq2MnvCGfq5BvLzpxEcITRpMaNZ+ERlKP6+ecbb6LWb git@dennishilhorst.nl"
+              # work laptop
+              "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK1OABl55HC7R+kgK7mQJhckQc5lUjdRHZ/8KifNM8l8 nixos@nixos"
+            ];
           };
         }
       );

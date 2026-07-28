@@ -77,9 +77,7 @@
     };
   };
 
-  users.users.root.openssh.authorizedKeys.keys = [
-    lib.admin.ssh_key
-  ];
+  users.users.root.openssh.authorizedKeys.keys = lib.admin.ssh_keys;
 
   environment.systemPackages = with pkgs; [
     nano

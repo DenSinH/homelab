@@ -17,6 +17,9 @@ let
       '') lib.lxcs
     )
   );
+
+  # List of all LXC names
+  allLxcs = builtins.concatStringsSep " " (builtins.attrNames lib.lxcs);
 in
 
 pkgs.writeShellScript "deploy" ''
@@ -29,6 +32,11 @@ pkgs.writeShellScript "deploy" ''
       print_error "No host specified"
       echo "Usage: $0 <hostname> [hostname ...]"
       exit 1
+  fi
+
+  # Expand 'all' to all known LXCs
+  if [ $# -eq 1 ] && [ "$1" = "all" ]; then
+      set -- ${allLxcs}
   fi
 
   for host in "$@"; do

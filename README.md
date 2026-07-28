@@ -40,7 +40,7 @@ nixos-rebuild switch --flake .#nas --target-host root@nas.home --sudo
 For the router, run
 ```bash
 
-For the NAS, run
+For the router, run
 ```bash
-nixos-rebuild switch --flake .#router --target-host root@<router-ip> --sudo
+nixos-rebuild switch --flake .#router --target-host root@192.168.50.1 --sudo
 ```
