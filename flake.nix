@@ -30,6 +30,7 @@
         proxmox1 = {
           hostname = "proxmox1.home";
           ip = "192.168.50.11";
+          mac = "6c:4b:90:5a:74:19";
           ctidRange = {
             min = 100;
             max = 199;
@@ -39,6 +40,7 @@
         proxmox2 = {
           hostname = "proxmox2.home";
           ip = "192.168.50.12";
+          mac = "6c:4b:90:5a:73:9d";
           ctidRange = {
             min = 200;
             max = 299;
@@ -48,6 +50,7 @@
         proxmox3 = {
           hostname = "proxmox3.home";
           ip = "192.168.50.13";
+          mac = "e0:51:d8:1b:fb:9c"; # e0:51:d8:1b:fb:9b unused
           ctidRange = {
             min = 300;
             max = 399;
