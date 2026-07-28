@@ -21,6 +21,7 @@ let
   ];
   localRecords = [
     ### NETWORK
+    "192.168.50.1 router.home"
     "${lib.lxcs.ahole.ip} ahole.home"
     "${lib.lxcs.bhole.ip} bhole.home"
     "${lib.lxcs.chole.ip} chole.home"

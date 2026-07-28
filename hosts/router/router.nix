@@ -86,7 +86,6 @@ let
       ip = "${lanSubnet}.250";
       name = "asus-ax57";
     }
-    # Networking equipment
     {
       mac = "24:4b:fe:1d:34:50";
       ip = "${lanSubnet}.251";
