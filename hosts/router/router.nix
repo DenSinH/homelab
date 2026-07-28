@@ -219,6 +219,19 @@ let
   ];
   iotWanAllowed = builtins.filter (h: h.wan or false) iotHosts;
 
+  # QoS priority tiers for the WAN link (see "QoS" nftables rules + the
+  # cake-qdisc systemd service below). Maps onto cake's diffserv4 tins:
+  # Voice (highest) > Video > Best Effort (default, anyone not listed here)
+  # > Bulk (lowest).
+  qosVoiceHosts = map (h: h.ip) fixedHosts; # family devices - highest priority
+  qosVideoHosts = [
+    lib.lxcs.immich.ip
+    lib.lxcs.cloudflared.ip
+  ];
+  qosBulkHosts = [
+    lib.lxcs.nixflix.ip
+  ];
+
   # Services (.30-49): MAC is tagged via dhcp-host = "mac,set:services" (no
   # fixed IP) so it may take a lease from the tag:services dhcp-range;
   # unregistered MACs requesting that range are refused and fall through
@@ -235,6 +248,16 @@ let
   ];
 in
 {
+  assertions = [
+    {
+      assertion = !testAllowSshFromWan;
+      message = ''
+        testAllowSshFromWan is true in router.nix - this opens SSH to the WAN. 
+        Set it back to false unless you're actively testing.
+      '';
+    }
+  ];
+
   ###########################################################################
   # Core routing
   ###########################################################################
@@ -273,7 +296,11 @@ in
   };
 
   # BBR isn't builtin on all kernels/configs - make sure the module is loaded.
-  boot.kernelModules = [ "tcp_bbr" ];
+  # sch_cake backs the QoS cake qdisc set up below.
+  boot.kernelModules = [
+    "tcp_bbr"
+    "sch_cake"
+  ];
 
   ###########################################################################
   # Interfaces: physical WAN (+ tagged VLAN 300 for Odido, see above),
@@ -362,6 +389,31 @@ in
         }
       }
 
+      # QoS priority tiers - see qosVoiceHosts/qosVideoHosts/qosBulkHosts in
+      # router.nix. Anyone not in one of these sets falls into cake's
+      # default Best Effort tin untouched.
+      set qos_voice {
+        type ipv4_addr
+        flags interval
+        ${lib.optionalString (
+          qosVoiceHosts != [ ]
+        ) "elements = { ${lib.concatStringsSep ", " qosVoiceHosts} }"}
+      }
+      set qos_video {
+        type ipv4_addr
+        flags interval
+        ${lib.optionalString (
+          qosVideoHosts != [ ]
+        ) "elements = { ${lib.concatStringsSep ", " qosVideoHosts} }"}
+      }
+      set qos_bulk {
+        type ipv4_addr
+        flags interval
+        ${lib.optionalString (
+          qosBulkHosts != [ ]
+        ) "elements = { ${lib.concatStringsSep ", " qosBulkHosts} }"}
+      }
+
       chain input {
         type filter hook input priority 0; policy drop;
 
@@ -392,7 +444,34 @@ in
       chain forward {
         type filter hook forward priority 0; policy drop;
 
+        # QoS: tag DSCP by priority tier before the established/related
+        # accept below short-circuits the rest of the chain - "ip dscp set"
+        # doesn't terminate rule evaluation, so this still falls through to
+        # the accept/drop logic that follows. saddr covers each host's own
+        # outbound (upload) traffic; daddr covers its return (download)
+        # traffic, whose destination is already un-NATed back to the LAN ip
+        # by conntrack before forward runs. The cake qdisc (see
+        # router-qos-cake systemd service) reads this to prioritize.
+        ip saddr @qos_voice ip dscp set cs5 comment "QoS: family devices -> Voice tin"
+        ip daddr @qos_voice ip dscp set cs5 comment "QoS: family devices -> Voice tin"
+        ip saddr @qos_video ip dscp set cs3 comment "QoS: immich/cloudflared -> Video tin"
+        ip daddr @qos_video ip dscp set cs3 comment "QoS: immich/cloudflared -> Video tin"
+        ip saddr @qos_bulk ip dscp set cs1 comment "QoS: nixflix etc -> Bulk tin"
+        ip daddr @qos_bulk ip dscp set cs1 comment "QoS: nixflix etc -> Bulk tin"
+
         ct state { established, related } accept comment "return traffic for existing connections"
+
+        # Deliberately keep QoS-tagged hosts off the fastpath flowtable
+        # below: once a flow is offloaded there, its remaining packets
+        # bypass this whole chain (incl. the dscp set rules above) for the
+        # rest of the connection, which would silently un-prioritize long
+        # flows - exactly the nixflix bulk-download case this exists for.
+        ip saddr @qos_voice accept comment "QoS: keep family devices off fastpath so shaping stays effective"
+        ip daddr @qos_voice accept comment "QoS: keep family devices off fastpath so shaping stays effective"
+        ip saddr @qos_video accept comment "QoS: keep immich/cloudflared off fastpath so shaping stays effective"
+        ip daddr @qos_video accept comment "QoS: keep immich/cloudflared off fastpath so shaping stays effective"
+        ip saddr @qos_bulk accept comment "QoS: keep nixflix etc off fastpath so shaping stays effective"
+        ip daddr @qos_bulk accept comment "QoS: keep nixflix etc off fastpath so shaping stays effective"
 
         iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} ip saddr @iot_wan_allowed meta l4proto { tcp, udp } flow add @fastpath comment "offload explicit iot -> WAN exceptions to the fastpath"
         iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} ip saddr @iot_wan_allowed accept comment "explicit iot -> WAN exceptions (see iotHosts wan=true in router.nix)"
@@ -546,6 +625,39 @@ in
     '';
   };
 
+  # QoS: cake qdisc on both physical directions of the WAN link.
+  #   - lanIf (egress towards LAN clients) shapes/prioritizes download.
+  #   - wanIf/wanVlanIf (egress towards the ISP) shapes/prioritizes upload.
+  # autorate-ingress avoids hardcoding a bandwidth figure - your plan says
+  # 100Mbit but actual throughput runs closer to 140Mbit, so cake instead
+  # watches real traffic on each qdisc and keeps the shaper just under
+  # whatever it's actually seeing. diffserv4 sorts packets into tins by the
+  # DSCP marks set in the nftables forward chain above (qos_voice/video/bulk
+  # sets): Voice > Video > Best Effort (default, unmarked) > Bulk.
+  systemd.services."router-qos-cake" = {
+    description = "Apply CAKE QoS qdisc on router interfaces";
+    after = [
+      "sys-subsystem-net-devices-${wanIf}.device"
+      "sys-subsystem-net-devices-${lanIf}.device"
+    ];
+    bindsTo = [
+      "sys-subsystem-net-devices-${wanIf}.device"
+      "sys-subsystem-net-devices-${lanIf}.device"
+    ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      ${pkgs.iproute2}/bin/tc qdisc replace dev ${lanIf} root cake autorate-ingress diffserv4
+
+      for dev in ${lib.concatStringsSep " " wanIfs}; do
+        ${pkgs.iproute2}/bin/tc qdisc replace dev "$dev" root cake autorate-ingress diffserv4 || true
+      done
+    '';
+  };
+
   documentation.enable = false;
   documentation.nixos.enable = false;
 
@@ -554,5 +666,6 @@ in
     ethtool
     conntrack-tools
     dnsutils
+    iproute2
   ];
 }
