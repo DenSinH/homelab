@@ -17,6 +17,7 @@
 #
 # WAN side does use a VLAN (802.1Q id 300), for Odido ISP replacement mode
 # - see README "WAN / ISP replacement" for why and the AON/GPON caveats.
+# https://gathering.tweakers.net/forum/list_messages/2206944#eigenhardware
 #
 # Written for, and adapting patterns from:
 #   - Solene Rapenne: https://dataswamp.org/~solene/2022-08-03-nixos-with-live-usb-router.html
@@ -36,12 +37,12 @@ let
   wanIf = "enp1s0"; # 1Gbit
   lanIf = "enp2s0"; # 2.5Gbit
 
-  # Odido (ISP) dual-mode WAN, see README "WAN / ISP replacement":
-  #   - behind Odido's own router: wanIf gets a plain DHCP lease, untagged.
-  #   - replacing Odido's router (straight into their ONT): needs 802.1Q
-  #     VLAN 300 + DHCP. Both are brought up at once so either cabling
-  #     works without editing config; only the one actually connected
-  #     gets a lease.
+  # Odido (ISP) dual-mode WAN, see README "WAN / ISP replacement". Both
+  # paths are brought up at once so either cabling works untouched; only
+  # the one actually connected gets a lease.
+  #   - behind Odido's own router: plain untagged DHCP.
+  #   - replacing Odido's router (straight into their ONT): 802.1Q VLAN 300 + DHCP.
+  # https://gathering.tweakers.net/forum/list_messages/2206944#eigenhardware
   wanVlanId = 300;
   wanVlanIf = "${wanIf}.${toString wanVlanId}";
   wanIfs = [
@@ -219,11 +220,9 @@ let
   ];
   iotWanAllowed = builtins.filter (h: h.wan or false) iotHosts;
 
-  # QoS priority tiers for the WAN link (see "QoS" nftables rules + the
-  # cake-qdisc systemd service below). Maps onto cake's diffserv4 tins:
-  # Voice (highest) > Video > Best Effort (default, anyone not listed here)
-  # > Bulk (lowest).
-  qosVoiceHosts = map (h: h.ip) fixedHosts; # family devices - highest priority
+  # QoS priority tiers for the WAN link - cake diffserv4 tins, see below.
+  # Voice > Video > Best Effort (default) > Bulk.
+  qosVoiceHosts = map (h: h.ip) fixedHosts; # family devices
   qosVideoHosts = [
     lib.lxcs.immich.ip
     lib.lxcs.cloudflared.ip
@@ -272,25 +271,26 @@ in
     # A few conservative tweaks that help a low-power router stay stable
     # under load without needing much RAM (APU4D4 usually has 2/4 GB):
     "net.netfilter.nf_conntrack_max" = 65536;
-    # Bucket count isn't derived automatically like the in-tree module
-    # default (ram/16k, roughly) - size it explicitly against max so the
-    # hash table doesn't get walked as long chains once IoT/guest devices
-    # fill up conntrack.
+    # Size the hash table explicitly against max instead of the in-tree
+    # ram/16k default, so it doesn't turn into long chains under load.
+    # https://docs.kernel.org/networking/nf_conntrack-sysctl.html
     "net.netfilter.nf_conntrack_buckets" = 16384;
-    "net.ipv4.tcp_syncookies" = true; # basic SYN-flood mitigation
-    # Don't let a burst of tiny broadcast/multicast traffic from IoT gear
-    # cause log spam or CPU spikes from the router talking back to itself.
+    # Basic SYN-flood mitigation.
+    # https://docs.kernel.org/networking/ip-sysctl.html#tcp-syncookies
+    "net.ipv4.tcp_syncookies" = true;
+    # Don't respond to broadcast/multicast pings - classic Smurf mitigation.
+    # https://en.wikipedia.org/wiki/Smurf_attack
     "net.ipv4.icmp_echo_ignore_broadcasts" = true;
 
-    # Throughput tuning for NAT'ing a 2.5Gbit LAN through a 1Gbit WAN: raise
-    # the socket buffer ceilings and the pre-softirq packet queue so bursts
-    # don't get dropped/throttled before they even reach conntrack/nftables.
+    # Raise socket buffer ceilings + pre-softirq queue for NAT'ing a 2.5Gbit
+    # LAN through a 1Gbit WAN, so bursts don't drop before conntrack/nftables.
+    # https://docs.kernel.org/admin-guide/sysctl/net.html
     "net.core.rmem_max" = 16777216;
     "net.core.wmem_max" = 16777216;
     "net.core.netdev_max_backlog" = 5000;
 
-    # BBR generally outperforms cubic on the kind of consumer WAN link this
-    # box sits behind; fq is the companion qdisc BBR expects.
+    # BBR outperforms cubic on typical consumer WAN links; fq is its companion qdisc.
+    # https://github.com/google/bbr
     "net.ipv4.tcp_congestion_control" = "bbr";
     "net.core.default_qdisc" = "fq";
   };
@@ -362,10 +362,10 @@ in
     define wan_ifs = { ${lib.concatMapStringsSep ", " (i: "\"${i}\"") wanIfs} }
 
     table ip filter {
-      # Software flow offload: once a TCP/UDP flow has been accepted below,
-      # hand it off here so its remaining packets bypass this whole chain
-      # (and conntrack lookups) instead of being routed/filtered per-packet.
-      # Big CPU win for NAT throughput on low-power hardware like the APU4D4.
+      # Software flow offload: accepted flows get handed off here so their
+      # remaining packets skip this whole chain instead of being
+      # routed/filtered per-packet. Big CPU win on low-power hardware.
+      # https://wiki.nftables.org/wiki-nftables/index.php/Flowtables
       flowtable fastpath {
         hook ingress priority 0;
         devices = { ${lib.concatMapStringsSep ", " (i: "\"${i}\"") (wanIfs ++ [ lanIf ])} }
@@ -389,9 +389,9 @@ in
         }
       }
 
-      # QoS priority tiers - see qosVoiceHosts/qosVideoHosts/qosBulkHosts in
-      # router.nix. Anyone not in one of these sets falls into cake's
-      # default Best Effort tin untouched.
+      # QoS priority tiers, see qosVoiceHosts/qosVideoHosts/qosBulkHosts.
+      # DSCP tin mapping is cake's diffserv4:
+      # https://man7.org/linux/man-pages/man8/tc-cake.8.html
       set qos_voice {
         type ipv4_addr
         flags interval
@@ -444,14 +444,10 @@ in
       chain forward {
         type filter hook forward priority 0; policy drop;
 
-        # QoS: tag DSCP by priority tier before the established/related
-        # accept below short-circuits the rest of the chain - "ip dscp set"
-        # doesn't terminate rule evaluation, so this still falls through to
-        # the accept/drop logic that follows. saddr covers each host's own
-        # outbound (upload) traffic; daddr covers its return (download)
-        # traffic, whose destination is already un-NATed back to the LAN ip
-        # by conntrack before forward runs. The cake qdisc (see
-        # router-qos-cake systemd service) reads this to prioritize.
+        # QoS: tag DSCP by tier - must run before the established/related
+        # accept below (dscp set doesn't terminate, but accept does). saddr
+        # = this host's own upload; daddr = its download (already un-NATed
+        # by conntrack here). Read by the cake qdisc (router-qos-cake).
         ip saddr @qos_voice ip dscp set cs5 comment "QoS: family devices -> Voice tin"
         ip daddr @qos_voice ip dscp set cs5 comment "QoS: family devices -> Voice tin"
         ip saddr @qos_video ip dscp set cs3 comment "QoS: immich/cloudflared -> Video tin"
@@ -461,11 +457,9 @@ in
 
         ct state { established, related } accept comment "return traffic for existing connections"
 
-        # Deliberately keep QoS-tagged hosts off the fastpath flowtable
-        # below: once a flow is offloaded there, its remaining packets
-        # bypass this whole chain (incl. the dscp set rules above) for the
-        # rest of the connection, which would silently un-prioritize long
-        # flows - exactly the nixflix bulk-download case this exists for.
+        # Keep QoS-tagged hosts off the fastpath below: offloaded flows skip
+        # this chain (and the dscp set rules above) for the rest of the
+        # connection, which would un-prioritize long flows like nixflix.
         ip saddr @qos_voice accept comment "QoS: keep family devices off fastpath so shaping stays effective"
         ip daddr @qos_voice accept comment "QoS: keep family devices off fastpath so shaping stays effective"
         ip saddr @qos_video accept comment "QoS: keep immich/cloudflared off fastpath so shaping stays effective"
@@ -593,11 +587,13 @@ in
   ];
 
   # Spread NIC interrupts across cores instead of pinning everything to CPU0.
+  # https://linux.die.net/man/1/irqbalance
   services.irqbalance.enable = true;
 
   # Enable NIC hardware offloads (checksum/TSO/GSO/GRO) on both physical
   # interfaces. NixOS' scripted networking has no first-class option for
   # this, so set it explicitly once the device exists.
+  # https://man7.org/linux/man-pages/man8/ethtool.8.html
   systemd.services."router-nic-offload" = {
     description = "Enable NIC hardware offloads on router interfaces";
     after = [
@@ -625,15 +621,11 @@ in
     '';
   };
 
-  # QoS: cake qdisc on both physical directions of the WAN link.
-  #   - lanIf (egress towards LAN clients) shapes/prioritizes download.
-  #   - wanIf/wanVlanIf (egress towards the ISP) shapes/prioritizes upload.
-  # autorate-ingress avoids hardcoding a bandwidth figure - your plan says
-  # 100Mbit but actual throughput runs closer to 140Mbit, so cake instead
-  # watches real traffic on each qdisc and keeps the shaper just under
-  # whatever it's actually seeing. diffserv4 sorts packets into tins by the
-  # DSCP marks set in the nftables forward chain above (qos_voice/video/bulk
-  # sets): Voice > Video > Best Effort (default, unmarked) > Bulk.
+  # QoS: cake qdisc, shapes download on lanIf and upload on wanIf/wanVlanIf.
+  # autorate-ingress tracks the real rate instead of hardcoding a bandwidth
+  # (plan says 100Mbit, actual is closer to 140Mbit). diffserv4 sorts by the
+  # DSCP marks set in the forward chain above.
+  # https://man7.org/linux/man-pages/man8/tc-cake.8.html
   systemd.services."router-qos-cake" = {
     description = "Apply CAKE QoS qdisc on router interfaces";
     after = [
