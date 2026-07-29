@@ -10,6 +10,7 @@
     ./hardware-configuration.nix
     ../../modules/common/default.nix
     ./router.nix
+    ./health.nix
   ];
 
   boot.loader.systemd-boot.enable = true;
