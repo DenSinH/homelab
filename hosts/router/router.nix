@@ -404,6 +404,18 @@ in
         (map (h: "${h.mac},${h.ip},${h.name}") fixedHosts)
         ++ (map (h: "${h.mac},${h.ip},${h.name}") iotHosts)
         ++ (map (h: "${h.mac},set:services # ${h.name}") servicesHosts);
+
+      # net/compute/storage hosts (proxmoxes, nas, piholes, subnet-router,
+      # cloudflared, etc.) are statically configured and never touch DHCP
+      # (see comment above dhcp-range), so dnsmasq has no lease to derive a
+      # hostname/PTR record from otherwise - darkstat (and anything else
+      # doing reverse DNS) would just see "(none)" for them.
+      host-record = [
+        "router,${lanGateway}"
+      ]
+      ++ (map (h: "${h.hostname},${h.ip}") (builtins.attrValues lib.hosts))
+      ++ (map (h: "${h.hostname},${h.ip}") (builtins.attrValues lib.storage))
+      ++ (map (h: "${h.hostname},${h.ip}") (builtins.attrValues lib.lxcs));
     };
   };
 
