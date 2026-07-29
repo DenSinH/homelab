@@ -71,11 +71,9 @@ let
   # false once testing is done, don't leave it on.
   testAllowSshFromWan = false;
 
-  # Seed for cake's autorate-ingress (see router-qos-cake below): without
-  # this it starts every estimate from ~0 after any idle period and has to
-  # ramp back up, which shows up as a slow-start on speed tests. A bit
-  # below the real measured rate (~140mbit) keeps that ramp short.
-  qosBandwidth = "135mbit";
+  # Static rate cap for cake (see router-qos-cake below), a bit below the
+  # real measured rate (~150mbit).
+  qosBandwidth = "150mbit";
 
   iotWanAllowed = builtins.filter (h: h.wan or false) iotHosts;
 
@@ -463,9 +461,13 @@ in
   };
 
   # QoS: cake qdisc, shapes download on lanIf and upload on wanIf/wanVlanIf.
-  # autorate-ingress tracks the real rate instead of hardcoding a bandwidth
-  # (plan says 100Mbit, actual is closer to 140Mbit) - qosBandwidth above just
-  # seeds its initial estimate so it doesn't ramp up from ~0 every time.
+  # Static bandwidth (plan says 100Mbit, actual is closer to 140Mbit - see
+  # qosBandwidth above) rather than autorate-ingress: autorate-ingress has
+  # to re-estimate from near-zero after every idle period and ramps back
+  # up over several seconds, which was very noticeable as a slow-start on
+  # otherwise-idle devices (phone, laptop) right after they resumed
+  # transfers. A fixed rate has no such ramp, at the cost of not adapting
+  # if the real line rate changes later.
   # diffserv4 sorts by the DSCP marks set in the forward chain above.
   # https://man7.org/linux/man-pages/man8/tc-cake.8.html
   systemd.services."router-qos-cake" = {
@@ -484,10 +486,10 @@ in
       RemainAfterExit = true;
     };
     script = ''
-      ${pkgs.iproute2}/bin/tc qdisc replace dev ${lanIf} root cake bandwidth ${qosBandwidth} autorate-ingress diffserv4
+      ${pkgs.iproute2}/bin/tc qdisc replace dev ${lanIf} root cake bandwidth ${qosBandwidth} diffserv4
 
       for dev in ${lib.concatStringsSep " " wanIfs}; do
-        ${pkgs.iproute2}/bin/tc qdisc replace dev "$dev" root cake bandwidth ${qosBandwidth} autorate-ingress diffserv4 || true
+        ${pkgs.iproute2}/bin/tc qdisc replace dev "$dev" root cake bandwidth ${qosBandwidth} diffserv4 || true
       done
     '';
   };
