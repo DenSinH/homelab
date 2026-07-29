@@ -29,10 +29,16 @@ and may have to be provisioned to any hosts using it.
 
 ## Deploying
 
-For an LXC, run
+For one or more LXCs, run
 ```bash
-nix run .#deploy -- <lxc-name>
+nix run .#deploy -- <lxc-name> <lxc-name>
 ```
+
+To deploy all LXCs, run
+```bash
+nix run .#deploy -- all
+``
+
 For the NAS, run
 ```bash
 nixos-rebuild switch --flake .#nas --target-host root@nas.home --sudo
@@ -42,5 +48,5 @@ For the router, run
 
 For the router, run
 ```bash
-nixos-rebuild switch --flake .#router --target-host root@192.168.50.1 --sudo
+nixos-rebuild switch --flake .#router --target-host root@router.home --sudo
 ```

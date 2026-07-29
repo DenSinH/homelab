@@ -164,57 +164,57 @@ let
     {
       mac = "d8:a0:11:49:43:c0";
       ip = "${lanSubnet}.60";
-      name = "wiz-4943c0";
+      name = "wiz-4943c0"; # kitchen-middle-lamp
     }
     {
       mac = "6c:29:90:80:42:a8";
       ip = "${lanSubnet}.61";
-      name = "wiz-8042a8";
+      name = "wiz-8042a8"; # kitchen-storage-lamp
     }
     {
       mac = "d8:a0:11:e2:30:53";
       ip = "${lanSubnet}.62";
-      name = "wiz-e23053";
+      name = "wiz-e23053"; # dining-lamp-painting
     }
     {
       mac = "d8:a0:11:e1:07:8b";
       ip = "${lanSubnet}.63";
-      name = "wiz-e1078b";
+      name = "wiz-e1078b"; # tv-lamp
     }
     {
       mac = "d8:a0:11:e1:07:9f";
       ip = "${lanSubnet}.64";
-      name = "wiz-e1079f";
+      name = "wiz-e1079f"; # dining-lamp-jim
     }
     {
       mac = "d8:a0:11:b2:c4:3d";
       ip = "${lanSubnet}.65";
-      name = "wiz-b2c43d";
+      name = "wiz-b2c43d"; # kitchen-living-lamp
     }
 
     # Sonos speakers
     {
       mac = "b8:e9:37:32:72:ec";
       ip = "${lanSubnet}.70";
-      name = "sonos-zp";
+      name = "sonos-zp"; # Play:3 (living room)
       wan = true;
     }
     {
       mac = "b8:e9:37:82:35:18";
       ip = "${lanSubnet}.71";
-      name = "sonos-1";
+      name = "sonos-1"; # Play:1 (kitchen)
       wan = true;
     }
     {
       mac = "5c:aa:fd:46:b3:c6";
       ip = "${lanSubnet}.72";
-      name = "sonos-2";
+      name = "sonos-2"; # Play:1 (record player)
       wan = true;
     }
     {
       mac = "b8:e9:37:56:28:b4";
       ip = "${lanSubnet}.73";
-      name = "sonos-3";
+      name = "sonos-3"; # Play:1 (dining table)
       wan = true;
     }
   ];
@@ -553,14 +553,8 @@ in
   # openFirewall=false: nftables above already governs SSH access; the ssh
   # module must not punch its own hole in the firewall
   # https://skogsbrus.xyz/building-a-router-with-nixos/#ssh-port-22
-
   services.openssh = {
-    enable = true;
-    openFirewall = false;
-    settings = {
-      PasswordAuthentication = false;
-      PermitRootLogin = "yes";
-    };
+    openFirewall = lib.mkForce false;
   };
 
   # Stability/performance tweaks for low-end hardware running headless

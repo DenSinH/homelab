@@ -206,6 +206,27 @@ firewall change doesn't permanently strand you.
   it has a `dhcp-host = "mac,set:services"` entry — without the tag it's
   treated as an unrecognized MAC and refused that range entirely.
 
+## Useful commands
+
+Watch current leases
+```bash
+watch -n1 cat /var/lib/dnsmasq/dnsmasq.leases
+```
+
+Watch WAN traffic (balancing)
+```bash
+watch -n1 tc -s qdisc show dev enp1s0
+```
+or (Odido VLAN)
+```bash
+watch -n1 tc -s qdisc show dev enp1s0.300
+```
+
+Watch LAN traffic (balancing)
+```bash
+watch -n1 tc -s qdisc show dev enp2s0
+```
+
 ## Sources
 
 - tweakers.net forum, *Odido glasvezel: eigen router/ONT gebruiken* (WAN

@@ -8,14 +8,13 @@
 
 {
   # container-related settings
-  imports = [ (modulesPath + "/virtualisation/proxmox-lxc.nix") ];
+  imports = [
+    ../common/default.nix
+    (modulesPath + "/virtualisation/proxmox-lxc.nix")
+  ];
 
   nix.settings = {
     sandbox = false;
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
   };
   proxmoxLXC = {
     manageNetwork = false;
@@ -33,21 +32,6 @@
     "sys-kernel-debug.mount"
     "sys-fs-fuse-connections.mount"
   ];
-
-  time.timeZone = "Europe/Amsterdam";
-
-  # ssh settings
-  services.openssh = {
-    enable = true;
-    openFirewall = true;
-    settings = {
-      PermitRootLogin = "yes";
-      PasswordAuthentication = true;
-      PermitEmptyPasswords = "yes";
-    };
-  };
-
-  users.users.root.openssh.authorizedKeys.keys = lib.admin.ssh_keys;
 
   # LXC container template based on 26.05 release
   system.stateVersion = host.stateVersion;
