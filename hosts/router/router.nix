@@ -61,6 +61,12 @@ let
   lanSubnet = "192.168.50";
   lanGateway = "${lanSubnet}.1";
 
+  # Seed for cake's autorate-ingress (see router-qos-cake below): without
+  # this it starts every estimate from ~0 after any idle period and has to
+  # ramp back up, which shows up as a slow-start on speed tests. A bit
+  # below the real measured rate (~140mbit) keeps that ramp short.
+  qosBandwidth = "135mbit";
+
   netLo = "${lanSubnet}.1";
   netHi = "${lanSubnet}.9";
   computeLo = "${lanSubnet}.10";
@@ -617,8 +623,9 @@ in
 
   # QoS: cake qdisc, shapes download on lanIf and upload on wanIf/wanVlanIf.
   # autorate-ingress tracks the real rate instead of hardcoding a bandwidth
-  # (plan says 100Mbit, actual is closer to 140Mbit). diffserv4 sorts by the
-  # DSCP marks set in the forward chain above.
+  # (plan says 100Mbit, actual is closer to 140Mbit) - qosBandwidth above just
+  # seeds its initial estimate so it doesn't ramp up from ~0 every time.
+  # diffserv4 sorts by the DSCP marks set in the forward chain above.
   # https://man7.org/linux/man-pages/man8/tc-cake.8.html
   systemd.services."router-qos-cake" = {
     description = "Apply CAKE QoS qdisc on router interfaces";
@@ -636,10 +643,10 @@ in
       RemainAfterExit = true;
     };
     script = ''
-      ${pkgs.iproute2}/bin/tc qdisc replace dev ${lanIf} root cake autorate-ingress diffserv4
+      ${pkgs.iproute2}/bin/tc qdisc replace dev ${lanIf} root cake bandwidth ${qosBandwidth} autorate-ingress diffserv4
 
       for dev in ${lib.concatStringsSep " " wanIfs}; do
-        ${pkgs.iproute2}/bin/tc qdisc replace dev "$dev" root cake autorate-ingress diffserv4 || true
+        ${pkgs.iproute2}/bin/tc qdisc replace dev "$dev" root cake bandwidth ${qosBandwidth} autorate-ingress diffserv4 || true
       done
     '';
   };
