@@ -77,6 +77,13 @@ let
 
   iotWanAllowed = builtins.filter (h: h.wan or false) iotHosts;
 
+  # home-assistant has no fixed IP (services range is a dynamic-tag pool, see
+  # network.nix), so the usbip nftables rule below binds on this MAC instead.
+  usbipAllowedMac =
+    (lib.findFirst (
+      h: h.name == "home-assistant"
+    ) (throw "home-assistant missing from servicesHosts") servicesHosts).mac;
+
   # QoS priority tiers for the WAN link - cake diffserv4 tins, see below.
   # Voice > Video > Best Effort (default) > Bulk.
   qosVoiceHosts = map (h: h.ip) fixedHosts; # family devices
@@ -282,6 +289,11 @@ in
 
         # darkstat web dashboard (see hosts/router/health.nix) - LAN only, keep port in sync
         iifname "${lanIf}" tcp dport 80 accept comment "darkstat dashboard for LAN clients"
+
+        # usbip (see hosts/router/usbip.nix) - zigbee dongle export. No auth
+        # of its own, so restrict to home-assistant's MAC (see
+        # usbipAllowedMac above), not just LAN-wide like the other rules.
+        iifname "${lanIf}" ether saddr ${usbipAllowedMac} tcp dport 3240 accept comment "usbip for zigbee dongle - home-assistant only"
 
         counter drop comment "default-deny anything else destined for the router itself"
       }

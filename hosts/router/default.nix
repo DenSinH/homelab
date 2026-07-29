@@ -11,6 +11,7 @@
     ../../modules/common/default.nix
     ./router.nix
     ./health.nix
+    ./usbip.nix
   ];
 
   boot.loader.systemd-boot.enable = true;
