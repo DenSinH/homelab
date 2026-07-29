@@ -71,6 +71,11 @@ rec {
       ip = "${lanSubnet}.202";
       name = "hvee113-work-laptop";
     }
+    {
+      mac = "64:c9:01:b7:41:9f";
+      ip = "${lanSubnet}.203";
+      name = "docking-station";
+    }
 
     # Merel devices
     {
@@ -84,11 +89,6 @@ rec {
       mac = "f4:4d:ad:04:1c:d4";
       ip = "${lanSubnet}.240";
       name = "chromecast-badkamer";
-    }
-    {
-      mac = "64:c9:01:b7:41:9f";
-      ip = "${lanSubnet}.241";
-      name = "lenovo-tiny-gaming";
     }
   ];
 
