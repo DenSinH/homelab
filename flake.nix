@@ -249,6 +249,8 @@
           storage = storage;
           admin = {
             ssh_keys = [
+              # master key
+              "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPr33f0ptFpGkZbsMcUkAeON5m6aqOHcVg046jiy320N"
               # laptop
               "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAq2MnvCGfq5BvLzpxEcITRpMaNZ+ERlKP6+ecbb6LWb git@dennishilhorst.nl"
               # work laptop

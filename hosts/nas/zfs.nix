@@ -54,7 +54,6 @@
           "tank/media"
           "tank/vaultwarden"
           "tank/pbs-backup"
-          "tank/proxmox-backup"
         ];
       in
       ''

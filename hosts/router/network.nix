@@ -179,6 +179,13 @@ rec {
       name = "sonos-3"; # Play:1 (dining table)
       wan = true;
     }
+
+    # Printer
+    {
+      mac = "f8:25:51:2f:6b:aa";
+      ip = "${lanSubnet}.99";
+      name = "epson-xp-3200";
+    }
   ];
 
   # Services (.30-49): MAC is tagged via dhcp-host = "mac,set:services" (no

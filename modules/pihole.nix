@@ -109,6 +109,9 @@ in
       dns.hosts = localRecords;
       dns.cnameRecords = cnameRecords;
 
+      # these can grow pretty big
+      dns.queryLogging = false;
+
       # needed for tailscale DNS
       dns.listeningMode = "ALL";
     };
@@ -182,6 +185,7 @@ in
         num-threads = 1;
 
         # Local/private networks
+        private-domain = "dennishilhorst.nl";
         private-address = [
           "192.168.0.0/16"
           "169.254.0.0/16"
@@ -194,6 +198,16 @@ in
       };
     };
   };
+
+  # temporary workaround NOT to recreate the unbound anchor file with
+  # unbound-anchor -a /var/lib/unbound/root.key
+  # (somehow produces an empty file)
+  systemd.services.unbound.serviceConfig.ExecStartPre = lib.mkForce [ ];
+
+  # debugging tools
+  environment.systemPackages = with pkgs; [
+    dig
+  ];
 
   # this conflicts with the pihole port 53 mapping
   services.resolved.enable = false;

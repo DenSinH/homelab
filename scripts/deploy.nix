@@ -54,7 +54,7 @@ pkgs.writeShellScript "deploy" ''
       actual="$(
           ssh root@$ip '
               cat /proc/self/mountinfo \
-              | sed -n "s#.*pve-vm--\\([0-9]\\+\\)--disk--0.*#\\1#p" \
+              | sed -n "s#.*pve-vm--\\([0-9]\\+\\)--disk--[0-9]\\+.*#\\1#p" \
               | head -n1
           '
       )"
