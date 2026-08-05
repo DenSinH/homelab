@@ -43,14 +43,12 @@ nix run .#deploy -- <lxc-name> <lxc-name>
 To deploy all LXCs, run
 ```bash
 nix run .#deploy -- all
-``
+```
 
 For the NAS, run
 ```bash
 nixos-rebuild switch --flake .#nas --target-host root@nas.home --sudo
 ```
-For the router, run
-```bash
 
 For the router, run
 ```bash
