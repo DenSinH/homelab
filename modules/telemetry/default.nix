@@ -48,6 +48,14 @@ in
       group = "metrics";
       mode = "0440";
     };
+    "influxdb/tokens/nas" = {
+      group = "metrics";
+      mode = "0440";
+    };
+    "influxdb/tokens/router" = {
+      group = "metrics";
+      mode = "0440";
+    };
 
     "grafana/secret_key" = {
       group = "grafana";
@@ -122,6 +130,60 @@ in
             ];
             writeBuckets = [
               "homeassistant"
+            ];
+            writePermissions = [
+              "buckets"
+            ];
+          };
+        };
+
+        nas = {
+          description = "Organization for NAS data";
+
+          buckets."nas" = {
+            description = "Bucket for NAS data";
+            retention = retention;
+          };
+
+          auths."Host" = {
+            description = "Token used by NAS hos";
+            tokenFile = config.sops.secrets."influxdb/tokens/nas".path;
+
+            readBuckets = [
+              "nas"
+            ];
+            readPermissions = [
+              "buckets"
+            ];
+            writeBuckets = [
+              "nas"
+            ];
+            writePermissions = [
+              "buckets"
+            ];
+          };
+        };
+
+        router = {
+          description = "Organization for router data";
+
+          buckets."router" = {
+            description = "Bucket for router data";
+            retention = retention;
+          };
+
+          auths."Host" = {
+            description = "Token used by router host";
+            tokenFile = config.sops.secrets."influxdb/tokens/router".path;
+
+            readBuckets = [
+              "router"
+            ];
+            readPermissions = [
+              "buckets"
+            ];
+            writeBuckets = [
+              "router"
             ];
             writePermissions = [
               "buckets"
@@ -209,10 +271,39 @@ in
         }
 
         {
-          name = "Prometheus - NAS";
-          type = "prometheus";
-          url = "http://${lib.storage.nas.ip}:9090";
+          name = "InfluxDB - NAS";
+          type = "influxdb";
+          url = "http://localhost:8086";
           isDefault = false;
+
+          jsonData = {
+            version = "Flux";
+            organization = "nas";
+            defaultBucket = "nas";
+            tlsSkipVerify = true;
+          };
+
+          secureJsonData = {
+            token = grafanaSecretFile "influxdb/tokens/nas";
+          };
+        }
+
+        {
+          name = "InfluxDB - Router";
+          type = "influxdb";
+          url = "http://localhost:8086";
+          isDefault = false;
+
+          jsonData = {
+            version = "Flux";
+            organization = "router";
+            defaultBucket = "router";
+            tlsSkipVerify = true;
+          };
+
+          secureJsonData = {
+            token = grafanaSecretFile "influxdb/tokens/router";
+          };
         }
 
         {

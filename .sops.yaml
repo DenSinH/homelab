@@ -5,10 +5,11 @@ keys:
   - &vaultwarden age1kqmnfy286wa2jg2zsnssqlttt75g93q3zcu6fggmug2vmhhm0vksufyfyd
   - &immich age1ywhn34rxjws6cuz73hju2szr8r735zyghzvzldyzn0qwz7xl5essmvvjpq
   - &nixflix age15e7m3c8f0jxe8qp96ypm2laa88qtx8u2achr8nm53uzrm2tsav6syhgya0
+  - &nas age16jqlp2qmjvqhmdehh7xgdu3dwxnm4wlh4dyd9cnf7cgp6t23yddqvsd8rl
 creation_rules:
   - path_regex: secrets/telemetry\.yaml$
     key_groups:
-    - age: [*admin, *telemetry]
+    - age: [*admin, *telemetry, *nas]
 
   - path_regex: secrets/cloudflared\.yaml$
     key_groups:

@@ -27,6 +27,12 @@ Secrets are managed with `sops-nix`. The (age) `keys.txt` file is expected to be
 ```
 and may have to be provisioned to any hosts using it.
 
+If you add a new age key to a secret group, you will need to run
+```bash
+sops updatekeys secrets/telemetry.yaml
+```
+to update the keys listed to have access for the given secrets file.
+
 ## Deploying
 
 For one or more LXCs, run

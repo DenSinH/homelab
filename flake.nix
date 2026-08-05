@@ -279,6 +279,7 @@
           };
 
           modules = [
+            sops-nix.nixosModules.sops
             ./hosts/nas/default.nix
           ];
         };

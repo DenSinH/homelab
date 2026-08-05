@@ -6,10 +6,18 @@
 }:
 
 {
+  sops.defaultSopsFile = ../../secrets/telemetry.yaml;
+  sops.secrets = {
+    "influxdb/tokens/nas" = {
+      group = "telegraf";
+      mode = "0440";
+    };
+  };
+
   imports = [
     # same alloy monitoring as LXCs
     (import ../../modules/telemetry/alloy.nix {
-      inherit config pkgs lib;
+      inherit pkgs lib;
       host = lib.storage.nas;
     })
   ];
@@ -55,31 +63,44 @@
         pools = [ "tank" ];
       };
     };
-
-    globalConfig = {
-      scrape_interval = "1m";
-    };
-
-    scrapeConfigs = [
-      {
-        job_name = "node";
-        scrape_interval = "1s";
-        static_configs = [ { targets = [ "localhost:9100" ]; } ];
-      }
-      {
-        job_name = "smartctl";
-        static_configs = [ { targets = [ "localhost:9633" ]; } ];
-      }
-      {
-        job_name = "zfs";
-        static_configs = [ { targets = [ "localhost:9134" ]; } ];
-      }
-    ];
-
-    retentionTime = "7d";
   };
 
-  networking.firewall.allowedTCPPorts = [
-    9090 # prometheus
-  ];
+  sops.templates."telegraf.env" = {
+    content = ''
+      INFLUX_TOKEN=${config.sops.placeholder."influxdb/tokens/nas"}
+    '';
+  };
+
+  services.telegraf = {
+    enable = true;
+
+    environmentFiles = [
+      config.sops.templates."telegraf.env".path
+    ];
+
+    extraConfig = {
+      agent = {
+        interval = "30s";
+      };
+
+      inputs.prometheus = {
+        urls = [
+          "http://localhost:9100/metrics"
+          "http://localhost:9134/metrics"
+          "http://localhost:9633/metrics"
+        ];
+      };
+
+      outputs.influxdb_v2 = {
+        urls = [
+          "http://192.168.50.34:8086"
+        ];
+
+        token = "$INFLUX_TOKEN";
+
+        organization = "nas";
+        bucket = "nas";
+      };
+    };
+  };
 }

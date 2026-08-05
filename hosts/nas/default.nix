@@ -31,16 +31,20 @@
   # boot.kernelParams = ["intel_idle.max_cstate=1"];
 
   networking = {
+    hostName = "nas";
     defaultGateway = {
       address = "192.168.50.1";
       interface = "eno1";
     };
-    hostName = "nas";
     interfaces.eno1.ipv4.addresses = [
       {
         address = lib.storage.nas.ip;
         prefixLength = 24;
       }
+    ];
+    nameservers = [
+      # forwarded to piholes
+      "192.168.50.1"
     ];
   };
 

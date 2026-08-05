@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   lib,
   host,
@@ -9,7 +8,7 @@
 let
   lokiUrl = "http://${lib.lxcs.telemetry.ip}:3100";
 
-  alloyConfig = pkgs.writeText "alloy-config.alloy" ''
+  alloyConfig = ''
     // Relabeling rules applied to journal entries before they're read.
     // This maps the internal journal field __journal__systemd_unit
     // to a proper label called "unit".
@@ -58,5 +57,5 @@ in
     ];
   };
 
-  environment.etc."alloy/config.alloy".source = alloyConfig;
+  environment.etc."alloy/config.alloy".text = alloyConfig;
 }

@@ -5,8 +5,8 @@
     "name": "advzc6f",
     "namespace": "default",
     "uid": "a7ffa89a-e6ff-4607-9562-5a2a14b86fcb",
-    "resourceVersion": "1784476405510997",
-    "generation": 14,
+    "resourceVersion": "1784476465488986",
+    "generation": 15,
     "creationTimestamp": "2026-06-26T12:55:38Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "3338945286201344"
@@ -15,11 +15,11 @@
       "grafana.app/createdBy": "access-policy:service",
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerId": "default",
-      "grafana.app/sourceChecksum": "e0abe05c205831281ed4591ec967eff7",
+      "grafana.app/sourceChecksum": "ba86eaff31409a2e29e169c721b22b2f",
       "grafana.app/sourcePath": "/var/lib/grafana/dashboards/kiosk.json",
-      "grafana.app/sourceTimestamp": "1784476404000",
+      "grafana.app/sourceTimestamp": "1784476465000",
       "grafana.app/updatedBy": "access-policy:service",
-      "grafana.app/updatedTimestamp": "2026-07-19T15:53:25Z",
+      "grafana.app/updatedTimestamp": "2026-07-19T15:54:25Z",
       "grafana.app/folder": ""
     }
   },
@@ -167,7 +167,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -184,16 +184,12 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "PEF08601FF7F09F97"
+                        "name": "P4D62735349E4356A"
                       },
-                      "group": "prometheus",
+                      "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "time() - node_boot_time_seconds{job=\"node\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"node_boot_time_seconds\")\n  |> last()\n  |> map(fn: (r) => ({\n      r with\n      _value: float(v: int(v: now()) / 1000000000) - r._value\n  }))"
                       },
                       "version": "v0"
                     },
@@ -269,7 +265,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -286,16 +282,12 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "PEF08601FF7F09F97"
+                        "name": "P4D62735349E4356A"
                       },
-                      "group": "prometheus",
+                      "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "100 - (\n  avg by(instance) (\n    rate(node_cpu_seconds_total{mode=\"idle\"}[$__interval])\n  ) * 100\n)",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -304,7 +296,32 @@
                 }
               ],
               "queryOptions": {},
-              "transformations": []
+              "transformations": [
+                {
+                  "group": "calculateField",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "binary": {
+                        "left": {
+                          "fixed": "1"
+                        },
+                        "operator": "-",
+                        "right": {
+                          "matcher": {
+                            "id": "byName",
+                            "options": "Value"
+                          }
+                        }
+                      },
+                      "mode": "binary",
+                      "reduce": {
+                        "reducer": "sum"
+                      }
+                    }
+                  }
+                }
+              ]
             }
           },
           "description": "",
@@ -337,7 +354,7 @@
                       }
                     ]
                   },
-                  "unit": "percent"
+                  "unit": "percentunit"
                 },
                 "overrides": []
               },
@@ -358,7 +375,7 @@
                   "calcs": [
                     "lastNotNull"
                   ],
-                  "fields": "/^localhost:9100$/",
+                  "fields": "/^1 \\- Value$/",
                   "values": false
                 },
                 "showUnfilled": true,
@@ -366,7 +383,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -383,49 +400,52 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "PEF08601FF7F09F97"
+                        "name": "P4D62735349E4356A"
                       },
-                      "group": "prometheus",
+                      "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "node_memory_MemTotal_bytes{job=\"node\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"node_memory_MemTotal_bytes\" or r._measurement == \"node_memory_MemFree_bytes\")\n    and r.host == \"nas\"\n  )\n  |> last()"
                       },
                       "version": "v0"
                     },
                     "refId": "A"
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "PEF08601FF7F09F97"
-                      },
-                      "group": "prometheus",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "node_memory_MemTotal_bytes{job=\"node\"} - node_memory_MemAvailable_bytes{job=\"node\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "B"
                   }
                 }
               ],
               "queryOptions": {
                 "maxDataPoints": 100
               },
-              "transformations": []
+              "transformations": [
+                {
+                  "group": "calculateField",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "alias": "memused",
+                      "binary": {
+                        "left": {
+                          "matcher": {
+                            "id": "byName",
+                            "options": "gauge {host=\"nas\", name=\"node_memory_MemTotal_bytes\", url=\"http://localhost:9100/metrics\"}"
+                          }
+                        },
+                        "operator": "-",
+                        "right": {
+                          "matcher": {
+                            "id": "byName",
+                            "options": "gauge {host=\"nas\", name=\"node_memory_MemFree_bytes\", url=\"http://localhost:9100/metrics\"}"
+                          }
+                        }
+                      },
+                      "mode": "binary",
+                      "reduce": {
+                        "reducer": "sum"
+                      }
+                    }
+                  }
+                }
+              ]
             }
           },
           "description": "",
@@ -493,7 +513,7 @@
                   "calcs": [
                     "lastNotNull"
                   ],
-                  "fields": "/^\\{instance=\"localhost:9100\", job=\"node\"\\}$/",
+                  "fields": "/^memused$/",
                   "values": false
                 },
                 "showUnfilled": true,
@@ -501,7 +521,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -642,7 +662,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -723,15 +743,16 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "PEF08601FF7F09F97"
+                        "name": "P4D62735349E4356A"
                       },
-                      "group": "prometheus",
+                      "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
                         "expr": "1 - (\n  avg by(instance) (\n    rate(node_cpu_seconds_total{mode=\"idle\"}[$__interval])\n  )\n)",
                         "instant": false,
                         "legendFormat": "nas",
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean)\n  |> group(columns: [\"_time\", \"host\"])\n  |> mean()\n  |> group(columns: [\"host\"])\n  |> last()",
                         "range": true
                       },
                       "version": "v0"
@@ -846,7 +867,7 @@
                 }
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -863,42 +884,16 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "PEF08601FF7F09F97"
+                        "name": "P4D62735349E4356A"
                       },
-                      "group": "prometheus",
+                      "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "zfs_dataset_used_bytes{name=\"tank/media\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"zfs_dataset_used_bytes\" or\n     r._measurement == \"zfs_dataset_available_bytes\") and\n    r.name == \"tank/media\"\n  )\n  |> last()\n  |> group()\n  |> reduce(\n    identity: {\n      used: 0.0,\n      available: 0.0,\n    },\n    fn: (r, accumulator) => ({\n      used: if r._measurement == \"zfs_dataset_used_bytes\"\n        then r._value\n        else accumulator.used,\n      available: if r._measurement == \"zfs_dataset_available_bytes\"\n        then r._value\n        else accumulator.available,\n    })\n  )"
                       },
                       "version": "v0"
                     },
                     "refId": "A"
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "PEF08601FF7F09F97"
-                      },
-                      "group": "prometheus",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "zfs_dataset_available_bytes{name=\"tank/media\"} + zfs_dataset_used_bytes{name=\"tank/media\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "B"
                   }
                 }
               ],
@@ -914,13 +909,13 @@
                         "left": {
                           "matcher": {
                             "id": "byName",
-                            "options": "avail"
+                            "options": "used"
                           }
                         },
                         "right": {
                           "matcher": {
                             "id": "byName",
-                            "options": "avail"
+                            "options": "available"
                           }
                         }
                       },
@@ -984,7 +979,7 @@
                   "calcs": [
                     "lastNotNull"
                   ],
-                  "fields": "/^\\{__name__=\"zfs_dataset_used_bytes\", instance=\"localhost:9134\", job=\"zfs\", name=\"tank/media\", pool=\"tank\", type=\"filesystem\"\\}$/",
+                  "fields": "/^used$/",
                   "values": false
                 },
                 "showUnfilled": true,
@@ -992,7 +987,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1139,7 +1134,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1177,7 +1172,7 @@
                 "mode": "html"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1215,7 +1210,7 @@
                 "mode": "markdown"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1325,7 +1320,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1472,7 +1467,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1614,7 +1609,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1631,42 +1626,16 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "PEF08601FF7F09F97"
+                        "name": "P4D62735349E4356A"
                       },
-                      "group": "prometheus",
+                      "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "zfs_pool_allocated_bytes{pool=\"tank\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"zfs_pool_allocated_bytes\" or r._measurement == \"zfs_pool_size_bytes\")and\n    r.pool == \"tank\"\n  )\n  |> last()"
                       },
                       "version": "v0"
                     },
                     "refId": "A"
-                  }
-                },
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "PEF08601FF7F09F97"
-                      },
-                      "group": "prometheus",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "editorMode": "code",
-                        "expr": "zfs_pool_size_bytes{pool=\"tank\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "B"
                   }
                 }
               ],
@@ -1741,7 +1710,7 @@
                   "calcs": [
                     "lastNotNull"
                   ],
-                  "fields": "/^\\{__name__=\"zfs_pool_allocated_bytes\", instance=\"localhost:9134\", job=\"zfs\", pool=\"tank\"\\}$/",
+                  "fields": "/^zfs_pool_allocated_bytes gauge \\{host=\"nas\", pool=\"tank\", url=\"http://localhost:9134/metrics\"\\}$/",
                   "values": false
                 },
                 "showUnfilled": true,
@@ -1749,7 +1718,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1766,16 +1735,12 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "PEF08601FF7F09F97"
+                        "name": "P4D62735349E4356A"
                       },
-                      "group": "prometheus",
+                      "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "smartctl_device_smart_status{device=\"sda\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"smartctl_device_smart_status\" and\n    r.device == \"sda\"\n  )\n  |> aggregateWindow(every: v.windowPeriod, fn: last)"
                       },
                       "version": "v0"
                     },
@@ -1813,16 +1778,29 @@
                     },
                     "lineWidth": 10
                   },
+                  "mappings": [
+                    {
+                      "options": {
+                        "0": {
+                          "color": "red",
+                          "index": 0,
+                          "text": "BAD"
+                        },
+                        "1": {
+                          "color": "green",
+                          "index": 1,
+                          "text": "OK"
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ],
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
                       }
                     ]
                   }
@@ -1849,7 +1827,7 @@
                 }
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -1866,16 +1844,12 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "PEF08601FF7F09F97"
+                        "name": "P4D62735349E4356A"
                       },
-                      "group": "prometheus",
+                      "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "smartctl_device_smart_status{device=\"sdb\"}",
-                        "instant": false,
-                        "legendFormat": "__auto",
-                        "range": true
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"smartctl_device_smart_status\" and\n    r.device == \"sdb\"\n  )\n  |> aggregateWindow(every: v.windowPeriod, fn: last)"
                       },
                       "version": "v0"
                     },
@@ -1913,16 +1887,29 @@
                     },
                     "lineWidth": 10
                   },
+                  "mappings": [
+                    {
+                      "options": {
+                        "0": {
+                          "color": "red",
+                          "index": 0,
+                          "text": "BAD"
+                        },
+                        "1": {
+                          "color": "green",
+                          "index": 1,
+                          "text": "OK"
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ],
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
                       }
                     ]
                   }
@@ -1949,7 +1936,7 @@
                 }
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -2091,7 +2078,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -2188,7 +2175,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -2298,7 +2285,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -2440,7 +2427,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -2537,7 +2524,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -2647,7 +2634,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       },
@@ -2789,7 +2776,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.2"
+            "version": "13.0.3"
           }
         }
       }
