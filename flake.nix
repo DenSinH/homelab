@@ -219,7 +219,7 @@
           stateVersion = "26.05";
 
           modules = [
-            ./modules/cookbook.nix
+            ./modules/cookbook/default.nix
             ./modules/telemetry/alloy.nix
           ];
         };
