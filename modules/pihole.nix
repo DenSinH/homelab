@@ -48,6 +48,7 @@ let
     "${lib.lxcs.telemetry.ip} telemetry.home"
     "${lib.lxcs.gatus.ip} gatus.home"
     "${lib.lxcs.gatus.ip} status.home" # alias
+    "${lib.lxcs.cookbook.ip} cookbook.home"
 
     "${lib.lxcs.immich.ip} immich.home"
     "${lib.lxcs.immich.tailnet_ip} immich.vpn"

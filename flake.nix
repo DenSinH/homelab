@@ -174,6 +174,24 @@
           ];
         };
 
+        immich = {
+          hostname = "immich";
+          ip = "192.168.50.36";
+          mac = "bc:24:11:a9:1a:9c";
+          tailnet_ip = "100.100.52.120";
+          pveHost = "proxmox3";
+          ctid = 307;
+
+          stateVersion = "26.05";
+
+          modules = [
+            ./modules/igpu.nix
+            ./modules/immich.nix
+            ./modules/tailscale.nix
+            ./modules/telemetry/alloy.nix
+          ];
+        };
+
         vaultwarden = {
           hostname = "vaultwarden";
           ip = "192.168.50.37";
@@ -191,20 +209,17 @@
           ];
         };
 
-        immich = {
-          hostname = "immich";
-          ip = "192.168.50.36";
-          mac = "bc:24:11:a9:1a:9c";
-          tailnet_ip = "100.100.52.120";
-          pveHost = "proxmox3";
-          ctid = 307;
+        cookbook = {
+          hostname = "cookbook";
+          ip = "192.168.50.38";
+          mac = "bc:24:11:57:fc:da";
+          pveHost = "proxmox1";
+          ctid = 105;
 
           stateVersion = "26.05";
 
           modules = [
-            ./modules/igpu.nix
-            ./modules/immich.nix
-            ./modules/tailscale.nix
+            ./modules/cookbook.nix
             ./modules/telemetry/alloy.nix
           ];
         };

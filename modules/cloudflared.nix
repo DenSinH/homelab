@@ -7,7 +7,6 @@
 
 let
   proxies = {
-    "link.dennishilhorst.nl" = { };
     "status.dennishilhorst.nl" = {
       service = "http://${lib.lxcs.gatus.ip}";
     };
@@ -21,15 +20,11 @@ let
       };
     };
     "cdn.dennishilhorst.nl" = { };
-    "chef.dennishilhorst.nl" = { };
-    "hunt.dennishilhorst.nl" = { };
-    "link-console.dennishilhorst.nl" = {
-      originRequest = {
-        httpHostHeader = "link.console.dennishilhorst.nl";
-        originServerName = "link.console.dennishilhorst.nl";
-      };
+    "chef.dennishilhorst.nl" = {
+      service = "http://${lib.lxcs.cookbook.ip}";
     };
-    "nng.dennishilhorst.nl" = { };
+
+    # admin
     "pgadmin.dennishilhorst.nl" = { };
     "portainer.dennishilhorst.nl" = { };
     "traefik.dennishilhorst.nl" = { };
