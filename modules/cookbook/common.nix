@@ -1,7 +1,8 @@
 {
-  # Small/fast, CPU-friendly, and generally solid at instruction-following
-  # and JSON-schema adherence — good for structured recipe extraction.
-  model = "qwen3:1.7b";
+  model = "gpt-5-mini";
+
+  # gpt-5-mini does not support temperature
+  temperature = 1;
 
   litellm-port = 4000;
 }
