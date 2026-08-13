@@ -58,9 +58,12 @@ let
 
     "${lib.lxcs.blog.ip} blog.home"
 
-    ### STREAMING
     "${lib.lxcs.nixflix.ip} nixflix.home"
     "${lib.lxcs.nixflix.tailnet_ip} nixflix.vpn"
+
+    "${lib.lxcs.dawarich.ip} dawarich.home"
+    "${lib.lxcs.dawarich.tailnet_ip} dawarich.vpn"
+
     "192.168.50.46 byparr.home"
     "192.168.50.47 bazarr.home"
 

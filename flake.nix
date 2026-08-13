@@ -254,6 +254,22 @@
             ./modules/telemetry/alloy.nix
           ];
         };
+
+        dawarich = {
+          hostname = "dawarich";
+          ip = "192.168.50.41";
+          tailnet_ip = "100.90.160.73";
+          mac = "bc:24:11:cc:e8:e7";
+          pveHost = "proxmox1";
+          ctid = 106;
+
+          stateVersion = "26.05";
+
+          modules = [
+            ./modules/tailscale.nix
+            ./modules/dawarich.nix
+          ];
+        };
       };
 
       # make hosts and lxcs globally accessible

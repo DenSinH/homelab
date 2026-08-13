@@ -124,7 +124,7 @@ in
     requires = [
       "litellm-proxy.service"
     ];
-  }
+  };
 
   # open this for testing
   # networking.firewall.allowedTCPPorts = [ cfg.litellm-port ];

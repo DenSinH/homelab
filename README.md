@@ -33,6 +33,11 @@ sops updatekeys secrets/telemetry.yaml
 ```
 to update the keys listed to have access for the given secrets file.
 
+To retrieve the (ssh derived) age key from a new LXC (printed when running `/etc/init-lxc.sh`, you can run)
+```bash
+nix-shell -p ssh-to-age --run "ssh-to-age -i \"/etc/ssh/ssh_host_ed25519_key.pub\""
+```
+
 ## Deploying
 
 For one or more LXCs, run
