@@ -64,6 +64,8 @@ let
     "${lib.lxcs.dawarich.ip} dawarich.home"
     "${lib.lxcs.dawarich.tailnet_ip} dawarich.vpn"
 
+    "${lib.lxcs.garage.ip} garage.home"
+
     "192.168.50.46 byparr.home"
     "192.168.50.47 bazarr.home"
 

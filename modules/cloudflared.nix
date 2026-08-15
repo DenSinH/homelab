@@ -13,21 +13,18 @@ let
     "blog.dennishilhorst.nl" = {
       service = "http://${lib.lxcs.blog.ip}";
     };
-    "cdn-console.dennishilhorst.nl" = {
-      originRequest = {
-        httpHostHeader = "cdn.console.dennishilhorst.nl";
-        originServerName = "cdn.console.dennishilhorst.nl";
-      };
+    # "cdn-console.dennishilhorst.nl" = {
+    #   originRequest = {
+    #     httpHostHeader = "cdn.console.dennishilhorst.nl";
+    #     originServerName = "cdn.console.dennishilhorst.nl";
+    #   };
+    # };
+    "cdn.dennishilhorst.nl" = {
+      service = "http://${lib.lxcs.garage.ip}";
     };
-    "cdn.dennishilhorst.nl" = { };
     "chef.dennishilhorst.nl" = {
       service = "http://${lib.lxcs.cookbook.ip}";
     };
-
-    # admin
-    "pgadmin.dennishilhorst.nl" = { };
-    "portainer.dennishilhorst.nl" = { };
-    "traefik.dennishilhorst.nl" = { };
   };
 in
 {
@@ -67,9 +64,7 @@ in
       ingress = lib.mapAttrs (
         host: proxy:
         {
-          service = "https://192.168.50.30:443";
-
-          # copy over request headers for traefik
+          # copy over request headers by default
           originRequest = {
             httpHostHeader = host;
             originServerName = host;

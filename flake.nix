@@ -270,6 +270,20 @@
             ./modules/dawarich.nix
           ];
         };
+
+        garage = {
+          hostname = "garage";
+          ip = "192.168.50.42";
+          mac = "bc:24:11:27:a7:95";
+          pveHost = "proxmox1";
+          ctid = 108;
+
+          stateVersion = "26.05";
+
+          modules = [
+            ./modules/garage
+          ];
+        };
       };
 
       # make hosts and lxcs globally accessible
