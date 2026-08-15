@@ -7,6 +7,10 @@
 
 let
   cfg = import ./common.nix { inherit pkgs; };
+
+  publicBuckets = [
+    "cookbook"
+  ];
 in
 {
   # Reverse proxy / firewall config for the garage instance
@@ -34,6 +38,11 @@ in
 
           set $garage_bucket $1;
           set $garage_object $2;
+
+          # Only expose explicitly whitelisted buckets.
+          if ($garage_bucket !~ ^(?:${lib.concatStringsSep "|" publicBuckets})$) {
+            return 404;
+          }
 
           proxy_set_header Host "$garage_bucket.${cfg.garageWebDomain}";
           proxy_set_header X-Forwarded-Proto $scheme;
