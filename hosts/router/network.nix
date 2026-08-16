@@ -90,6 +90,11 @@ rec {
       ip = "${lanSubnet}.240";
       name = "chromecast-badkamer";
     }
+    {
+      mac = "20:15:de:91:96:68";
+      ip = "${lanSubnet}.241";
+      name = "samsung-tv";
+    }
   ];
 
   # IoT devices (.50-99): listed once here, used to generate the dnsmasq
