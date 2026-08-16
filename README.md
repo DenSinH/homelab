@@ -19,6 +19,8 @@ After a first deploy, it is wise to run
 from the LXC, it will rotate the SSH key and machine id, as well as generate a derived age key for sops.
 It will tell you how to update `.sops.yaml` if you need secrets on this LXC.
 
+If the new LXC needs an IP in the "services" network range, you will need to redeploy the router first in order for it to accept the mac address for the configured IP.
+
 ## Secrets
 
 Secrets are managed with `sops-nix`. The (age) `keys.txt` file is expected to be at
