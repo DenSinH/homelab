@@ -435,19 +435,28 @@ in
   };
   boot.loader.timeout = lib.mkDefault 3; # don't sit at a GRUB menu with no monitor attached
 
-  # Keep the CPU pinned at full clock instead of scaling with load - avoids
-  # frequency-transition latency spikes on the packet-forwarding hot path.
-  powerManagement.cpuFreqGovernor = "performance";
-
-  # cpuFreqGovernor only controls clock speed, not idle depth. Without this,
-  # the CPU can still drop into deep C-states when idle between packets, and
-  # waking from one to service the first interrupt after a quiet period can
-  # add tens of ms of one-off latency (the classic "first ping is slow"
-  # symptom on an otherwise-idle router). Cap how deep it's allowed to sleep.
+  # CPU / power saving settings
+  powerManagement.cpuFreqGovernor = "schedutil";
   boot.kernelParams = [
-    "processor.max_cstate=1"
-    "intel_idle.max_cstate=0"
+    "pcie_aspm.policy=powersave"
   ];
+
+  systemd.services.enable-eee = {
+    description = "Enable Ethernet EEE";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network-pre.target" ];
+    before = [ "network.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    script = ''
+      ${pkgs.ethtool}/bin/ethtool --set-eee enp1s0 eee on
+      ${pkgs.ethtool}/bin/ethtool --set-eee enp2s0 eee on
+    '';
+  };
 
   # Spread NIC interrupts across cores instead of pinning everything to CPU0.
   # https://linux.die.net/man/1/irqbalance
