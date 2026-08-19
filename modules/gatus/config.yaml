@@ -1,5 +1,5 @@
 web:
-  port: 80
+  port: 8080
 
 ui:
   title: "Hilhorst Cloud Status"

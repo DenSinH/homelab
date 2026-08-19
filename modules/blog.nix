@@ -42,6 +42,10 @@ let
   };
 in
 {
+  imports = [
+    ./fail2ban.nix
+  ];
+
   services.nginx = {
     enable = true;
 

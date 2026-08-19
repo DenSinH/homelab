@@ -20,8 +20,14 @@ let
 
   # should be compatible with master-chef/pyproject.toml:requires-python
   python = pkgs.python314;
+
+  port = 8000;
 in
 {
+  imports = [
+    ../fail2ban.nix
+  ];
+
   sops.defaultSopsFile = ../../secrets/cookbook.yaml;
   sops.secrets = {
     # S3 secrets (shared with garage)
@@ -126,11 +132,8 @@ in
         # "OPENAI_URL=http://127.0.0.1:${builtins.toString cfg.litellm-port}"
         "RECIPE_REPO_USER=DenSinH"
         "RECIPE_REPO_NAME=master-chef-recipes"
+        "PORT=${builtins.toString port}"
       ];
-
-      # bind port 80
-      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
-      CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
 
       # sync has been done in preStart
       ExecStart = "${pkgs.uv}/bin/uv run --no-sync master-chef";
@@ -142,6 +145,25 @@ in
     preStart = ''
       ${pkgs.uv}/bin/uv sync --no-dev --frozen --no-progress
     '';
+  };
+
+  services.nginx = {
+    enable = true;
+
+    virtualHosts.default = {
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${builtins.toString port}";
+        proxyWebsockets = true;
+
+        # needed to make fastapi render properly
+        extraConfig = ''
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+        '';
+      };
+    };
   };
 
   # open firewall for cookbook service

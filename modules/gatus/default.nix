@@ -6,18 +6,26 @@
 }:
 
 {
-  # allow binding port 80
-  systemd.services.gatus.serviceConfig = {
-    AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
-    CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
-  };
+  imports = [
+    ../fail2ban.nix
+  ];
 
   services.gatus = {
     enable = true;
-    openFirewall = true;
+    openFirewall = false;
 
-    # web.port is configured in configFile
     configFile = ./config.yaml;
+  };
+
+  services.nginx = {
+    enable = true;
+
+    virtualHosts.default = {
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:8080";
+        proxyWebsockets = true;
+      };
+    };
   };
 
   networking.firewall.allowedTCPPorts = [

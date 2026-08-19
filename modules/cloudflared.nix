@@ -13,12 +13,6 @@ let
     "blog.dennishilhorst.nl" = {
       service = "http://${lib.lxcs.blog.ip}";
     };
-    # "cdn-console.dennishilhorst.nl" = {
-    #   originRequest = {
-    #     httpHostHeader = "cdn.console.dennishilhorst.nl";
-    #     originServerName = "cdn.console.dennishilhorst.nl";
-    #   };
-    # };
     "cdn.dennishilhorst.nl" = {
       service = "http://${lib.lxcs.garage.ip}";
     };
@@ -56,10 +50,6 @@ in
     # 'dennishilhorst' tunnel
     tunnels."2520e8d8-cf93-4acf-a433-a3706133195f" = {
       credentialsFile = "${config.sops.secrets."cloudflared/tunnel-creds".path}";
-
-      originRequest = {
-        noTLSVerify = true;
-      };
 
       ingress = lib.mapAttrs (
         host: proxy:
