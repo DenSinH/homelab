@@ -159,6 +159,12 @@ rec {
       name = "wiz-b2c43d"; # kitchen-living-lamp
     }
 
+    {
+      mac = "50:8b:b9:8a:43:8c";
+      ip = "${lanSubnet}.69";
+      name = "tuya-light-string";
+    }
+
     # Sonos speakers
     {
       mac = "b8:e9:37:32:72:ec";
