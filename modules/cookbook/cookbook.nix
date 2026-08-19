@@ -12,7 +12,7 @@ let
     owner = "DenSinH";
     repo = "master-chef";
     rev = "refs/heads/master";
-    hash = "sha256-twZKUKIdnTGfrPMCCMnpB/FsTE7xV0/2T7a8J7HHZ5Q=";
+    hash = "sha256-qNl9ISmVGuyVMaQqAh14p/z7hAa9Q3bjq79OBIdH4wc=";
   };
 
   # for testing (needs --impure in the deploy script)

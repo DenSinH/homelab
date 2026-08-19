@@ -28,6 +28,8 @@
     };
   };
 
+  # additional hardening on the cloudflare side:
+  # https://github.com/buybitart/cloudflare-security-art
   services.fail2ban = {
     enable = true;
 
