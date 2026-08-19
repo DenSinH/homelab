@@ -370,6 +370,11 @@
             type = "app";
             program = toString (callScript ./scripts/config-igpu.nix);
           };
+
+          config-proxmox = {
+            type = "app";
+            program = toString (callScript ./scripts/config-proxmox.nix);
+          };
         };
 
       devShells.${system}.default = pkgs.mkShell {
