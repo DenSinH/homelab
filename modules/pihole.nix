@@ -12,9 +12,11 @@ let
     "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.txt"
   ];
   allowlist = [
-    "(^|\\.)sdk-games\\.brightdata\\.com$"
-    "(^|\\.)admarkt\\.marktplaats\\.nl$"
-    "(\\.|^)googleadservices\\.com$"
+    "(^|\\.)sdk-games\\.brightdata\\.com$" # Some mobile game I don't remember
+    "(^|\\.)admarkt\\.marktplaats\\.nl$" # Marktplaats ads
+    "(^|\\.)click\\.aliexpress\\.com$" # AliExpress links
+    "(^|\\.)vanced\\.to$" # YouTube Vanced homepage
+    "(\\.|^)googleadservices\\.com$" # Google product results
   ];
   upstreams = [
     "127.0.0.1#5335" # unbound
