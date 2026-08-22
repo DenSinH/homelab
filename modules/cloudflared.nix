@@ -14,6 +14,15 @@ let
       service = "http://${lib.lxcs.blog.ip}";
     };
     "cdn.dennishilhorst.nl" = {
+      # Cache control set via
+      # https://dash.cloudflare.com/ > Caching > Cache Rules
+      # Hostname | equals | cdn.dennishilhorst.nl
+      # (http.host eq "cdn.dennishilhorst.nl")
+      #
+      # Then...
+      # Eligible for cache
+      # Edge TTL: Ignore cache-control header and use this TTL: 6 Months
+      # Browser TTL: Ignore cache-control header and use this TTL: 6 Months
       service = "http://${lib.lxcs.garage.ip}";
     };
     "chef.dennishilhorst.nl" = {
