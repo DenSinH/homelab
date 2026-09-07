@@ -284,6 +284,20 @@
             ./modules/garage
           ];
         };
+
+        bentopdf = {
+          hostname = "bentopdf";
+          ip = "192.168.50.43";
+          mac = "bc:24:11:07:d8:d0";
+          pveHost = "proxmox1";
+          ctid = 102;
+
+          stateVersion = "26.05";
+
+          modules = [
+            ./modules/bentopdf.nix
+          ];
+        };
       };
 
       # make hosts and lxcs globally accessible

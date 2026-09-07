@@ -68,6 +68,8 @@ let
 
     "${lib.lxcs.garage.ip} garage.home"
 
+    "${lib.lxcs.bentopdf.ip} bentopdf.home"
+
     "192.168.50.46 byparr.home"
     "192.168.50.47 bazarr.home"
 
