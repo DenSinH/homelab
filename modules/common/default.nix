@@ -52,4 +52,10 @@
     nano
     htop
   ];
+
+  # limit journald log size
+  services.journald.extraConfig = ''
+    SystemMaxUse=500M
+    RuntimeMaxUse=100M
+  '';
 }

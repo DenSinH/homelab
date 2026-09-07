@@ -18,8 +18,12 @@
     # todo: manage access properly
     exports = ''
       /tank/media ${lib.lxcs.nixflix.ip}(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
+      /tank/media 192.168.50.0/24(ro,sync,no_subtree_check)
+
       /tank/drive 192.168.50.0/24(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
+
       /tank/vaultwarden ${lib.lxcs.vaultwarden.ip}(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
+
       /tank/photos ${lib.lxcs.immich.ip}(sync,wdelay,hide,no_subtree_check,anonuid=0,anongid=0,sec=sys,rw,secure,root_squash,all_squash)
     '';
   };

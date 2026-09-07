@@ -122,6 +122,9 @@ in
 
       # needed for tailscale DNS
       dns.listeningMode = "ALL";
+
+      # limit database retention
+      database.maxDBDays = 7;
     };
   };
 
@@ -206,11 +209,6 @@ in
       };
     };
   };
-
-  # temporary workaround NOT to recreate the unbound anchor file with
-  # unbound-anchor -a /var/lib/unbound/root.key
-  # (somehow produces an empty file)
-  systemd.services.unbound.serviceConfig.ExecStartPre = lib.mkForce [ ];
 
   # debugging tools
   environment.systemPackages = with pkgs; [
