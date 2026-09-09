@@ -208,9 +208,5 @@ rec {
       mac = "bc:24:11:f4:1f:43";
       name = "home-assistant";
     }
-    {
-      mac = "bc:24:11:0c:5c:f4";
-      name = "vps";
-    }
   ];
 }

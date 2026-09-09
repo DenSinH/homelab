@@ -26,6 +26,14 @@ in
   # Auto-bind the dongle (Silicon Labs CP210x UART bridge, 10c4:ea60) to the
   # usbip-host driver whenever it's plugged in.
   services.udev.extraRules = ''
-    SUBSYSTEM=="usb", ATTR{idVendor}=="10c4", ATTR{idProduct}=="ea60", RUN+="${usbip}/bin/usbip bind -b %k"
+    ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="10c4", ATTR{idProduct}=="ea60", TAG+="systemd", ENV{SYSTEMD_WANTS}="usbip-bind@%k.service"
   '';
+
+  systemd.services."usbip-bind@" = {
+    description = "Bind USB device %i to USB/IP";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${usbip}/bin/usbip bind -b %I";
+    };
+  };
 }
