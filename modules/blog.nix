@@ -10,7 +10,7 @@ let
     repo = "blog";
     rev = "refs/heads/main";
     fetchSubmodules = true; # theme submodule
-    hash = "sha256-VxMlItQkhGYRX+E46eH/CgQB/rFs/iOszH2gowk8cw0=";
+    hash = "sha256-qA6/aCwHR4sZGQMD9/+rYmHuG4PUjnjIpaHeNASPQjQ=";
   };
 
   blog = pkgs.stdenvNoCC.mkDerivation {

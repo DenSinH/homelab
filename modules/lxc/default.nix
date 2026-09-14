@@ -41,4 +41,16 @@
     source = ./init-lxc.sh;
     mode = "0500"; # root-only, executable
   };
+
+  # log persistence based on host settings
+  services.journald = lib.mkIf (!host.persistLogs or false) {
+    storage = "volatile";
+
+    # most LXCs don't have _that_ much memory
+    extraConfig = ''
+      RuntimeMaxUse=10M
+      RuntimeMaxFileSize=2M
+      RuntimeMaxFiles=5
+    '';
+  };
 }

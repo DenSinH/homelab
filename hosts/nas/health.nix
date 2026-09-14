@@ -55,6 +55,12 @@
         enable = true;
         port = 9633;
         listenAddress = "127.0.0.1";
+
+        # smartctl fails on usb-connected drive
+        extraFlags = [
+          "--smartctl.scan-device-type=by-id"
+          "--smartctl.device-exclude=^usb-Seagate_Expansion_HDD_00000000NT1AHEWJ-0:0$"
+        ];
       };
       zfs = {
         enable = true;
