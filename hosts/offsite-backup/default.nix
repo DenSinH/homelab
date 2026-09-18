@@ -13,6 +13,7 @@
     ../../modules/tailscale.nix
     ./zfs.nix
     ./pbs.nix
+    ./replication.nix
   ];
 
   boot.loader.grub.enable = true;

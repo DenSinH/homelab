@@ -69,6 +69,9 @@
           hostname = "nas";
           ip = "192.168.50.20";
           mac = "34:64:a9:9a:44:bc";
+          # TODO: placeholder until the NAS is actually joined to tailscale,
+          # replace with its real tailscale IP once it is
+          tailnet_ip = "100.64.0.1";
         };
       };
 
