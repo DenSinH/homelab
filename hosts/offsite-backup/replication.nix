@@ -85,6 +85,35 @@ in
   #   - replace lib.storage.nas.tailnet_ip's placeholder in flake.nix with
   #     its real tailscale IP
   #   - grab the generated public key with
-  #       ssh root@offsite-backup.vpn cat ${sshKeyPath}.pub
+  #       ssh root@offsite-backup.vpn cat /var/lib/syncoid/.ssh/id_ed25519.pub
   #     and add it to the NAS's /root/.ssh/authorized_keys
+
+  # prevents received snapshots from piling up here forever: the NAS's own
+  # sanoid already prunes tank/drive and tank/photos on its side (see
+  # hosts/nas/replication.nix), but syncoid only ever receives, it never
+  # deletes - so without this, every snapshot ever sent would stick around
+  # on this host indefinitely. autosnap is off since snapshots arrive via
+  # syncoid, not taken locally; retention matches the NAS's own policy so
+  # this replica doesn't outgrow the space budget shared with tank/pbs
+  services.sanoid = {
+    enable = true;
+    datasets = {
+      "tank/drive" = {
+        useTemplate = [ "replica" ];
+        recursive = true;
+      };
+      "tank/photos" = {
+        useTemplate = [ "replica" ];
+        recursive = true;
+      };
+    };
+    templates.replica = {
+      hourly = 0;
+      daily = 7;
+      weekly = 4;
+      monthly = 3;
+      autosnap = false;
+      autoprune = true;
+    };
+  };
 }
