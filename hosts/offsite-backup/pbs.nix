@@ -24,6 +24,8 @@ let
   vmGateway = "${vmSubnet}.1";
   vmMac = "52:54:00:50:42:53";
 
+  tailscaleInterface = config.services.tailscale.interfaceName;
+
   pbsIso = pkgs.fetchurl {
     url = "https://enterprise.proxmox.com/iso/proxmox-backup-server_4.2-1.iso";
     hash = "sha256-L7KZ3qw5KSU3EsnD38kjftvnCvg8iEhGdha3caHVRT4=";
@@ -113,6 +115,8 @@ in
 
       domains = [
         {
+          active = true;
+
           definition = nixvirt.lib.domain.writeXML (
             let
               base = nixvirt.lib.domain.templates.linux {
@@ -128,12 +132,6 @@ in
                   count = 2;
                 };
 
-                # default boot hard disk after installation from cdrom is complete
-                boot = [
-                  { dev = "hd"; }
-                  { dev = "cdrom"; }
-                ];
-
                 storage_vol = {
                   pool = storagePoolName;
                   volume = storageVolumeName;
@@ -141,12 +139,20 @@ in
 
                 install_vol = "${pbsIso}";
 
-                virtio_drive = true;
                 virtio_video = false;
               };
             in
             base
             // {
+              # boot from the hdd first, to ensure the VM boots into PBS after
+              # it has been installed from the ISO
+              os = base.os // {
+                boot = [
+                  { dev = "hd"; }
+                  { dev = "cdrom"; }
+                ];
+              };
+
               memoryBacking = {
                 source = {
                   type = "memfd";
@@ -215,10 +221,10 @@ in
       ];
     };
   };
-  # after deployment, check if the VM exists with
+  # the VM is started automatically (active = true above); check it with
   #   virsh -c qemu:///system list --all
   #
-  # start it with
+  # if it is somehow shut down, start it with
   #   virsh -c qemu:///system start pbs
   # and check
   #   virsh -c qemu:///system list
@@ -232,23 +238,11 @@ in
   #   nix shell nixpkgs#virt-viewer
   #   remote-viewer spice://127.0.0.1:5900
   # when installing, ENSURE THE VM IP AND GATEWAY ARE SET CORRECTLY
-  # and after installing, you may need to remove the installation media
-  # by finding it (on the offsite-backup machine) with 
-  #   virsh -c qemu:///system domblklist pbs
-  # and ejecting it (likely sdc) with
-  #   virsh -c qemu:///system change-media pbs sdc --eject
-  # 
-  # (you may need to shutdown the vm)
-  #   virsh -c qemu:///system shutdown pbs
-  # or
-  #   virsh -c qemu:///system destroy pbs
+  # boot order is hd then cdrom, so once PBS is installed it boots straight
+  # from hd on its own (a blank hd is skipped, falling through to cdrom)
 
   virtualisation.libvirtd.qemu.vhostUserPackages = [
     pkgs.virtiofsd
-  ];
-
-  environment.systemPackages = [
-    pkgs.libvirt
   ];
 
   systemd.tmpfiles.rules = [
@@ -264,13 +258,6 @@ in
 
         tcp dport 8007 dnat to ${vmIp}:8007;
       }
-
-      chain output {
-        type nat hook output priority dstnat;
-        policy accept;
-
-        tcp dport 8007 dnat to ${vmIp}:8007;
-      }
     }
   '';
 
@@ -282,8 +269,7 @@ in
     ];
 
     extraForwardRules = ''
-      iifname "enp0s31f6" ip daddr ${vmIp} tcp dport 8007 accept
-      iifname "tailscale0" ip daddr ${vmIp} tcp dport 8007 accept
+      iifname "${tailscaleInterface}" ip daddr ${vmIp} tcp dport 8007 accept
     '';
   };
 }
