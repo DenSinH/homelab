@@ -13,6 +13,11 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    nixvirt = {
+      url = "github:AshleyYakeley/NixVirt";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -21,6 +26,7 @@
       nixpkgs,
       sops-nix,
       nixflix,
+      nixvirt,
     }:
     let
       system = "x86_64-linux";
@@ -63,6 +69,15 @@
           hostname = "nas";
           ip = "192.168.50.20";
           mac = "34:64:a9:9a:44:bc";
+        };
+      };
+
+      backup = {
+        offsite-backup = {
+          hostname = "offsite-backup";
+          ip = "192.168.50.29"; # only obtained if actually on network
+          mac = "6c:4b:90:78:b6:0a";
+          tailnet_ip = "100.110.13.2";
         };
       };
 
@@ -306,6 +321,7 @@
           hosts = hosts;
           lxcs = lxcs;
           storage = storage;
+          backup = backup;
           admin = {
             ssh_keys = [
               # master key
@@ -355,6 +371,19 @@
 
           modules = [
             ./hosts/router/default.nix
+          ];
+        };
+
+        offsite-backup = nixpkgs.lib.nixosSystem {
+          system = system;
+
+          specialArgs = {
+            # pass through lxc data
+            inherit lib nixvirt;
+          };
+
+          modules = [
+            ./hosts/offsite-backup/default.nix
           ];
         };
       }

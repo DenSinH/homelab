@@ -33,7 +33,7 @@ in
     description = "Bind USB device %i to USB/IP";
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${usbip}/bin/usbip bind -b %I";
+      ExecStart = "${usbip}/bin/usbip bind -b %i";
     };
   };
 }

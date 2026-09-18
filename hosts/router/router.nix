@@ -36,7 +36,7 @@
 let
   # Network topology + known-device lists shared with other files (e.g.
   # health.nix) - see network.nix.
-  network = import ./network.nix;
+  network = import ./network.nix { inherit lib; };
   inherit (network)
     wanIf
     lanIf

@@ -2,6 +2,11 @@
 # router.nix and other host-level files (e.g. health.nix) so things like
 # interface names and the LAN subnet aren't duplicated/hardcoded in more
 # than one place.
+{
+  lib,
+  ...
+}:
+
 rec {
   wanIf = "enp1s0"; # 1Gbit
   lanIf = "enp2s0"; # 2.5Gbit
@@ -43,6 +48,13 @@ rec {
   # binding, so a device can't just self-assign an unused fixed-range IP
   # and inherit SSH access without also spoofing the matching MAC.
   fixedHosts = [
+    # Offsite backup (if present)
+    {
+      mac = lib.backup.offsite-backup.mac;
+      ip = lib.backup.offsite-backup.ip;
+      name = lib.backup.offsite-backup.hostname;
+    }
+
     # Networking equipment
     {
       mac = "60:cf:84:af:52:c8";

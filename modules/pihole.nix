@@ -39,6 +39,8 @@ let
     "${lib.storage.nas.ip} nas.home"
     "192.168.50.22 hp-ilo.home"
 
+    "${lib.backup.offsite-backup.tailnet_ip} offsite-backup.vpn"
+
     ### SERVICES
     "192.168.50.30 vps.home"
 

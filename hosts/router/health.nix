@@ -1,8 +1,7 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 let
-  # Shared with router.nix - see network.nix.
-  network = import ./network.nix;
+  network = import ./network.nix { inherit lib; };
   inherit (network) lanIf lanSubnet;
 
   lanNetwork = "${lanSubnet}.0/24";
