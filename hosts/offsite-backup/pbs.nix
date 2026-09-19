@@ -240,6 +240,15 @@ in
   # when installing, ENSURE THE VM IP AND GATEWAY ARE SET CORRECTLY
   # boot order is hd then cdrom, so once PBS is installed it boots straight
   # from hd on its own (a blank hd is skipped, falling through to cdrom)
+  #
+  # You may need to run
+  #   printf 'search home\nnameserver 192.168.122.1\n' > /etc/resolv.conf
+  # to fix DNS issues after install
+  #
+  # Initialize the system with the post-install script at
+  #   https://community-scripts.org/scripts/post-pbs-install
+  # and configure a datastore as
+  #
 
   virtualisation.libvirtd.qemu.vhostUserPackages = [
     pkgs.virtiofsd
@@ -256,7 +265,14 @@ in
         type nat hook prerouting priority dstnat;
         policy accept;
 
-        tcp dport 8007 dnat to ${vmIp}:8007;
+        iifname "${tailscaleInterface}" tcp dport 8007 dnat to ${vmIp}:8007;
+      }
+
+      chain postrouting {
+        type nat hook postrouting priority srcnat;
+        policy accept;
+
+        ip saddr ${vmSubnet}.0/24 oifname != "virbr-pbs" masquerade;
       }
     }
   '';
@@ -269,6 +285,8 @@ in
     ];
 
     extraForwardRules = ''
+      iifname "virbr-pbs" oifname != "virbr-pbs" accept
+      oifname "virbr-pbs" ct state established,related accept
       iifname "${tailscaleInterface}" ip daddr ${vmIp} tcp dport 8007 accept
     '';
   };

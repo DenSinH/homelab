@@ -10,6 +10,8 @@
     ./hardware-configuration.nix
     ../../modules/common/default.nix
     ./nas.nix
+    # connected to tailscale for offsite backup pulls
+    ../../modules/tailscale.nix
   ];
 
   # HP MicroServer Gen8 runs in BIOS mode, will need

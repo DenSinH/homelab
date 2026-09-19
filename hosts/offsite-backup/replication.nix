@@ -10,6 +10,13 @@ let
   sshKeyPath = "/var/lib/syncoid/.ssh/id_ed25519";
 in
 {
+  # trust NAS public key
+  programs.ssh.knownHosts."${nasHost}" = {
+    # NAS's SSH host public key
+    #   cat /etc/ssh/ssh_host_ed25519_key.pub
+    publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMmI0EOW5SNrZ4cF+F60mLMkwKmXKTHVPLV1hBhxxI2L root@nixos";
+  };
+
   # pulls the same datasets the NAS already protects locally (see
   # hosts/nas/replication.nix) into this host's tank/drive and tank/photos
   # (already provisioned and set readonly in zfs.nix, since they're
@@ -26,8 +33,6 @@ in
   #   send the chosen snapshot back, -F rolls the destination back to match
   #   (needed since a fresh/replacement NAS pool won't be)
   #     zfs send -R tank/drive@<snapshot> | ssh root@<nas-tailnet-ip> zfs receive -F tank/drive
-  #   this requires this host's public key (/var/lib/syncoid/.ssh/id_ed25519.pub)
-  #   to be in the NAS's authorized_keys too, the same as the pull direction
   services.syncoid = {
     enable = true;
     sshKey = sshKeyPath;
@@ -47,11 +52,11 @@ in
 
     commands = {
       "tank/drive" = {
-        source = "root@${nasHost}:tank/drive";
+        source = "backup@${nasHost}:tank/drive";
         target = "tank/drive";
       };
       "tank/photos" = {
-        source = "root@${nasHost}:tank/photos";
+        source = "backup@${nasHost}:tank/photos";
         target = "tank/photos";
       };
     };
@@ -81,20 +86,9 @@ in
     '';
   };
 
-  # TODO once the NAS is actually reachable over tailscale:
-  #   - replace lib.storage.nas.tailnet_ip's placeholder in flake.nix with
-  #     its real tailscale IP
-  #   - grab the generated public key with
-  #       ssh root@offsite-backup.vpn cat /var/lib/syncoid/.ssh/id_ed25519.pub
-  #     and add it to the NAS's /root/.ssh/authorized_keys
-
-  # prevents received snapshots from piling up here forever: the NAS's own
-  # sanoid already prunes tank/drive and tank/photos on its side (see
-  # hosts/nas/replication.nix), but syncoid only ever receives, it never
-  # deletes - so without this, every snapshot ever sent would stick around
-  # on this host indefinitely. autosnap is off since snapshots arrive via
-  # syncoid, not taken locally; retention matches the NAS's own policy so
-  # this replica doesn't outgrow the space budget shared with tank/pbs
+  # prune retrieved snapshots to avoid this dataset from blowing up
+  # autosnap is set to false because the snapshots are taken from the
+  # remote system
   services.sanoid = {
     enable = true;
     datasets = {

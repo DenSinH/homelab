@@ -6,6 +6,7 @@
     ./nfs.nix
     ./replication.nix
     ./health.nix
+    ./offsite-backup.nix
   ];
 
   services.zfs.autoScrub = {
@@ -17,5 +18,5 @@
     interval = "monthly"; # recommended and default
   };
 
-  # todo: add backup management (ZFS send / rcv from / to PBS? USB backup disk?)
+  # todo: add backup management (ZFS send / rcv from / to PBS?)
 }

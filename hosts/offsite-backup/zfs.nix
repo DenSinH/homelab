@@ -54,30 +54,27 @@
       RemainAfterExit = true;
     };
 
+    # fail script if datasets don't exist (before initial setup)
     script =
       let
         zfs = "${pkgs.zfs}/bin/zfs";
       in
       ''
-        # General pool settings.
         ${zfs} set atime=off tank
         ${zfs} set compression=zstd tank
 
-        # PBS datastore.
         ${zfs} set compression=zstd tank/pbs
         ${zfs} set atime=off tank/pbs
 
-        # ZFS-replicated datasets.
-        ${zfs} set compression=zstd tank/photos
-        ${zfs} set compression=zstd tank/drive
-
-        ${zfs} set atime=off tank/photos
-        ${zfs} set atime=off tank/drive
-
-        # These datasets are replication targets and should not be
-        # modified locally.
-        ${zfs} set readonly=on tank/photos
-        ${zfs} set readonly=on tank/drive
+        # replication targets are created by syncoid on first run,
+        # so they may not exist yet
+        for ds in tank/photos tank/drive; do
+          if ${zfs} list -H -o name "$ds" >/dev/null 2>&1; then
+            ${zfs} set compression=zstd "$ds"
+            ${zfs} set atime=off "$ds"
+            ${zfs} set readonly=on "$ds"
+          fi
+        done
       '';
   };
 }
