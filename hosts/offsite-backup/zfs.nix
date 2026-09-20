@@ -40,41 +40,18 @@
     interval = "monthly"; # recommended and default
   };
 
-  # dataset tuning
-  # datasets created with
-  #   zfs create tank/pbs
-  #   zfs create tank/photos
-  #   zfs create tank/drive
-  systemd.services.zfs-dataset-tuning = {
-    description = "Tune ZFS parameters for various datasets";
-
+  # Pool-level ZFS tuning
+  systemd.services.zfs-pool-tuning = {
+    description = "Tune ZFS parameters on the tank pool root";
+    wantedBy = [ "multi-user.target" ];
     after = [ "zfs-import.target" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
     };
-
-    # fail script if datasets don't exist (before initial setup)
-    script =
-      let
-        zfs = "${pkgs.zfs}/bin/zfs";
-      in
-      ''
-        ${zfs} set atime=off tank
-        ${zfs} set compression=zstd tank
-
-        ${zfs} set compression=zstd tank/pbs
-        ${zfs} set atime=off tank/pbs
-
-        # replication targets are created by syncoid on first run,
-        # so they may not exist yet
-        for ds in tank/photos tank/drive; do
-          if ${zfs} list -H -o name "$ds" >/dev/null 2>&1; then
-            ${zfs} set compression=zstd "$ds"
-            ${zfs} set atime=off "$ds"
-            ${zfs} set readonly=on "$ds"
-          fi
-        done
-      '';
+    script = ''
+      ${pkgs.zfs}/bin/zfs set atime=off tank
+      ${pkgs.zfs}/bin/zfs set compression=zstd tank
+    '';
   };
 }

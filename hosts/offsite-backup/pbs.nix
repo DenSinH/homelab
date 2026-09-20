@@ -32,6 +32,28 @@ let
   };
 in
 {
+  # dataset created with:
+  #   zfs create tank/pbs
+  systemd.services.zfs-pbs-tuning = {
+    description = "Tune ZFS parameters for the PBS dataset";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "zfs-import.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+
+    # fails if the dataset doesn't exist (before initial setup)
+    # enable atime just to be sure (docs / forums seem to suggest
+    # this may be needed)
+    script = ''
+      ${pkgs.zfs}/bin/zfs set compression=zstd tank/pbs
+      ${pkgs.zfs}/bin/zfs set atime=on tank/pbs
+      ${pkgs.zfs}/bin/zfs set relatime=on tank/pbs
+    '';
+  };
+
+  # PBS VM
   imports = [
     nixvirt.nixosModules.default
   ];
@@ -47,7 +69,7 @@ in
             uuid = networkUuid;
 
             forward = {
-              mode = "nat";
+              mode = "open";
             };
 
             bridge = {
@@ -235,8 +257,7 @@ in
   # from your working machine, run
   #   ssh -L 5900:127.0.0.1:5900 root@offsite-backup.vpn
   # and connect to the tunnelled display with
-  #   nix shell nixpkgs#virt-viewer
-  #   remote-viewer spice://127.0.0.1:5900
+  #   hosts/offsite-backup/remote-desktop.sh
   # when installing, ENSURE THE VM IP AND GATEWAY ARE SET CORRECTLY
   # boot order is hd then cdrom, so once PBS is installed it boots straight
   # from hd on its own (a blank hd is skipped, falling through to cdrom)
@@ -247,7 +268,19 @@ in
   #
   # Initialize the system with the post-install script at
   #   https://community-scripts.org/scripts/post-pbs-install
-  # and configure a datastore as
+  # and configure the tank/pbs datastore as a datastore for PBS by running
+  # the following:
+  #   mkdir -p /mnt/datastore
+  #   echo 'pbs-datastore /mnt/datastore virtiofs defaults,nofail 0 0' >> /etc/fstab
+  #   systemctl daemon-reload && mount /mnt/datastore
+  #   proxmox-backup-manager datastore create offsite /mnt/datastore
+  #
+  # this will create a datastore called 'offsite'.
+  #
+  # To set up the syncing, tailscale needs to be installed on the local pbs host
+  #   curl -fsSL https://tailscale.com/install.sh | sh
+  # from https://tailscale.com/docs/install/linux
+  #
   #
 
   virtualisation.libvirtd.qemu.vhostUserPackages = [
@@ -257,6 +290,9 @@ in
   systemd.tmpfiles.rules = [
     "d /var/lib/libvirt/images 0755 root root -"
   ];
+
+  # enable forwarding
+  boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
   networking.nftables.enable = true;
   networking.nftables.ruleset = ''

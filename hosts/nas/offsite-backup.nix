@@ -29,6 +29,12 @@ in
     openssh.authorizedKeys.keys = [
       "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzWXcHoX+a/C2mxkMA663o+L6NCAOvV7KogKgBW6JVY syncoid@offsite-backup"
     ];
+
+    # needed for compression / sync buffering
+    packages = [
+      pkgs.mbuffer
+      pkgs.lzop
+    ];
   };
 
   systemd.services.backup-zfs-permissions = {
@@ -41,9 +47,12 @@ in
       RemainAfterExit = true;
     };
 
+    # needs send for the pull job it is running from offsite-backup
+    # needs hold to hold snapshots (should not be pruned before next sync)
+    # needs release to release those held snapshots
     script = lib.concatMapStringsSep "\n" (dataset: ''
       ${pkgs.zfs}/bin/zfs allow -u backup \
-        send \
+        send,hold,release \
         ${lib.escapeShellArg dataset}
     '') backupDatasets;
   };

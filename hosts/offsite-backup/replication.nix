@@ -8,6 +8,12 @@
 let
   nasHost = lib.storage.nas.tailnet_ip;
   sshKeyPath = "/var/lib/syncoid/.ssh/id_ed25519";
+
+  # datasets pulled from the NAS (same name on both ends)
+  replicatedDatasets = [
+    "tank/drive"
+    "tank/photos"
+  ];
 in
 {
   # trust NAS public key
@@ -39,27 +45,43 @@ in
 
     # the NAS's own sanoid config already creates the snapshots we send
     # (see hosts/nas/replication.nix), so we just pull whatever's newest
-    commonArgs = [ "--no-sync-snap" ];
+    # we do ensure that the snapshots cannot be deleted so we don't run
+    # out of sync
+    commonArgs = [
+      "--no-sync-snap"
+      "--use-hold"
+    ];
 
     # the NAS only takes new snapshots daily, no point pulling more often
     interval = "daily";
+
+    # permissions on local system to manage datasets
+    localTargetAllow = [
+      "change-key"
+      "compression"
+      "create"
+      "mount"
+      "mountpoint"
+      "receive"
+      "rollback"
+      "hold"
+      "release"
+    ];
 
     # wait for the ssh key below to exist before trying to connect
     service = {
       after = [ "syncoid-ssh-key.service" ];
       requires = [ "syncoid-ssh-key.service" ];
+
+      # auto-tune datasets after sync (only really does something
+      # after the initial sync job)
+      unitConfig.OnSuccess = [ "zfs-replica-tuning.service" ];
     };
 
-    commands = {
-      "tank/drive" = {
-        source = "backup@${nasHost}:tank/drive";
-        target = "tank/drive";
-      };
-      "tank/photos" = {
-        source = "backup@${nasHost}:tank/photos";
-        target = "tank/photos";
-      };
-    };
+    commands = lib.genAttrs replicatedDatasets (ds: {
+      source = "backup@${nasHost}:${ds}";
+      target = ds;
+    });
   };
 
   # dedicated keypair for the syncoid user to authenticate to the NAS with.
@@ -91,16 +113,10 @@ in
   # remote system
   services.sanoid = {
     enable = true;
-    datasets = {
-      "tank/drive" = {
-        useTemplate = [ "replica" ];
-        recursive = true;
-      };
-      "tank/photos" = {
-        useTemplate = [ "replica" ];
-        recursive = true;
-      };
-    };
+    datasets = lib.genAttrs replicatedDatasets (_: {
+      useTemplate = [ "replica" ];
+      recursive = true;
+    });
     templates.replica = {
       hourly = 0;
       daily = 7;
@@ -109,5 +125,28 @@ in
       autosnap = false;
       autoprune = true;
     };
+  };
+
+  # dataset tuning
+  # replication targets are created by syncoid on first run, so they may not
+  # exist yet. Deliberately no RemainAfterExit, so every sync re-triggers it.
+  systemd.services.zfs-replica-tuning = {
+    description = "Tune ZFS parameters for replicated datasets";
+    after = [ "zfs-import.target" ];
+    serviceConfig.Type = "oneshot";
+
+    script =
+      let
+        zfs = "${pkgs.zfs}/bin/zfs";
+      in
+      ''
+        for ds in ${lib.escapeShellArgs replicatedDatasets}; do
+          if ${zfs} list -H -o name "$ds" >/dev/null 2>&1; then
+            ${zfs} set compression=zstd "$ds"
+            ${zfs} set atime=off "$ds"
+            ${zfs} set readonly=on "$ds"
+          fi
+        done
+      '';
   };
 }
