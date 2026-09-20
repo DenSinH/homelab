@@ -281,7 +281,20 @@ in
   #   curl -fsSL https://tailscale.com/install.sh | sh
   # from https://tailscale.com/docs/install/linux
   #
+  # Create an offsite backup user on the local PBS for the sync with
+  #   proxmox-backup-manager user create offsite@pbs
+  #   proxmox-backup-manager user generate-token offsite@pbs sync    # secret is shown once
+  #   proxmox-backup-manager acl update /datastore/<MAIN_STORE> DatastoreReader --auth-id offsite@pbs
+  #   proxmox-backup-manager acl update /datastore/<MAIN_STORE> DatastoreReader --auth-id 'offsite@pbs!sync'
+  #   proxmox-backup-manager cert info | grep Fingerprint
   #
+  # The role goes on both the user and the token, because a token can't have more privileges
+  # than its user. A sync job can only sync backup groups that the remote's user or token is
+  # able to read, so the reader role is what lets it see everything.
+  # https://pbs.proxmox.com/docs-3/managing-remotes.html
+  #
+  # Create the remote in the web UI at "Remotes" and the sync job at
+  # "Datastore > offsite > Sync Jobs > Add > Add Pull Job"
 
   virtualisation.libvirtd.qemu.vhostUserPackages = [
     pkgs.virtiofsd
