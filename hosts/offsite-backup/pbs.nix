@@ -54,6 +54,7 @@ in
   };
 
   # PBS VM
+  # For managing it / setting it up, see the README in this folder
   imports = [
     nixvirt.nixosModules.default
   ];
@@ -243,62 +244,20 @@ in
       ];
     };
   };
-  # the VM is started automatically (active = true above); check it with
-  #   virsh -c qemu:///system list --all
-  #
-  # if it is somehow shut down, start it with
-  #   virsh -c qemu:///system start pbs
-  # and check
-  #   virsh -c qemu:///system list
-  #
-  # find the spice display with
-  #   virsh -c qemu:///system domdisplay pbs
-  #
-  # from your working machine, run
-  #   ssh -L 5900:127.0.0.1:5900 root@offsite-backup.vpn
-  # and connect to the tunnelled display with
-  #   hosts/offsite-backup/remote-desktop.sh
-  # when installing, ENSURE THE VM IP AND GATEWAY ARE SET CORRECTLY
-  # boot order is hd then cdrom, so once PBS is installed it boots straight
-  # from hd on its own (a blank hd is skipped, falling through to cdrom)
-  #
-  # You may need to run
-  #   printf 'search home\nnameserver 192.168.122.1\n' > /etc/resolv.conf
-  # to fix DNS issues after install
-  #
-  # Initialize the system with the post-install script at
-  #   https://community-scripts.org/scripts/post-pbs-install
-  # and configure the tank/pbs datastore as a datastore for PBS by running
-  # the following:
-  #   mkdir -p /mnt/datastore
-  #   echo 'pbs-datastore /mnt/datastore virtiofs defaults,nofail 0 0' >> /etc/fstab
-  #   systemctl daemon-reload && mount /mnt/datastore
-  #   proxmox-backup-manager datastore create offsite /mnt/datastore
-  #
-  # this will create a datastore called 'offsite'.
-  #
-  # To set up the syncing, tailscale needs to be installed on the local pbs host
-  #   curl -fsSL https://tailscale.com/install.sh | sh
-  # from https://tailscale.com/docs/install/linux
-  #
-  # Create an offsite backup user on the local PBS for the sync with
-  #   proxmox-backup-manager user create offsite@pbs
-  #   proxmox-backup-manager user generate-token offsite@pbs sync    # secret is shown once
-  #   proxmox-backup-manager acl update /datastore/<MAIN_STORE> DatastoreReader --auth-id offsite@pbs
-  #   proxmox-backup-manager acl update /datastore/<MAIN_STORE> DatastoreReader --auth-id 'offsite@pbs!sync'
-  #   proxmox-backup-manager cert info | grep Fingerprint
-  #
-  # The role goes on both the user and the token, because a token can't have more privileges
-  # than its user. A sync job can only sync backup groups that the remote's user or token is
-  # able to read, so the reader role is what lets it see everything.
-  # https://pbs.proxmox.com/docs-3/managing-remotes.html
-  #
-  # Create the remote in the web UI at "Remotes" and the sync job at
-  # "Datastore > offsite > Sync Jobs > Add > Add Pull Job"
 
-  virtualisation.libvirtd.qemu.vhostUserPackages = [
-    pkgs.virtiofsd
-  ];
+  virtualisation.libvirtd = {
+    # Don't try to save state when shut down, this may break the state
+    onShutdown = "shutdown";
+    qemu.vhostUserPackages = [ pkgs.virtiofsd ];
+  };
+
+  # startup needs to happen after the ZFS file system is mounted
+  # nixvirt (managing the startup) must happen after libvirtd has loaded, so this ordering
+  # is good enough
+  systemd.services.libvirtd = {
+    after = [ "zfs-mount.service" ];
+    requires = [ "zfs-mount.service" ];
+  };
 
   systemd.tmpfiles.rules = [
     "d /var/lib/libvirt/images 0755 root root -"
@@ -307,6 +266,7 @@ in
   # enable forwarding
   boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
+  # set up firewall rules to expose the API / Web UI on the host
   networking.nftables.enable = true;
   networking.nftables.ruleset = ''
     table ip pbs_nat {

@@ -16,17 +16,11 @@
   # head -c8 /etc/machine-id
   networking.hostId = "2c0a1a3b";
 
-  # will work after initial import, i.e.
-  # check available pools with
-  #   zpool list
-  # import with
-  #   zpool import <pool>
-  # rename with
-  #   zpool import <pool> tank
-  # or creation with
-  #   zpool create tank /dev/disk/by-id/...
-  # otherwise the deploy might fail, and you won't have access
-  # to the zpool / zfs commands
+  # MAY HAVE TO BE DISABLED, however, will work after initial deploy
+  # and after importing / creating `tank`
+  #
+  # Otherwise the deploy might fail, and you won't have access
+  # to the zpool / zfs commands to even create or import `tank`
   # autoload "tank" pool
   boot.zfs.extraPools = [
     "tank"

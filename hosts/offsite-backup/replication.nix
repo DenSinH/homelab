@@ -23,11 +23,6 @@ in
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMmI0EOW5SNrZ4cF+F60mLMkwKmXKTHVPLV1hBhxxI2L root@nixos";
   };
 
-  # pulls the same datasets the NAS already protects locally (see
-  # hosts/nas/replication.nix) into this host's tank/drive and tank/photos
-  # (already provisioned and set readonly in zfs.nix, since they're
-  # replication targets and shouldn't be touched locally)
-  #
   # recovering a single file from a snapshot:
   #   <mountpoint>/.zfs/snapshot/<snapshot-name>/
   #
@@ -84,9 +79,7 @@ in
     });
   };
 
-  # dedicated keypair for the syncoid user to authenticate to the NAS with.
-  # the private key never leaves this host, so there's nothing to manage
-  # through sops here - just the NAS needs to trust the public half
+  # dedicated keypair for the syncoid user to authenticate to the NAS with
   systemd.services.syncoid-ssh-key = {
     description = "Generate an SSH key for syncoid to authenticate to the NAS";
     wantedBy = [ "multi-user.target" ];
