@@ -53,7 +53,6 @@
           "backup"
           "tank/media"
           "tank/vaultwarden"
-          "tank/pbs-backup"
         ];
       in
       ''
