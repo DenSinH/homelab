@@ -1,18 +1,18 @@
 # Offsite Backup
 
-My offsite backup strategy consists of two parts:
+The offsite backup strategy consists of two parts:
 
-- a PBS remote for backing up (some of) my Proxmox containers
-- ZFS datasets with sync jobs to sync data from my NAS
+- a PBS remote for backing up (some of) the Proxmox containers
+- ZFS datasets with sync jobs to sync data from the NAS
 
 ## ZFS Sync
 
 Initially when installing the system, a ZFS pool `tank` must be created.
 In order to do this, you will need the required ZFS tools installed, meaning you may have to do a first deploy _without_
 ```nix
-  boot.zfs.extraPools = [
-    "tank"
-  ];
+boot.zfs.extraPools = [
+  "tank"
+];
 ```
 in `zfs.nix`. You may want to list the available pools
 ```sh
@@ -104,7 +104,7 @@ You may need to run the following to fix DNS issues after install:
 printf 'search home\nnameserver 192.168.122.1\n' > /etc/resolv.conf
 ```
 
-#### Post-install setup
+### Post-install setup
 
 Initialize the system with the [post-install script](https://community-scripts.org/scripts/post-pbs-install).
 
@@ -119,7 +119,7 @@ proxmox-backup-manager datastore create offsite /mnt/datastore
 
 This creates a datastore called `offsite`.
 
-#### Setting up syncing
+### Setting up syncing
 
 Tailscale needs to be installed on the local (i.e. main, onsite) PBS host
 ([docs](https://tailscale.com/docs/install/linux)):
@@ -145,3 +145,10 @@ everything. See [Managing Remotes](https://pbs.proxmox.com/docs-3/managing-remot
 
 Create the remote in the web UI at **Remotes**, and the sync job at
 **Datastore > offsite > Sync Jobs > Add > Add Pull Job**.
+
+In order for the ZFS datastore to not grow unbounded, create a prune job with settings:
+- Keep daily: 7
+- Keep weekly: 4
+- Keep monthly: 6
+
+And run a GC job every week.
