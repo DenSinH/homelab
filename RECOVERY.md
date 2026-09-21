@@ -11,6 +11,12 @@ Recovery procedures for the homelab. Host setup, sops and deploy commands follow
 | Configuration | this repo | any clone |
 | Secrets | `secrets/` (sops) | readable only with an age key |
 
+Use master SSH key derived age key for secrets by setting
+```
+export SOPS_AGE_KEY_FILE=/path/to/private/key/id_ed25519
+sops secrets/example.yaml
+```
+
 ## Rules
 
 1. Find the good copy first (`zpool status -v`, `zfs list -t snapshot`). Do not `zpool create`, `zfs destroy` or `zfs recv -F` until you know which copy is authoritative.
