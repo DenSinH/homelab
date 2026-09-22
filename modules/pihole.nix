@@ -48,7 +48,9 @@ let
     "192.168.50.31 homeassistant.home"
     "100.85.36.70 homeassistant.vpn"
 
-    "192.168.50.32 firefly.home"
+    "${lib.lxcs.static-site.ip} static.home"
+    "${lib.lxcs.static-site.tailnet_ip} static.vpn"
+
     "192.168.50.33 actual.home"
     "${lib.lxcs.telemetry.ip} telemetry.home"
     "${lib.lxcs.gatus.ip} gatus.home"

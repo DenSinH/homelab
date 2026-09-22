@@ -175,6 +175,26 @@
           ];
         };
 
+        static-site = {
+          # hosting random static files when needed
+          # provision at
+          #   /var/lib/static-site
+          hostname = "static-site";
+          ip = "192.168.50.32";
+          mac = "bc:24:11:4f:c7:5f";
+          tailnet_ip = "100.82.168.99";
+          pveHost = "proxmox1";
+          ctid = 103;
+
+          stateVersion = "26.05";
+
+          modules = [
+            ./modules/static-site.nix
+            ./modules/tailscale.nix
+            ./modules/telemetry/alloy.nix
+          ];
+        };
+
         gatus = {
           hostname = "gatus";
           ip = "192.168.50.35";
