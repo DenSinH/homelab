@@ -20,7 +20,9 @@
       };
     };
     templates.production = {
-      hourly = 0;
+      # hourly gives same-day rollback for accidental deletes/overwrites,
+      # instead of waiting for the next daily snapshot
+      hourly = 24;
       daily = 7;
       weekly = 4;
       monthly = 3;
