@@ -14,6 +14,7 @@
     ./zfs.nix
     ./pbs.nix
     ./replication.nix
+    ./health.nix
   ];
 
   boot.loader.grub.enable = true;

@@ -10,10 +10,11 @@ keys:
   - &paperless age157a9yqvuv2wjcnam9r4dt3ja089mkclrpvrp9lxtj0cj6nv9648sjdrune
   - &nixflix age15e7m3c8f0jxe8qp96ypm2laa88qtx8u2achr8nm53uzrm2tsav6syhgya0
   - &nas age16jqlp2qmjvqhmdehh7xgdu3dwxnm4wlh4dyd9cnf7cgp6t23yddqvsd8rl
+  - &offsite-backup age1gj7nmwgkpyfxzq0k9fuqrcspu37pcggmc52ecwd9vzls63suk9tqhr6zwg
 creation_rules:
   - path_regex: secrets/telemetry\.yaml$
     key_groups:
-    - age: [*master, *admin, *telemetry, *nas]
+    - age: [*master, *admin, *telemetry, *nas, *offsite-backup]
 
   - path_regex: secrets/cloudflared\.yaml$
     key_groups:

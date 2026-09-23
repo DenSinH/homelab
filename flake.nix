@@ -165,12 +165,15 @@
           hostname = "telemetry";
           ip = "192.168.50.34";
           mac = "bc:24:11:d6:ef:b6";
+          tailnet_ip = "100.106.52.64";
           pveHost = "proxmox1";
           ctid = 114;
 
           stateVersion = "26.05";
 
           modules = [
+            # tailscale for offsite backup telemetry
+            ./modules/tailscale.nix
             ./modules/telemetry/default.nix
           ];
         };
@@ -421,6 +424,7 @@
           };
 
           modules = [
+            sops-nix.nixosModules.sops
             ./hosts/offsite-backup/default.nix
           ];
         };
@@ -462,6 +466,7 @@
         packages = [
           pkgs.sops
           pkgs.age
+          pkgs.ssh-to-age
         ];
 
         shellHook = ''

@@ -52,6 +52,10 @@ in
       group = "metrics";
       mode = "0440";
     };
+    "influxdb/tokens/offsite-backup" = {
+      group = "metrics";
+      mode = "0440";
+    };
     "influxdb/tokens/router" = {
       group = "metrics";
       mode = "0440";
@@ -157,6 +161,33 @@ in
             ];
             writeBuckets = [
               "nas"
+            ];
+            writePermissions = [
+              "buckets"
+            ];
+          };
+        };
+
+        offsite-backup = {
+          description = "Organization for offsite-backup data";
+
+          buckets."offsite-backup" = {
+            description = "Bucket for offsite-backup data";
+            retention = retention;
+          };
+
+          auths."Host" = {
+            description = "Token used by offsite-backup hos";
+            tokenFile = config.sops.secrets."influxdb/tokens/offsite-backup".path;
+
+            readBuckets = [
+              "offsite-backup"
+            ];
+            readPermissions = [
+              "buckets"
+            ];
+            writeBuckets = [
+              "offsite-backup"
             ];
             writePermissions = [
               "buckets"
@@ -285,6 +316,24 @@ in
 
           secureJsonData = {
             token = grafanaSecretFile "influxdb/tokens/nas";
+          };
+        }
+
+        {
+          name = "InfluxDB - offsite-backup";
+          type = "influxdb";
+          url = "http://localhost:8086";
+          isDefault = false;
+
+          jsonData = {
+            version = "Flux";
+            organization = "offsite-backup";
+            defaultBucket = "offsite-backup";
+            tlsSkipVerify = true;
+          };
+
+          secureJsonData = {
+            token = grafanaSecretFile "influxdb/tokens/offsite-backup";
           };
         }
 

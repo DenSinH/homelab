@@ -52,7 +52,10 @@ let
     "${lib.lxcs.static-site.tailnet_ip} static.vpn"
 
     "192.168.50.33 actual.home"
+    
     "${lib.lxcs.telemetry.ip} telemetry.home"
+    "${lib.lxcs.telemetry.tailnet_ip} telemetry.vpn"
+
     "${lib.lxcs.gatus.ip} gatus.home"
     "${lib.lxcs.gatus.ip} status.home" # alias
     "${lib.lxcs.cookbook.ip} cookbook.home"

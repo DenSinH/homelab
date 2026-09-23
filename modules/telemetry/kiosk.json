@@ -5,8 +5,8 @@
     "name": "advzc6f",
     "namespace": "default",
     "uid": "a7ffa89a-e6ff-4607-9562-5a2a14b86fcb",
-    "resourceVersion": "1784476465488986",
-    "generation": 15,
+    "resourceVersion": "1785923201711015",
+    "generation": 16,
     "creationTimestamp": "2026-06-26T12:55:38Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "3338945286201344"
@@ -15,11 +15,11 @@
       "grafana.app/createdBy": "access-policy:service",
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerId": "default",
-      "grafana.app/sourceChecksum": "ba86eaff31409a2e29e169c721b22b2f",
+      "grafana.app/sourceChecksum": "c97b17909c0ac66c174fb3eadcef91e3",
       "grafana.app/sourcePath": "/var/lib/grafana/dashboards/kiosk.json",
-      "grafana.app/sourceTimestamp": "1784476465000",
+      "grafana.app/sourceTimestamp": "1785923176000",
       "grafana.app/updatedBy": "access-policy:service",
-      "grafana.app/updatedTimestamp": "2026-07-19T15:54:25Z",
+      "grafana.app/updatedTimestamp": "2026-08-05T09:46:41Z",
       "grafana.app/folder": ""
     }
   },
@@ -167,7 +167,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -265,7 +265,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -282,12 +282,12 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "P4D62735349E4356A"
+                        "name": "PDA2C7E3FD31FCEAA"
                       },
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> last()"
+                        "query": "from(bucket: \"offsite-backup\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -383,7 +383,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -400,12 +400,12 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "P4D62735349E4356A"
+                        "name": "PDA2C7E3FD31FCEAA"
                       },
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"node_memory_MemTotal_bytes\" or r._measurement == \"node_memory_MemFree_bytes\")\n    and r.host == \"nas\"\n  )\n  |> last()"
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"offsite-backup\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"node_memory_MemTotal_bytes\" or r._measurement == \"node_memory_MemFree_bytes\")\n    and r.host == \"offsite-backup\"\n  )\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -427,14 +427,14 @@
                         "left": {
                           "matcher": {
                             "id": "byName",
-                            "options": "gauge {host=\"nas\", name=\"node_memory_MemTotal_bytes\", url=\"http://localhost:9100/metrics\"}"
+                            "options": "gauge {host=\"offsite-backup\", name=\"node_memory_MemTotal_bytes\", url=\"http://localhost:9100/metrics\"}"
                           }
                         },
                         "operator": "-",
                         "right": {
                           "matcher": {
                             "id": "byName",
-                            "options": "gauge {host=\"nas\", name=\"node_memory_MemFree_bytes\", url=\"http://localhost:9100/metrics\"}"
+                            "options": "gauge {host=\"offsite-backup\", name=\"node_memory_MemFree_bytes\", url=\"http://localhost:9100/metrics\"}"
                           }
                         }
                       },
@@ -521,7 +521,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -662,7 +662,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -708,7 +708,7 @@
                         "measurement": "cpustat",
                         "orderByTime": "ASC",
                         "policy": "default",
-                        "query": "from(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"cpustat\" and\n    r._field == \"cpu\"\n  )\n  |> group(columns: [\"host\"])\n  |> aggregateWindow(\n    every: v.windowPeriod,\n    fn: mean,\n    createEmpty: false\n  )",
+                        "query": "from(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"cpustat\" and\n    r._field == \"cpu\" and\n    r.host != \"offsite-backup\"\n  )\n  |> group(columns: [\"host\"])\n  |> aggregateWindow(\n    every: v.windowPeriod,\n    fn: mean,\n    createEmpty: false\n  )",
                         "resultFormat": "time_series",
                         "select": [
                           [
@@ -752,12 +752,30 @@
                         "expr": "1 - (\n  avg by(instance) (\n    rate(node_cpu_seconds_total{mode=\"idle\"}[$__interval])\n  )\n)",
                         "instant": false,
                         "legendFormat": "nas",
-                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean)\n  |> group(columns: [\"_time\", \"host\"])\n  |> mean()\n  |> group(columns: [\"host\"])\n  |> last()",
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r._field == \"counter\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: 1.0 - r._value }))\n  |> rename(columns: {_value: \"nas\"})\n  |> keep(columns: [\"_time\", \"nas\"])",
                         "range": true
                       },
                       "version": "v0"
                     },
                     "refId": "B"
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "PDA2C7E3FD31FCEAA"
+                      },
+                      "group": "influxdb",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "query": "from(bucket: \"offsite-backup\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r._field == \"counter\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: 1.0 - r._value }))\n  |> rename(columns: {_value: \"backup\"})\n  |> keep(columns: [\"_time\", \"backup\"])"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "C"
                   }
                 }
               ],
@@ -867,127 +885,7 @@
                 }
               }
             },
-            "version": "13.0.3"
-          }
-        }
-      },
-      "panel-15": {
-        "kind": "Panel",
-        "spec": {
-          "data": {
-            "kind": "QueryGroup",
-            "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "P4D62735349E4356A"
-                      },
-                      "group": "influxdb",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"zfs_dataset_used_bytes\" or\n     r._measurement == \"zfs_dataset_available_bytes\") and\n    r.name == \"tank/media\"\n  )\n  |> last()\n  |> group()\n  |> reduce(\n    identity: {\n      used: 0.0,\n      available: 0.0,\n    },\n    fn: (r, accumulator) => ({\n      used: if r._measurement == \"zfs_dataset_used_bytes\"\n        then r._value\n        else accumulator.used,\n      available: if r._measurement == \"zfs_dataset_available_bytes\"\n        then r._value\n        else accumulator.available,\n    })\n  )"
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "A"
-                  }
-                }
-              ],
-              "queryOptions": {},
-              "transformations": [
-                {
-                  "group": "calculateField",
-                  "kind": "Transformation",
-                  "spec": {
-                    "options": {
-                      "alias": "total",
-                      "binary": {
-                        "left": {
-                          "matcher": {
-                            "id": "byName",
-                            "options": "used"
-                          }
-                        },
-                        "right": {
-                          "matcher": {
-                            "id": "byName",
-                            "options": "available"
-                          }
-                        }
-                      },
-                      "mode": "binary",
-                      "reduce": {
-                        "reducer": "sum"
-                      }
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "description": "",
-          "id": 15,
-          "links": [],
-          "title": "Media",
-          "transparent": true,
-          "vizConfig": {
-            "group": "bargauge",
-            "kind": "VizConfig",
-            "spec": {
-              "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "fieldMinMax": false,
-                  "min": 0,
-                  "thresholds": {
-                    "mode": "percentage",
-                    "steps": [
-                      {
-                        "color": "green",
-                        "value": 0
-                      },
-                      {
-                        "color": "semi-dark-red",
-                        "value": 80
-                      }
-                    ]
-                  },
-                  "unit": "bytes"
-                },
-                "overrides": []
-              },
-              "options": {
-                "displayMode": "gradient",
-                "legend": {
-                  "calcs": [],
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "maxVizHeight": 300,
-                "minVizHeight": 16,
-                "minVizWidth": 8,
-                "namePlacement": "auto",
-                "orientation": "horizontal",
-                "reduceOptions": {
-                  "calcs": [
-                    "lastNotNull"
-                  ],
-                  "fields": "/^used$/",
-                  "values": false
-                },
-                "showUnfilled": true,
-                "sizing": "auto",
-                "valueMode": "color"
-              }
-            },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -1134,7 +1032,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -1172,7 +1070,7 @@
                 "mode": "html"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -1210,7 +1108,7 @@
                 "mode": "markdown"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -1320,7 +1218,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -1467,7 +1365,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -1609,11 +1507,414 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
       "panel-21": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "PDA2C7E3FD31FCEAA"
+                      },
+                      "group": "influxdb",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "query": "from(bucket: \"offsite-backup\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"zfs_pool_allocated_bytes\" or r._measurement == \"zfs_pool_size_bytes\")and\n    r.pool == \"tank\"\n  )\n  |> last()"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {
+                "maxDataPoints": 100
+              },
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 21,
+          "links": [],
+          "title": "Offsite Tank",
+          "transparent": true,
+          "vizConfig": {
+            "group": "bargauge",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 2,
+                  "mappings": [
+                    {
+                      "options": {
+                        "match": "null",
+                        "result": {
+                          "text": "N/A"
+                        }
+                      },
+                      "type": "special"
+                    }
+                  ],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "percentage",
+                    "steps": [
+                      {
+                        "color": "#73BF69",
+                        "value": 0
+                      },
+                      {
+                        "color": "rgba(237, 129, 40, 0.89)",
+                        "value": 70
+                      },
+                      {
+                        "color": "#d44a3a",
+                        "value": 85
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "options": {
+                "displayMode": "gradient",
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "maxVizHeight": 300,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "auto",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/^zfs_pool_allocated_bytes gauge \\{host=\"offsite\\-backup\", pool=\"tank\", url=\"http://localhost:9134/metrics\"\\}$/",
+                  "values": false
+                },
+                "showUnfilled": true,
+                "sizing": "auto",
+                "valueMode": "color"
+              }
+            },
+            "version": "13.0.7"
+          }
+        }
+      },
+      "panel-24": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 24,
+          "links": [],
+          "title": "Offsite",
+          "transparent": true,
+          "vizConfig": {
+            "group": "text",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              },
+              "options": {
+                "code": {
+                  "language": "plaintext",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
+                },
+                "content": "",
+                "mode": "markdown"
+              }
+            },
+            "version": "13.0.7"
+          }
+        }
+      },
+      "panel-25": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "P4D62735349E4356A"
+                      },
+                      "group": "influxdb",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> last()"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": [
+                {
+                  "group": "calculateField",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "binary": {
+                        "left": {
+                          "fixed": "1"
+                        },
+                        "operator": "-",
+                        "right": {
+                          "matcher": {
+                            "id": "byName",
+                            "options": "Value"
+                          }
+                        }
+                      },
+                      "mode": "binary",
+                      "reduce": {
+                        "reducer": "sum"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "",
+          "id": 25,
+          "links": [],
+          "title": "",
+          "transparent": true,
+          "vizConfig": {
+            "group": "bargauge",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 2,
+                  "max": 100,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percentunit"
+                },
+                "overrides": []
+              },
+              "options": {
+                "displayMode": "gradient",
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "maxVizHeight": 300,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "auto",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/^1 \\- Value$/",
+                  "values": false
+                },
+                "showUnfilled": true,
+                "sizing": "auto",
+                "valueMode": "color"
+              }
+            },
+            "version": "13.0.7"
+          }
+        }
+      },
+      "panel-26": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "P4D62735349E4356A"
+                      },
+                      "group": "influxdb",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"node_memory_MemTotal_bytes\" or r._measurement == \"node_memory_MemFree_bytes\")\n    and r.host == \"nas\"\n  )\n  |> last()"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {
+                "maxDataPoints": 100
+              },
+              "transformations": [
+                {
+                  "group": "calculateField",
+                  "kind": "Transformation",
+                  "spec": {
+                    "options": {
+                      "alias": "memused",
+                      "binary": {
+                        "left": {
+                          "matcher": {
+                            "id": "byName",
+                            "options": "gauge {host=\"nas\", name=\"node_memory_MemTotal_bytes\", url=\"http://localhost:9100/metrics\"}"
+                          }
+                        },
+                        "operator": "-",
+                        "right": {
+                          "matcher": {
+                            "id": "byName",
+                            "options": "gauge {host=\"nas\", name=\"node_memory_MemFree_bytes\", url=\"http://localhost:9100/metrics\"}"
+                          }
+                        }
+                      },
+                      "mode": "binary",
+                      "reduce": {
+                        "reducer": "sum"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "description": "",
+          "id": 26,
+          "links": [],
+          "title": "",
+          "transparent": true,
+          "vizConfig": {
+            "group": "bargauge",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 2,
+                  "mappings": [
+                    {
+                      "options": {
+                        "match": "null",
+                        "result": {
+                          "text": "N/A"
+                        }
+                      },
+                      "type": "special"
+                    }
+                  ],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "percentage",
+                    "steps": [
+                      {
+                        "color": "#73BF69",
+                        "value": 0
+                      },
+                      {
+                        "color": "rgba(237, 129, 40, 0.89)",
+                        "value": 70
+                      },
+                      {
+                        "color": "#d44a3a",
+                        "value": 85
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "options": {
+                "displayMode": "gradient",
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "maxVizHeight": 300,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "auto",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "/^memused$/",
+                  "values": false
+                },
+                "showUnfilled": true,
+                "sizing": "auto",
+                "valueMode": "color"
+              }
+            },
+            "version": "13.0.7"
+          }
+        }
+      },
+      "panel-27": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -1646,7 +1947,7 @@
             }
           },
           "description": "",
-          "id": 21,
+          "id": 27,
           "links": [],
           "title": "Tank",
           "transparent": true,
@@ -1718,11 +2019,11 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
-      "panel-22": {
+      "panel-28": {
         "kind": "Panel",
         "spec": {
           "data": {
@@ -1735,12 +2036,12 @@
                     "hidden": false,
                     "query": {
                       "datasource": {
-                        "name": "P4D62735349E4356A"
+                        "name": "PDA2C7E3FD31FCEAA"
                       },
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"smartctl_device_smart_status\" and\n    r.device == \"sda\"\n  )\n  |> aggregateWindow(every: v.windowPeriod, fn: last)"
+                        "query": "from(bucket: \"offsite-backup\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"smartctl_device_smart_status\"\n  )\n  |> aggregateWindow(every: v.windowPeriod, fn: last)"
                       },
                       "version": "v0"
                     },
@@ -1755,9 +2056,9 @@
             }
           },
           "description": "",
-          "id": 22,
+          "id": 28,
           "links": [],
-          "title": "Disk sda",
+          "title": "",
           "transparent": true,
           "vizConfig": {
             "group": "status-history",
@@ -1827,116 +2128,44 @@
                 }
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
-      "panel-23": {
+      "panel-29": {
         "kind": "Panel",
         "spec": {
           "data": {
             "kind": "QueryGroup",
             "spec": {
-              "queries": [
-                {
-                  "kind": "PanelQuery",
-                  "spec": {
-                    "hidden": false,
-                    "query": {
-                      "datasource": {
-                        "name": "P4D62735349E4356A"
-                      },
-                      "group": "influxdb",
-                      "kind": "DataQuery",
-                      "spec": {
-                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"smartctl_device_smart_status\" and\n    r.device == \"sdb\"\n  )\n  |> aggregateWindow(every: v.windowPeriod, fn: last)"
-                      },
-                      "version": "v0"
-                    },
-                    "refId": "A"
-                  }
-                }
-              ],
-              "queryOptions": {
-                "maxDataPoints": 25
-              },
+              "queries": [],
+              "queryOptions": {},
               "transformations": []
             }
           },
           "description": "",
-          "id": 23,
+          "id": 29,
           "links": [],
-          "title": "Disk sdb",
-          "transparent": true,
+          "title": "",
           "vizConfig": {
-            "group": "status-history",
+            "group": "text",
             "kind": "VizConfig",
             "spec": {
               "fieldConfig": {
-                "defaults": {
-                  "color": {
-                    "mode": "thresholds"
-                  },
-                  "custom": {
-                    "axisPlacement": "hidden",
-                    "fillOpacity": 100,
-                    "hideFrom": {
-                      "legend": false,
-                      "tooltip": false,
-                      "viz": false
-                    },
-                    "lineWidth": 10
-                  },
-                  "mappings": [
-                    {
-                      "options": {
-                        "0": {
-                          "color": "red",
-                          "index": 0,
-                          "text": "BAD"
-                        },
-                        "1": {
-                          "color": "green",
-                          "index": 1,
-                          "text": "OK"
-                        }
-                      },
-                      "type": "value"
-                    }
-                  ],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green",
-                        "value": 0
-                      }
-                    ]
-                  }
-                },
+                "defaults": {},
                 "overrides": []
               },
               "options": {
-                "annotations": {
-                  "clustering": -1,
-                  "multiLane": false
+                "code": {
+                  "language": "plaintext",
+                  "showLineNumbers": false,
+                  "showMiniMap": false
                 },
-                "colWidth": 1,
-                "legend": {
-                  "displayMode": "list",
-                  "placement": "bottom",
-                  "showLegend": false
-                },
-                "rowHeight": 1,
-                "showValue": "auto",
-                "tooltip": {
-                  "hideZeros": false,
-                  "mode": "none",
-                  "sort": "none"
-                }
+                "content": "",
+                "mode": "markdown"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -2078,7 +2307,116 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
+          }
+        }
+      },
+      "panel-30": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "P4D62735349E4356A"
+                      },
+                      "group": "influxdb",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"smartctl_device_smart_status\"\n  )\n  |> aggregateWindow(every: v.windowPeriod, fn: last)"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {
+                "maxDataPoints": 25
+              },
+              "transformations": []
+            }
+          },
+          "description": "",
+          "id": 30,
+          "links": [],
+          "title": "",
+          "transparent": true,
+          "vizConfig": {
+            "group": "status-history",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "axisPlacement": "hidden",
+                    "fillOpacity": 70,
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineWidth": 10
+                  },
+                  "mappings": [
+                    {
+                      "options": {
+                        "0": {
+                          "color": "red",
+                          "index": 0,
+                          "text": "BAD"
+                        },
+                        "1": {
+                          "color": "green",
+                          "index": 1,
+                          "text": "OK"
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "options": {
+                "annotations": {
+                  "clustering": -1,
+                  "multiLane": false
+                },
+                "colWidth": 1,
+                "legend": {
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": false
+                },
+                "rowHeight": 1,
+                "showValue": "auto",
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "none",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.0.7"
           }
         }
       },
@@ -2175,7 +2513,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -2285,7 +2623,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -2427,7 +2765,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -2524,7 +2862,7 @@
                 "wideLayout": true
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -2634,7 +2972,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       },
@@ -2776,7 +3114,7 @@
                 "valueMode": "color"
               }
             },
-            "version": "13.0.3"
+            "version": "13.0.7"
           }
         }
       }
@@ -2998,10 +3336,10 @@
             "spec": {
               "element": {
                 "kind": "ElementReference",
-                "name": "panel-22"
+                "name": "panel-29"
               },
               "height": 2,
-              "width": 3,
+              "width": 6,
               "x": 17,
               "y": 6
             }
@@ -3011,20 +3349,7 @@
             "spec": {
               "element": {
                 "kind": "ElementReference",
-                "name": "panel-23"
-              },
-              "height": 2,
-              "width": 3,
-              "x": 20,
-              "y": 6
-            }
-          },
-          {
-            "kind": "GridLayoutItem",
-            "spec": {
-              "element": {
-                "kind": "ElementReference",
-                "name": "panel-10"
+                "name": "panel-24"
               },
               "height": 2,
               "width": 3,
@@ -3076,12 +3401,77 @@
             "spec": {
               "element": {
                 "kind": "ElementReference",
-                "name": "panel-15"
+                "name": "panel-28"
               },
               "height": 2,
               "width": 6,
               "x": 17,
               "y": 8
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-10"
+              },
+              "height": 2,
+              "width": 3,
+              "x": 0,
+              "y": 10
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-25"
+              },
+              "height": 2,
+              "width": 4,
+              "x": 3,
+              "y": 10
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-26"
+              },
+              "height": 2,
+              "width": 4,
+              "x": 7,
+              "y": 10
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-27"
+              },
+              "height": 2,
+              "width": 6,
+              "x": 11,
+              "y": 10
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-30"
+              },
+              "height": 2,
+              "width": 6,
+              "x": 17,
+              "y": 10
             }
           }
         ]

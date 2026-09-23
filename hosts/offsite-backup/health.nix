@@ -6,9 +6,10 @@
 }:
 
 {
+  # Largely copied from NAS health.nix
   sops.defaultSopsFile = ../../secrets/telemetry.yaml;
   sops.secrets = {
-    "influxdb/tokens/nas" = {
+    "influxdb/tokens/offsite-backup" = {
       group = "telegraf";
       mode = "0440";
     };
@@ -18,7 +19,7 @@
     # same alloy monitoring as LXCs
     (import ../../modules/telemetry/alloy.nix {
       inherit pkgs lib;
-      host = lib.storage.nas;
+      host = lib.backup.offsite-backup;
     })
   ];
 
@@ -73,7 +74,7 @@
 
   sops.templates."telegraf.env" = {
     content = ''
-      INFLUX_TOKEN=${config.sops.placeholder."influxdb/tokens/nas"}
+      INFLUX_TOKEN=${config.sops.placeholder."influxdb/tokens/offsite-backup"}
     '';
   };
 
@@ -99,13 +100,14 @@
 
       outputs.influxdb_v2 = {
         urls = [
-          "http://${lib.lxcs.telemetry.ip}:8086"
+          # must connect over VPN
+          "http://${lib.lxcs.telemetry.tailnet_ip}:8086"
         ];
 
         token = "$INFLUX_TOKEN";
 
-        organization = "nas";
-        bucket = "nas";
+        organization = "offsite-backup";
+        bucket = "offsite-backup";
       };
     };
   };
