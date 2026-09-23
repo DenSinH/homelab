@@ -40,6 +40,7 @@
   systemd.services.zfs-dataset-tuning = {
     description = "Tune ZFS parameters for various datasets";
 
+    wantedBy = [ "multi-user.target" ];
     after = [ "zfs-import.target" ];
     serviceConfig = {
       Type = "oneshot";

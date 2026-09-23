@@ -67,7 +67,6 @@ in
     mediaDir = mediaMount;
     downloadsDir = "${mediaMount}/downloads";
 
-    # todo: put this somewhere else? NFS? Backed up?
     stateDir = "/data/.state";
 
     nginx = {
