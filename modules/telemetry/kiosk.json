@@ -5,8 +5,8 @@
     "name": "advzc6f",
     "namespace": "default",
     "uid": "a7ffa89a-e6ff-4607-9562-5a2a14b86fcb",
-    "resourceVersion": "1785923201711015",
-    "generation": 16,
+    "resourceVersion": "1790168156157012",
+    "generation": 27,
     "creationTimestamp": "2026-06-26T12:55:38Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "3338945286201344"
@@ -15,11 +15,11 @@
       "grafana.app/createdBy": "access-policy:service",
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerId": "default",
-      "grafana.app/sourceChecksum": "c97b17909c0ac66c174fb3eadcef91e3",
+      "grafana.app/sourceChecksum": "6b55c36fc217ccff183105ee097f7262",
       "grafana.app/sourcePath": "/var/lib/grafana/dashboards/kiosk.json",
-      "grafana.app/sourceTimestamp": "1785923176000",
+      "grafana.app/sourceTimestamp": "1790168128000",
       "grafana.app/updatedBy": "access-policy:service",
-      "grafana.app/updatedTimestamp": "2026-08-05T09:46:41Z",
+      "grafana.app/updatedTimestamp": "2026-09-23T12:55:56Z",
       "grafana.app/folder": ""
     }
   },
@@ -163,6 +163,9 @@
                   "values": false
                 },
                 "showPercentChange": false,
+                "text": {
+                  "valueSize": 16
+                },
                 "textMode": "auto",
                 "wideLayout": true
               }
@@ -260,7 +263,9 @@
                   "values": false
                 },
                 "showPercentChange": false,
-                "text": {},
+                "text": {
+                  "valueSize": 16
+                },
                 "textMode": "auto",
                 "wideLayout": true
               }
@@ -592,7 +597,7 @@
           "description": "",
           "id": 13,
           "links": [],
-          "title": "PBS Tank",
+          "title": "",
           "transparent": true,
           "vizConfig": {
             "group": "bargauge",
@@ -1066,7 +1071,7 @@
                   "showLineNumbers": false,
                   "showMiniMap": false
                 },
-                "content": "<!--\nIdea from\n\nSource - https://stackoverflow.com/a/76558463\nPosted by pba, modified by community. See post 'Timeline' for change history\nRetrieved 2026-06-15, License - CC BY-SA 4.0\n-->\n\n<style type=\"text/css\">\n[data-testid=\"public-dashboard-footer\"] {\n  display: none;\n}\n\n[data-testid=\"public-dashboard-scene-page\"] > *:first-child {\n  display: none;\n}\n\n[data-testid=\"data-testid dashboard controls\"] {\n  display: none;\n}\n\n.css-kuoxoh-panel-content div {\n  min-height: 16px !important;\n}\n</style>\n",
+                "content": "<!--\nIdea from\n\nSource - https://stackoverflow.com/a/76558463\nPosted by pba, modified by community. See post 'Timeline' for change history\nRetrieved 2026-06-15, License - CC BY-SA 4.0\n-->\n\n<style type=\"text/css\">\n[data-testid=\"public-dashboard-footer\"] {\n  display: none;\n}\n\n[data-testid=\"public-dashboard-scene-page\"] > *:first-child {\n  display: none;\n}\n\n[data-testid=\"data-testid dashboard controls\"] {\n  display: none;\n}\n\n.css-kuoxoh-panel-content div {\n  min-height: 16px !important;\n}\n\n.panel-header, [class*=\"panel-header\"] {\n  min-height: 20px !important;\n  padding: 2px 8px !important;\n}\n.panel-title, [class*=\"panel-title\"] {\n  font-size: 12px !important;\n  line-height: 16px !important;\n}\n\n[class*=\"panel-content\"] {\n  padding: 2px 4px !important;\n}\n\n.react-grid-layout {\n  margin: 0 !important;\n}\n.react-grid-item {\n  margin: 2px !important;\n}\n\n.react-grid-layout {\n  transform: scaleY(0.92) scaleX(1.00);\n  transform-origin: top left;\n  width: 100% !important; /* 100 / 1.08 = 92.59 */\n}\n</style>\n",
                 "mode": "html"
               }
             },
@@ -1546,7 +1551,7 @@
           "description": "",
           "id": 21,
           "links": [],
-          "title": "Offsite Tank",
+          "title": "",
           "transparent": true,
           "vizConfig": {
             "group": "bargauge",
@@ -1634,7 +1639,7 @@
           "description": "",
           "id": 24,
           "links": [],
-          "title": "Offsite",
+          "title": "Backup",
           "transparent": true,
           "vizConfig": {
             "group": "text",
@@ -1949,7 +1954,7 @@
           "description": "",
           "id": 27,
           "links": [],
-          "title": "Tank",
+          "title": "",
           "transparent": true,
           "vizConfig": {
             "group": "bargauge",
@@ -2147,6 +2152,7 @@
           "id": 29,
           "links": [],
           "title": "",
+          "transparent": true,
           "vizConfig": {
             "group": "text",
             "kind": "VizConfig",
@@ -2509,6 +2515,9 @@
                   "values": false
                 },
                 "showPercentChange": false,
+                "text": {
+                  "valueSize": 16
+                },
                 "textMode": "auto",
                 "wideLayout": true
               }
@@ -2858,6 +2867,9 @@
                   "values": false
                 },
                 "showPercentChange": false,
+                "text": {
+                  "valueSize": 16
+                },
                 "textMode": "auto",
                 "wideLayout": true
               }
@@ -3183,7 +3195,7 @@
                 "name": "panel-14"
               },
               "height": 6,
-              "width": 10,
+              "width": 11,
               "x": 13,
               "y": 0
             }
@@ -3326,7 +3338,7 @@
                 "name": "panel-13"
               },
               "height": 2,
-              "width": 6,
+              "width": 7,
               "x": 11,
               "y": 6
             }
@@ -3340,7 +3352,7 @@
               },
               "height": 2,
               "width": 6,
-              "x": 17,
+              "x": 18,
               "y": 6
             }
           },
@@ -3391,7 +3403,7 @@
                 "name": "panel-21"
               },
               "height": 2,
-              "width": 6,
+              "width": 7,
               "x": 11,
               "y": 8
             }
@@ -3405,7 +3417,7 @@
               },
               "height": 2,
               "width": 6,
-              "x": 17,
+              "x": 18,
               "y": 8
             }
           },
@@ -3456,7 +3468,7 @@
                 "name": "panel-27"
               },
               "height": 2,
-              "width": 6,
+              "width": 7,
               "x": 11,
               "y": 10
             }
@@ -3470,7 +3482,7 @@
               },
               "height": 2,
               "width": 6,
-              "x": 17,
+              "x": 18,
               "y": 10
             }
           }
