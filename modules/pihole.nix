@@ -75,6 +75,9 @@ let
 
     "${lib.lxcs.bentopdf.ip} bentopdf.home"
 
+    "${lib.lxcs.paperless.ip} paperless.home"
+    "${lib.lxcs.paperless.tailnet_ip} paperless.vpn"
+
     "192.168.50.46 byparr.home"
     "192.168.50.47 bazarr.home"
 

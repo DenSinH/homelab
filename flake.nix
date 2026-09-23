@@ -334,6 +334,23 @@
             ./modules/bentopdf.nix
           ];
         };
+
+        paperless = {
+          hostname = "paperless";
+          ip = "192.168.50.44";
+          mac = "bc:24:11:d6:ef:b6";
+          tailnet_ip = "100.110.234.20";
+          pveHost = "proxmox3";
+          ctid = 300;
+
+          stateVersion = "26.05";
+
+          modules = [
+            ./modules/paperless.nix
+            ./modules/tailscale.nix
+            ./modules/telemetry/alloy.nix
+          ];
+        };
       };
 
       # make hosts and lxcs globally accessible

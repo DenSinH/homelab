@@ -7,6 +7,7 @@ keys:
   - &immich age1ywhn34rxjws6cuz73hju2szr8r735zyghzvzldyzn0qwz7xl5essmvvjpq
   - &garage age1a9tqsvxcn5zchen3jwypcas3pg02zcsp67694cx36j6s43a6jgmsgnvqse
   - &cookbook age1rlv2zpj707j6pxxs7t6puzmk93rvamzrqsrk0l43qqlz2wjpmazqnltr0t
+  - &paperless age157a9yqvuv2wjcnam9r4dt3ja089mkclrpvrp9lxtj0cj6nv9648sjdrune
   - &nixflix age15e7m3c8f0jxe8qp96ypm2laa88qtx8u2achr8nm53uzrm2tsav6syhgya0
   - &nas age16jqlp2qmjvqhmdehh7xgdu3dwxnm4wlh4dyd9cnf7cgp6t23yddqvsd8rl
 creation_rules:
@@ -25,6 +26,10 @@ creation_rules:
   - path_regex: secrets/immich\.yaml$
     key_groups:
     - age: [*master, *admin, *immich]
+
+  - path_regex: secrets/paperless\.yaml$
+    key_groups:
+    - age: [*master, *admin, *paperless]
 
   - path_regex: secrets/cookbook\.yaml$
     key_groups:
