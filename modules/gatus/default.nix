@@ -17,6 +17,11 @@
     configFile = ./config.yaml;
   };
 
+  # reduce logging of every single check
+  systemd.services.gatus.serviceConfig = {
+    LogLevelMax = "notice";
+  };
+
   services.nginx = {
     enable = true;
 
