@@ -27,6 +27,18 @@ let
     mode = "0400";
   };
 
+  expectedLogHosts = lib.unique (
+    let
+      hostname = h: h.hostname;
+      fromAttrs = attrs: map hostname (builtins.attrValues attrs);
+    in
+    [ (hostname lib.router) ]
+    ++ fromAttrs lib.hosts
+    ++ fromAttrs lib.storage
+    ++ fromAttrs lib.backup
+    ++ fromAttrs lib.lxcs
+  );
+
   reportConfig = pkgs.writeText "report-config.json" (
     builtins.toJSON {
       influx_url = "http://${lib.lxcs.telemetry.ip}:8086";
@@ -51,7 +63,11 @@ let
       ];
       # regexes matched against "host/unit latest-message"; matching log sources are hidden
       log_ignore = [ ];
-      # logs = { source_label = "job"; };   # uncomment if your Loki uses `job`
+      logs = {
+        # every host in lib.router / lib.hosts / lib.storage / lib.backup / lib.lxcs
+        expected_hosts = expectedLogHosts;
+        # source_label = "job";   # uncomment if your Loki uses `job` instead of `unit`
+      };
       # any other key of DEFAULTS in report.py can be overridden here, e.g.:
       # timers = { "syncoid-tank-drive.timer" = 30; };
       # thresholds = { temp_warn = 55; };

@@ -109,6 +109,10 @@ DEFAULTS = {
         # Loki label that identifies a log source within a host (systemd "unit" by
         # default; set to "job" if your Loki uses the job label instead).
         "source_label": "unit",
+        # Hosts that are expected to send logs.  Any of these that produces zero
+        # lines in the last 24 h is listed with 0 and flagged as a warning.
+        # Only list hosts that are supposed to be running and logging.
+        "expected_hosts": [],
     },
     "gatus_host": "gatus",
     "energy": {
@@ -426,6 +430,8 @@ def summarize(lines):
 
 def _fmt_delta(cur, prev):
     """Returns (text, level) for the 'vs previous' cell."""
+    if cur == 0 and prev == 0:
+        return ("—", OK)
     if not prev:
         return ("new", INFO)
     ratio = cur / prev
@@ -555,7 +561,28 @@ def log_volume_section(cfg, loki, rep):
             f"sum by (host) (count_over_time({sel} [24h] offset 24h))"
         )
     }
+
+    # Hosts we expect to see in Loki.  A host counts as present if Loki has
+    # either its full name (proxmox1.home) or the short form (proxmox1); both
+    # are common depending on how the log shipper derives the `host` label.
+    # A host that sent nothing is listed once, under its FQDN, as an INFO note.
+    expected = list(L.get("expected_hosts", []))
+
+    def short(name):
+        return name.split(".", maxsplit=1)[0]
+
+    loki_hosts = set(vol_cur.keys())
+    claimed = {exp for exp in expected if exp in loki_hosts or short(exp) in loki_hosts}
+    silent = [exp for exp in expected if exp not in claimed]
+    for host in silent:
+        vol_cur[host] = 0.0
+        rep.add(INFO, "Logs", f"{host}: expected to send logs but sent none in 24 h")
+
+    # Hosts that went quiet (previous volume collapsed) — skip the ones we just
+    # flagged so we don't add two findings for the same host.
     for host, p in vol_prev.items():
+        if host in silent:
+            continue
         c = vol_cur.get(host, 0)
         if p >= 100 and c < p / 100:
             rep.add(
@@ -563,10 +590,10 @@ def log_volume_section(cfg, loki, rep):
                 "Logs",
                 f"{host}: only {int(c)} log lines in 24 h (previous: {int(p)}) — still sending?",
             )
-    volume_rows = [
-        [host, f"{int(n):,}", _fmt_delta(n, vol_prev.get(host, 0))]
-        for host, n in sorted(vol_cur.items(), key=lambda kv: -kv[1])
-    ]
+
+    volume_rows = []
+    for host, n in sorted(vol_cur.items(), key=lambda kv: -kv[1]):
+        volume_rows.append([host, f"{int(n):,}", _fmt_delta(n, vol_prev.get(host, 0))])
     volume_tbl = table(
         ["Host", "Lines (24 h)", "vs previous"], volume_rows, align="lrr", mono="m.."
     )
