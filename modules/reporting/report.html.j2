@@ -1,0 +1,76 @@
+{%- macro render_table(t) -%}
+<table style="border-collapse:collapse;font-size:13px;margin:8px 0;font-variant-numeric:tabular-nums">
+<tr>
+{%- for h in t.headers %}
+<th style="text-align:left;padding:5px 10px;border-bottom:2px solid #ccc;background:#f6f6f6;font-weight:600">{{ h }}</th>
+{%- endfor %}
+</tr>
+{%- for row in t.rows %}
+<tr>
+{%- for cell in row %}
+{%- set ci = loop.index0 %}
+<td style="padding:4px 10px;border-bottom:1px solid #eee;{% if t.align[ci] and t.align[ci] != 'left' %}text-align:{{ t.align[ci] }};{% endif %}{% if t.mono[ci] %}font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;{% endif %}{% if cell.color %}color:{{ cell.color }};font-weight:600;{% endif %}">{{ cell.text }}</td>
+{%- endfor %}
+</tr>
+{%- endfor %}
+</table>
+{%- endmacro -%}
+<!DOCTYPE html>
+<!-- report-status: {{ status }} -->
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ subject }}</title>
+</head>
+<body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:820px;margin:auto;padding:12px;color:#222;background:#fff">
+<div style="background:{{ status_color }};color:#fff;padding:12px 16px;border-radius:6px;font-size:18px">
+  <b>{{ headline }}</b><br>
+  <span style="font-size:13px">Homelab report, {{ timestamp }}</span>
+</div>
+
+{% if critical %}
+<h3 style="color:{{ crit_color }};margin:16px 0 4px">Critical</h3>
+<ul>
+{%- for where, text in critical %}
+  <li><b>{{ where }}</b>: {{ text }}</li>
+{%- endfor %}
+</ul>
+{% endif %}
+
+{% if warnings %}
+<h3 style="color:{{ warn_color }};margin:16px 0 4px">Warnings</h3>
+<ul>
+{%- for where, text in warnings %}
+  <li><b>{{ where }}</b>: {{ text }}</li>
+{%- endfor %}
+</ul>
+{% endif %}
+
+{% if notes %}
+<h3 style="color:{{ info_color }};margin:16px 0 4px">Notes</h3>
+<ul style="color:#37474f;font-size:13px">
+{%- for text in notes %}
+  <li>{{ text }}</li>
+{%- endfor %}
+</ul>
+{% endif %}
+
+{% for section in sections %}
+<h3 style="margin:20px 0 4px;border-bottom:1px solid #ddd">{{ section.title }}</h3>
+{%- for block in section.blocks %}
+{% if block is string %}{{ block | safe }}{% else %}{{ render_table(block) }}{% endif %}
+{%- endfor %}
+{% endfor %}
+
+{% if grafana_url or report_url %}
+<p style="font-size:13px;margin-top:24px">
+  {%- if grafana_url %}<a href="{{ grafana_url }}">Grafana kiosk dashboard</a>{% endif -%}
+  {%- if grafana_url and report_url %} · {% endif -%}
+  {%- if report_url %}<a href="{{ report_url }}">Report archive</a>{% endif -%}
+</p>
+{% endif %}
+{% if duration %}
+<p style="font-size:12px;color:#888;margin:4px 0">Rendered in {{ duration }}.</p>
+{% endif %}
+</body>
+</html>

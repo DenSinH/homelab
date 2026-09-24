@@ -161,6 +161,21 @@
           ];
         };
 
+        reporting = {
+          hostname = "reporting";
+          ip = "192.168.50.30";
+          mac = "bc:24:11:89:1c:f5";
+          pveHost = "proxmox1";
+          ctid = 110;
+
+          stateVersion = "26.05";
+
+          modules = [
+            ./modules/reporting
+            ./modules/telemetry/alloy.nix
+          ];
+        };
+
         telemetry = {
           hostname = "telemetry";
           ip = "192.168.50.34";

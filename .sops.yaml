@@ -1,6 +1,7 @@
 keys:
   - &master age1hprl97zht88m2jq4nmc82vw2a6qhncfgurx0ctf3ls4gfyucc5lsmx4wx9
   - &admin age13j8gw6prh45a6w42swdtc2x25xlhjfygt0lsjx58qq6tmwzr4pfsv83yva
+  - &reporting age1salh6ttagypr5h93mlq3c4y8qqy65tz4f8fq72gntekyrveymucsaqdpyq
   - &telemetry age185mc2dkelltkf3q2p6u20td4l228t6nud58tewrxrrgqtmkzdv2qgywnag
   - &cloudflared age1g8uwy0fj9qwc59v2fvuakqn84uluet3h0sv3teyvalfhjqf0uf0q2d8jul
   - &vaultwarden age1kqmnfy286wa2jg2zsnssqlttt75g93q3zcu6fggmug2vmhhm0vksufyfyd
@@ -12,9 +13,13 @@ keys:
   - &nas age16jqlp2qmjvqhmdehh7xgdu3dwxnm4wlh4dyd9cnf7cgp6t23yddqvsd8rl
   - &offsite-backup age1gj7nmwgkpyfxzq0k9fuqrcspu37pcggmc52ecwd9vzls63suk9tqhr6zwg
 creation_rules:
+  - path_regex: secrets/reporting\.yaml$
+    key_groups:
+    - age: [*master, *admin, *reporting]
+
   - path_regex: secrets/telemetry\.yaml$
     key_groups:
-    - age: [*master, *admin, *telemetry, *nas, *offsite-backup]
+    - age: [*master, *admin, *telemetry, *reporting, *nas, *offsite-backup]
 
   - path_regex: secrets/cloudflared\.yaml$
     key_groups:

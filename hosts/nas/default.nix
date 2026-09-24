@@ -8,7 +8,7 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ../../modules/common/default.nix
+    ../../modules/host/default.nix
     ./nas.nix
     # connected to tailscale for offsite backup pulls
     ../../modules/tailscale.nix

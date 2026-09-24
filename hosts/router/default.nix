@@ -8,7 +8,7 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ../../modules/common/default.nix
+    ../../modules/host/default.nix
     ./router.nix
     ./health.nix
     ./usbip.nix

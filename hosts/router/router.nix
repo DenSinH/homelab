@@ -276,6 +276,9 @@ in
         ''}
         iifname $wan_ifs counter drop comment "drop all other unsolicited WAN traffic"
 
+        # Allow ICMP diagnostics from the LAN
+        iifname "${lanIf}" icmp type echo-request accept comment "allow ICMP echo from LAN"
+        
         # SSH: allowed from everywhere except net/services/iot ranges (key-only
         # auth via PasswordAuthentication=false below). dynamic is included so a
         # brand-new/unrecognized device can still get in. fixed additionally

@@ -11,16 +11,28 @@ let
   garageData = "/var/lib/garage";
 in
 {
+  users.groups.garage-secrets = { };
+
   sops.defaultSopsFile = ../../secrets/garage.yaml;
   sops.secrets = {
-    "garage/rpc-secret" = { };
-    "garage/admin-token" = { };
+    "garage/rpc-secret" = {
+      group = "garage-secrets";
+      mode = "0440";
+    };
+    "garage/admin-token" = {
+      group = "garage-secrets";
+      mode = "0440";
+    };
   };
 
-  sops.templates."garage.env".content = ''
-    GARAGE_RPC_SECRET=${config.sops.placeholder."garage/rpc-secret"}
-    GARAGE_ADMIN_TOKEN=${config.sops.placeholder."garage/admin-token"}
-  '';
+  sops.templates."garage.env" = {
+    content = ''
+      GARAGE_RPC_SECRET=${config.sops.placeholder."garage/rpc-secret"}
+      GARAGE_ADMIN_TOKEN=${config.sops.placeholder."garage/admin-token"}
+    '';
+    group = "garage-secrets";
+    mode = "0440";
+  };
 
   services.garage = {
     enable = true;
@@ -69,4 +81,9 @@ in
   # Override ExecStart to use --single-node mode
   systemd.services.garage.serviceConfig.ExecStart =
     lib.mkForce "${cfg.garagePackage}/bin/garage server --single-node";
+
+  # Allow access to secrets
+  systemd.services.garage.serviceConfig.SupplementaryGroups = [
+    "garage-secrets"
+  ];
 }

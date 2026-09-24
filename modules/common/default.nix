@@ -51,6 +51,7 @@
   environment.systemPackages = with pkgs; [
     nano
     htop
+    jq
   ];
 
   # limit journald log size

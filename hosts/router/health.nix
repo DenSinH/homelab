@@ -31,6 +31,39 @@ in
       # the two fighting over who drops privileges.
       ExecStart = "${pkgs.darkstat}/bin/darkstat --no-daemon -i ${lanIf} -l ${lanNetwork} --local-only -p ${toString webPort} -b 0.0.0.0 --chroot /var/empty --user nobody";
       Restart = "on-failure";
+      RestartSec = 5;
+
+      # darkstat needs to start privileged and perform its own
+      # chroot/user transition.
+      User = "root";
+      Group = "root";
+
+      # Filesystem
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+
+      # We explicitly don't use PrivateDevices:
+      # darkstat needs access to the network interface for packet capture.
+
+      # Host/kernel isolation
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      ProtectControlGroups = true;
+      ProtectHostname = true;
+
+      LockPersonality = true;
+      RestrictSUIDSGID = true;
+      RestrictRealtime = true;
+      RestrictNamespaces = true;
+      SystemCallArchitectures = "native";
+
+      LimitCORE = 0;
+
+      # The dashboard is deliberately LAN-only.
+      IPAddressDeny = "any";
+      IPAddressAllow = [ lanNetwork ];
     };
   };
 }

@@ -43,7 +43,7 @@ let
     "${lib.backup.offsite-backup.tailnet_ip} offsite-backup.vpn"
 
     ### SERVICES
-    "192.168.50.30 vps.home"
+    "${lib.lxcs.reporting.ip} reporting.home"
 
     "192.168.50.31 homeassistant.home"
     "100.85.36.70 homeassistant.vpn"
@@ -52,7 +52,7 @@ let
     "${lib.lxcs.static-site.tailnet_ip} static.vpn"
 
     "192.168.50.33 actual.home"
-    
+
     "${lib.lxcs.telemetry.ip} telemetry.home"
     "${lib.lxcs.telemetry.tailnet_ip} telemetry.vpn"
 
@@ -151,25 +151,82 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+
+      User = config.services.pihole-ftl.user;
+      Group = config.services.pihole-ftl.group;
+
+      # Privilege / filesystem hardening
+      NoNewPrivileges = true;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      PrivateDevices = true;
+
+      # Kernel / namespace hardening
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      ProtectControlGroups = true;
+      ProtectHostname = true;
+      LockPersonality = true;
+      RestrictSUIDSGID = true;
+      RestrictRealtime = true;
+      MemoryDenyWriteExecute = true;
+
+      # Don't allow the service to create additional namespaces.
+      RestrictNamespaces = true;
+
+      # Only native syscalls for this architecture.
+      SystemCallArchitectures = "native";
+
+      # No need for raw/network administration capabilities.
+      CapabilityBoundingSet = "";
+      AmbientCapabilities = "";
+
+      # Make the filesystem explicitly read-only except for Pi-hole state.
+      #
+      # Pi-hole's database/configuration lives here.
+      ReadWritePaths = [
+        "/etc/pihole"
+        "/var/lib/pihole"
+      ];
+
+      # Don't leave core dumps containing potentially useful information.
+      LimitCORE = 0;
     };
 
     script = ''
       set -euo pipefail
 
+      PIHOLE=${pkgs.pihole}/bin/pihole
+      SED=${pkgs.gnused}/bin/sed
+
+      echo "Waiting for Pi-hole FTL..."
+
+      for attempt in $(seq 1 30); do
+        if "$PIHOLE" status >/dev/null 2>&1; then
+          break
+        fi
+
+        if [ "$attempt" -eq 30 ]; then
+          echo "Pi-hole FTL did not become ready" >&2
+          exit 1
+        fi
+
+        sleep 1
+      done
+
       echo "Applying Pi-hole regex allowlist..."
 
-      PIHOLE=${pkgs.pihole}/bin/pihole
-
-      # Remove existing rules (safe cleanup)
-      $PIHOLE allow --regex --list \
-        | ${pkgs.gnused}/bin/sed -n "s/^- \"\(.*\)\"$/\1/p" \
-        | while read -r rule; do
+      "$PIHOLE" allow --regex --list \
+        | "$SED" -n 's/^- "\(.*\)"$/\1/p' \
+        | while IFS= read -r rule; do
+            [ -n "$rule" ] || continue
             echo "Removing: $rule"
-            $PIHOLE --allow-regex remove "$rule" || true
+            "$PIHOLE" --allow-regex remove "$rule"
           done
 
-      # Apply desired rules
-      ${pkgs.lib.concatMapStringsSep "\n" (r: "$PIHOLE --allow-regex '${r}'") allowlist}
+      ${lib.concatMapStringsSep "\n" (r: ''"$PIHOLE" --allow-regex '${r}' '') allowlist}
 
       echo "Done."
     '';

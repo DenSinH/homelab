@@ -61,6 +61,28 @@ in
       mode = "0440";
     };
 
+    # Reporting tokens
+    "influxdb/reporting/proxmox" = {
+      group = "metrics";
+      mode = "0440";
+    };
+    "influxdb/reporting/homeassistant" = {
+      group = "metrics";
+      mode = "0440";
+    };
+    "influxdb/reporting/nas" = {
+      group = "metrics";
+      mode = "0440";
+    };
+    "influxdb/reporting/offsite-backup" = {
+      group = "metrics";
+      mode = "0440";
+    };
+    "influxdb/reporting/router" = {
+      group = "metrics";
+      mode = "0440";
+    };
+
     "grafana/secret_key" = {
       group = "grafana";
       mode = "0440";
@@ -112,6 +134,13 @@ in
               "buckets"
             ];
           };
+
+          auths."Report" = {
+            description = "Read-only token used by the reporting LXC";
+            tokenFile = config.sops.secrets."influxdb/reporting/proxmox".path;
+            readBuckets = [ "proxmox" ];
+            readPermissions = [ "buckets" ];
+          };
         };
 
         homeassistant = {
@@ -138,6 +167,13 @@ in
             writePermissions = [
               "buckets"
             ];
+          };
+
+          auths."Report" = {
+            description = "Read-only token used by the reporting LXC";
+            tokenFile = config.sops.secrets."influxdb/reporting/homeassistant".path;
+            readBuckets = [ "homeassistant" ];
+            readPermissions = [ "buckets" ];
           };
         };
 
@@ -166,6 +202,13 @@ in
               "buckets"
             ];
           };
+
+          auths."Report" = {
+            description = "Read-only token used by the reporting LXC";
+            tokenFile = config.sops.secrets."influxdb/reporting/nas".path;
+            readBuckets = [ "nas" ];
+            readPermissions = [ "buckets" ];
+          };
         };
 
         offsite-backup = {
@@ -193,6 +236,13 @@ in
               "buckets"
             ];
           };
+
+          auths."Report" = {
+            description = "Read-only token used by the reporting LXC";
+            tokenFile = config.sops.secrets."influxdb/reporting/offsite-backup".path;
+            readBuckets = [ "offsite-backup" ];
+            readPermissions = [ "buckets" ];
+          };
         };
 
         router = {
@@ -219,6 +269,13 @@ in
             writePermissions = [
               "buckets"
             ];
+          };
+
+          auths."Report" = {
+            description = "Read-only token used by the reporting LXC";
+            tokenFile = config.sops.secrets."influxdb/reporting/router".path;
+            readBuckets = [ "router" ];
+            readPermissions = [ "buckets" ];
           };
         };
       };

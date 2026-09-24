@@ -1,0 +1,47 @@
+{{ subject }}
+{{ "=" * (subject | length) }}
+
+{% if critical %}
+CRITICAL
+--------
+{% for where, text in critical %}
+  * {{ where }}: {{ text }}
+{% endfor %}
+
+{% endif %}
+{% if warnings %}
+WARNINGS
+--------
+{% for where, text in warnings %}
+  * {{ where }}: {{ text }}
+{% endfor %}
+
+{% endif %}
+{% if notes %}
+Notes
+-----
+{% for text in notes %}
+  - {{ text }}
+{% endfor %}
+
+{% endif %}
+{% for section in sections %}
+{{ section.title }}
+{{ "-" * (section.title | length) }}
+{% for block in section.blocks %}{% if block is string %}{{ block | strip_html }}
+{% else %}{{ block | text_table }}
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+{% if grafana_url or report_url %}
+{%- if grafana_url %}
+Dashboard: {{ grafana_url }}
+{%- endif %}
+{%- if report_url %}
+Archive:   {{ report_url }}
+{%- endif %}
+{% endif %}
+{% if duration %}
+Rendered in {{ duration }}.
+{% endif %}

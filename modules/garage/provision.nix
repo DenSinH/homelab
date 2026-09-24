@@ -12,9 +12,15 @@ in
   sops.secrets = {
     "cookbook/masterchef-access-key" = {
       sopsFile = ../../secrets/cookbook-s3.yaml;
+      owner = "root";
+      group = "root";
+      mode = "0440";
     };
     "cookbook/masterchef-secret-key" = {
       sopsFile = ../../secrets/cookbook-s3.yaml;
+      owner = "root";
+      group = "root";
+      mode = "0440";
     };
   };
 
@@ -24,6 +30,10 @@ in
       COOKBOOK_CREDENTIALS_ACCESS_KEY=${config.sops.placeholder."cookbook/masterchef-access-key"}
       COOKBOOK_CREDENTIALS_SECRET_KEY=${config.sops.placeholder."cookbook/masterchef-secret-key"}
     '';
+
+    owner = "root";
+    group = "root";
+    mode = "0440";
   };
 
   # Configure the public website endpoint after Garage is running.
@@ -37,6 +47,7 @@ in
 
     serviceConfig = {
       Type = "oneshot";
+
       Environment = [
         "GARAGE_RPC_ADDR=127.0.0.1:${builtins.toString cfg.s3_rpc_bind_port}"
       ];
@@ -44,9 +55,60 @@ in
         config.sops.templates."garage.env".path
         config.sops.templates."garage-masterchef.env".path
       ];
+
+      # Privilege
+      NoNewPrivileges = true;
+      CapabilityBoundingSet = "";
+      AmbientCapabilities = "";
+
+      # Filesystem
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      PrivateDevices = true;
+      BindReadOnlyPaths = [
+        "/var/lib/private/garage/meta:/var/lib/garage/meta"
+      ];
+
+      # Kernel / namespace
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      ProtectControlGroups = true;
+      ProtectHostname = true;
+
+      LockPersonality = true;
+      RestrictSUIDSGID = true;
+      RestrictRealtime = true;
+      RestrictNamespaces = true;
+
+      SystemCallArchitectures = "native";
+
+      # No core dumps containing credentials.
+      LimitCORE = 0;
+
+      # Don't hang indefinitely if Garage's RPC endpoint is broken.
+      TimeoutStartSec = "2min";
+      TimeoutStopSec = "10s";
+
+      # Network
+      # Garage RPC is local TCP only.
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+      ];
+
+      IPAddressAllow = [
+        "127.0.0.1"
+        "::1"
+      ];
     };
 
-    path = [ cfg.garagePackage ];
+    path = [
+      cfg.garagePackage
+      pkgs.coreutils
+      pkgs.gawk
+    ];
 
     script = ''
       set -euo pipefail

@@ -15,11 +15,51 @@ in
 
   systemd.services.usbipd = {
     description = "USB/IP host daemon";
-    after = [ "network.target" ];
+
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
+
     serviceConfig = {
       ExecStart = "${usbip}/bin/usbipd";
       Restart = "on-failure";
+
+      RestartSec = 5;
+
+      # Privilege
+      User = "root";
+      Group = "root";
+
+      # Filesystem
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      PrivateDevices = false;
+
+      # Host/kernel isolation
+      ProtectKernelTunables = true;
+      ProtectKernelModules = false;
+      ProtectKernelLogs = true;
+      ProtectControlGroups = true;
+      ProtectHostname = true;
+
+      LockPersonality = true;
+      RestrictSUIDSGID = true;
+      RestrictRealtime = true;
+      RestrictNamespaces = true;
+      SystemCallArchitectures = "native";
+
+      LimitCORE = 0;
+
+      # USB/IP needs networking.
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+      ];
+
+      # Only allow the LAN to connect to usbipd.
+      IPAddressDeny = "any";
+      IPAddressAllow = "192.168.50.0/24";
     };
   };
 

@@ -33,43 +33,43 @@ in
     # S3 secrets (shared with garage)
     "cookbook/masterchef-access-key" = {
       sopsFile = ../../secrets/cookbook-s3.yaml;
-      group = "cookbook";
+      group = "cookbook-secrets";
       mode = "0440";
     };
     "cookbook/masterchef-secret-key" = {
       sopsFile = ../../secrets/cookbook-s3.yaml;
-      group = "cookbook";
+      group = "cookbook-secrets";
       mode = "0440";
     };
 
     "cookbook/github_pat" = {
-      group = "cookbook";
+      group = "cookbook-secrets";
       mode = "0440";
     };
     "cookbook/openai_api_key" = {
-      group = "cookbook";
+      group = "cookbook-secrets";
       mode = "0440";
     };
     "cookbook/secret" = {
-      group = "cookbook";
+      group = "cookbook-secrets";
       mode = "0440";
     };
     "cookbook/instagram_user" = {
-      group = "cookbook";
+      group = "cookbook-secrets";
       mode = "0440";
     };
     "cookbook/instagram_pass" = {
-      group = "cookbook";
+      group = "cookbook-secrets";
       mode = "0440";
     };
     "cookbook/admin_user" = {
-      group = "cookbook";
+      group = "cookbook-secrets";
       mode = "0440";
     };
   };
 
   sops.templates."cookbook-s3.env" = {
-    group = "cookbook";
+    group = "cookbook-secrets";
     content = ''
       S3_ENDPOINT=http://${lib.lxcs.garage.ip}:3900
       S3_ACCESS_KEY=${config.sops.placeholder."cookbook/masterchef-access-key"}
@@ -81,7 +81,7 @@ in
   };
 
   sops.templates."cookbook.env" = {
-    group = "cookbook";
+    group = "cookbook-secrets";
     content = ''
       RECIPE_PAT=${config.sops.placeholder."cookbook/github_pat"}
       OPENAI_API_KEY=${config.sops.placeholder."cookbook/openai_api_key"}
@@ -92,26 +92,23 @@ in
     '';
   };
 
-  users.users.cookbook = {
-    isSystemUser = true;
-    group = "cookbook";
-  };
-
-  users.groups.cookbook = { };
-
+  users.groups.cookbook-secrets = { };
   systemd.services.cookbook = {
     description = "Cookbook webapp";
     wantedBy = [ "multi-user.target" ];
 
-    # other dependencies are included if ./ollama.nix is included
     after = [
-      "network.target"
+      "network-online.target"
+    ];
+    wants = [
+      "network-online.target"
     ];
 
     serviceConfig = {
-      User = "cookbook";
-      Group = "cookbook";
+      DynamicUser = true;
+      SupplementaryGroups = [ "cookbook-secrets" ];
 
+      # Persistent writable state owned by the dynamic user.
       StateDirectory = "cookbook";
       WorkingDirectory = "${cookbookSrc}";
 
@@ -119,17 +116,17 @@ in
         config.sops.templates."cookbook-s3.env".path
         config.sops.templates."cookbook.env".path
       ];
+
       Environment = [
         "HOME=/var/lib/cookbook"
         # put uv cache and venv in StateDir
         "UV_CACHE_DIR=/var/lib/cookbook/.cache/uv"
         "UV_PROJECT_ENVIRONMENT=/var/lib/cookbook/.venv"
         "UV_PYTHON=${python}/bin/python"
+
         "OPENAI_MODEL=${cfg.model}"
         "TEMPERATURE=${builtins.toString cfg.temperature}"
-        # enable to enable local AI model with ollama
-        # (requires ./ollama.nix to be included)
-        # "OPENAI_URL=http://127.0.0.1:${builtins.toString cfg.litellm-port}"
+
         "RECIPE_REPO_USER=DenSinH"
         "RECIPE_REPO_NAME=master-chef-recipes"
         "PORT=${builtins.toString port}"
@@ -140,6 +137,46 @@ in
 
       Restart = "on-failure";
       RestartSec = 5;
+
+      # Privilege / capability hardening
+      NoNewPrivileges = true;
+      CapabilityBoundingSet = "";
+      AmbientCapabilities = "";
+
+      # Filesystem hardening
+      ProtectSystem = "strict";
+      ProtectHome = true;
+
+      PrivateTmp = true;
+      PrivateDevices = true;
+
+      # StateDirectory remains writable despite ProtectSystem=strict.
+      ReadWritePaths = [
+        "/var/lib/cookbook"
+      ];
+
+      # Kernel / namespace hardening
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      ProtectControlGroups = true;
+      ProtectHostname = true;
+
+      LockPersonality = true;
+      RestrictSUIDSGID = true;
+      RestrictRealtime = true;
+      RestrictNamespaces = true;
+
+      MemoryDenyWriteExecute = true;
+      SystemCallArchitectures = "native";
+
+      # Misc
+      PrivateMounts = true;
+      LimitCORE = 0;
+
+      # Don't let a broken dependency hang shutdown forever.
+      TimeoutStartSec = "5min";
+      TimeoutStopSec = "30s";
     };
 
     preStart = ''
