@@ -23,6 +23,10 @@ in
     serviceConfig = {
       ExecStart = "${usbip}/bin/usbipd";
       Restart = "on-failure";
+      
+      # suppress messages like
+      # usbipd: info: connection from 192.168.50.31:34106
+      LogLevelMax = "notice";
 
       RestartSec = 5;
 
