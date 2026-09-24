@@ -93,6 +93,9 @@ DEFAULTS = {
         "node_mem_warn": 80,
         "node_mem_crit": 95,
         "zfs_frag_warn": 50,
+        # How stale a device's SMART data may be before the "Last check"
+        # column in the SMART table is flagged and a finding is emitted.
+        "smart_stale_hours": 6,
     },
     "timers": {
         "sanoid.timer": 26,
@@ -1015,6 +1018,27 @@ def host_section(cfg, influx, rep, org, label):
     errlog_old = by_dev("smartctl_device_error_log_count", agg="first", since="-24h")
     exit_status = by_dev("smartctl_device_smartctl_exit_status")
 
+    # Per-device SMART freshness.  Last successful write to any smartctl_device
+    # series for a given device in the last 7 days; used to fill the "Last
+    # check" column and to raise a finding if the exporter has gone quiet.
+    last_check: dict[str, float] = {}
+    for r in influx.query(
+        org,
+        (
+            f'from(bucket: "{org}")\n'
+            f"  |> range(start: -7d)\n"
+            f'  |> filter(fn: (r) => r._measurement == "smartctl_device")\n'
+            f"  |> last()\n"
+            f"  |> map(fn: (r) => ({{device: r.device, t: string(v: uint(v: r._time))}}))\n"
+            f"  |> group()\n"
+        ),
+    ):
+        dev = r.get("device")
+        if not dev:
+            continue
+        age = now - int(r["t"]) / 1e9
+        last_check[dev] = min(age, last_check.get(dev, age))
+
     attrs = {}
     for t, v in metric(
         influx,
@@ -1098,6 +1122,21 @@ def host_section(cfg, influx, rep, org, label):
                 f"error log {int(errlog_now[d])}",
             )
 
+        # SMART check freshness for this device
+        age = last_check.get(d)
+        if age is None:
+            check_cell = ("never", WARN)
+            rep.add(WARN, label, f"{short(d)}: no SMART data in the last 7 days")
+        else:
+            check_level = lvl(age / 3600, T["smart_stale_hours"])
+            if check_level >= WARN:
+                rep.add(
+                    check_level,
+                    label,
+                    f"{short(d)}: SMART last checked {fmt_dur(age)} ago",
+                )
+            check_cell = (f"{fmt_dur(age)} ago", check_level)
+
         for name, abbr in BAD_ATTRS.items():
             raw = dattrs.get(name, {}).get("raw")
             if raw and raw > 0:
@@ -1153,6 +1192,7 @@ def host_section(cfg, influx, rep, org, label):
                 ),
                 (f"{t:.0f} C", t_level) if t is not None else "n/a",
                 f"{poh[d] / 86400:.0f} d" if d in poh else "n/a",
+                check_cell,
                 (wear_text, w_level) if wear_text else "",
                 fmt_bytes(written[d]) if d in written else "",
                 (
@@ -1163,10 +1203,19 @@ def host_section(cfg, influx, rep, org, label):
             ]
         )
     smart_tbl = table(
-        ["Disk", "Health", "Temp", "Power-on", "Wear", "Written", "Errors"],
+        [
+            "Disk",
+            "Health",
+            "Temp",
+            "Power-on",
+            "Last check",
+            "Wear",
+            "Written",
+            "Errors",
+        ],
         smart_rows,
-        align="llrrrrl",
-        mono="m......",
+        align="llrrrrrl",
+        mono="m.......",
     )
 
     trig = {
