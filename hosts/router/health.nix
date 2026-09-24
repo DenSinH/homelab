@@ -11,6 +11,14 @@ let
   webPort = 80;
 in
 {
+  imports = [
+    # same alloy monitoring as LXCs
+    (import ../../modules/telemetry/alloy.nix {
+      inherit pkgs lib;
+      host = lib.router;
+    })
+  ];
+
   # darkstat: lightweight passive traffic monitor - shows currently active
   # LAN hosts and per-host traffic on a small built-in web dashboard.
   # Deliberately kept minimal: no --daylog/--export, so nothing is ever

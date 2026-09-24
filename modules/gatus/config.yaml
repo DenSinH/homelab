@@ -1,6 +1,9 @@
 web:
   port: 8080
 
+logging:
+  level: WARN
+
 ui:
   title: "Hilhorst Cloud Status"
 

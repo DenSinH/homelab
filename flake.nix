@@ -64,6 +64,12 @@
         };
       };
 
+      router = {
+        hostname = "router";
+        ip = "192.168.50.1";
+        mac = "00:e0:4c:68:1d:ec";
+      };
+
       storage = {
         nas = {
           hostname = "nas";
@@ -376,6 +382,7 @@
         final: prev: {
           hosts = hosts;
           lxcs = lxcs;
+          router = router;
           storage = storage;
           backup = backup;
           admin = {
