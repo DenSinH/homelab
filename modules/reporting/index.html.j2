@@ -2,24 +2,58 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Homelab reports</title>
+<style>
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    max-width: 760px;
+    margin: auto;
+    padding: 12px;
+    color: #222;
+    background: #fff;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    text-align: left;
+    padding: 5px 10px;
+    border-bottom: 2px solid #ccc;
+    background: #f6f6f6;
+    font-weight: 600;
+  }
+  td { padding: 4px 10px; border-bottom: 1px solid #eee; }
+  td.report { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 480px) {
+    body { padding: 8px; }
+    table { font-size: 13px; }
+    th, td { padding: 4px 6px; }
+  }
+</style>
 </head>
-<body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:760px;margin:auto;padding:12px;color:#222;background:#fff">
+<body>
 <h2>Homelab reports</h2>
 <p><a href="latest.html">→ Latest report</a></p>
-<table style="border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums">
+<div class="table-wrap">
+<table>
 <tr>
-  <th style="text-align:left;padding:5px 10px;border-bottom:2px solid #ccc;background:#f6f6f6;font-weight:600">Date</th>
-  <th style="text-align:left;padding:5px 10px;border-bottom:2px solid #ccc;background:#f6f6f6;font-weight:600">Status</th>
-  <th style="text-align:left;padding:5px 10px;border-bottom:2px solid #ccc;background:#f6f6f6;font-weight:600">Report</th>
+  <th>Date</th>
+  <th>Status</th>
+  <th>Report</th>
 </tr>
 {% for r in reports %}
 <tr>
-  <td style="padding:4px 10px;border-bottom:1px solid #eee">{{ r.time }}</td>
-  <td style="padding:4px 10px;border-bottom:1px solid #eee;{% if r.color %}color:{{ r.color }};font-weight:600;{% endif %}">{{ r.status }}</td>
-  <td style="padding:4px 10px;border-bottom:1px solid #eee;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px"><a href="{{ r.name }}">{{ r.name }}</a></td>
+  <td>{{ r.time }}</td>
+  <td{% if r.color %} style="color:{{ r.color }};font-weight:600"{% endif %}>{{ r.status }}</td>
+  <td class="report"><a href="{{ r.name }}">{{ r.name }}</a></td>
 </tr>
 {% endfor %}
 </table>
+</div>
 </body>
 </html>

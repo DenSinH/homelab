@@ -26,11 +26,11 @@ def build_message(sender, recipients, subject, body, html, text):
     # RFC 3834: mark this as an auto-generated message so filters don't flag it
     # and autoresponders don't reply.  Also helps some spam classifiers.
     msg["Auto-Submitted"] = "auto-generated"
-    
+
     # Set priority flags
-    msg['Importance'] = 'high'
-    msg['X-Priority'] = '1'
-    msg['X-MSMail-Priority'] = 'High'
+    msg["Importance"] = "high"
+    msg["X-Priority"] = "1"
+    msg["X-MSMail-Priority"] = "High"
 
     if html:
         if text:
