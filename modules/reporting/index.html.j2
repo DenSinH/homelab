@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Homelab reports</title>
 <style>
+  table, th, td {
+    box-sizing: border-box;
+  }
   body {
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
     max-width: 760px;
@@ -12,8 +15,11 @@
     padding: 12px;
     color: #222;
     background: #fff;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   table {
+    table-layout: fixed;
     border-collapse: collapse;
     width: 100%;
     font-size: 14px;
@@ -21,14 +27,13 @@
   }
   th {
     text-align: left;
-    padding: 5px 10px;
+    padding: 5px 8px;
     border-bottom: 2px solid #ccc;
     background: #f6f6f6;
     font-weight: 600;
   }
-  td { padding: 4px 10px; border-bottom: 1px solid #eee; }
+  td { padding: 4px 8px; border-bottom: 1px solid #eee; }
   td.report { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   @media (max-width: 480px) {
     body { padding: 8px; }
     table { font-size: 13px; }
@@ -39,7 +44,6 @@
 <body>
 <h2>Homelab reports</h2>
 <p><a href="latest.html">→ Latest report</a></p>
-<div class="table-wrap">
 <table>
 <tr>
   <th>Date</th>
@@ -54,6 +58,5 @@
 </tr>
 {% endfor %}
 </table>
-</div>
 </body>
 </html>

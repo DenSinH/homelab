@@ -12,12 +12,36 @@ let
   # owned by reporting:reporting, mode 0750.
   reportsDir = "/var/lib/reports";
 
+  # Standalone hosts: each has its own node_exporter + smartctl_exporter +
+  # zfs_exporter feeding a dedicated InfluxDB org/bucket, and gets a ZFS/SMART/
+  # filesystems/timers section in the report (report.py's host_section).
+  #
+  # To add one:
+  #   1. add a { org = "..."; label = "..."; } entry below -- `org` must match
+  #      its InfluxDB bucket name;
+  #   2. add its influxdb/reporting/<org> key to secrets/telemetry.yaml (the
+  #      telemetry LXC provisions the matching token in InfluxDB);
+  #   3. that's it -- report.py has no host-specific code, it just iterates
+  #      whatever's in `hosts` below.
+  #
+  # This does NOT cover Proxmox-managed guests/VMs/nodes -- those are already
+  # fully dynamic, discovered straight from the `proxmox` InfluxDB org.
+  standaloneHosts = [
+    {
+      org = "nas";
+      label = "NAS";
+    }
+    {
+      org = "offsite-backup";
+      label = "Offsite backup host";
+    }
+  ];
+
   influxOrgs = [
     "proxmox"
-    "nas"
-    "offsite-backup"
     "homeassistant"
-  ];
+  ]
+  ++ map (h: h.org) standaloneHosts;
   tokenSecret = org: "influxdb/reporting/${org}";
   tokenVar = org: "INFLUX_TOKEN_" + lib.toUpper (lib.replaceStrings [ "-" ] [ "_" ] org);
 
@@ -47,6 +71,7 @@ let
       # link to the report archive shown in the e-mail footer; adjust to taste
       report_url = "http://${config.networking.hostName}/";
       output_dir = reportsDir;
+      hosts = standaloneHosts;
       # guests that are supposed to be stopped (anything else stopped is reported as critical)
       expected_stopped = [
         "actualbudget"

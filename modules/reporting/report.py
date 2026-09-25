@@ -82,6 +82,11 @@ DEFAULTS = {
     "?orgId=1&from=now-6h&to=now&timezone=browser&refresh=5s",
     "report_url": "",
     "output_dir": "/var/lib/reports",
+    # Standalone hosts to run host_section() for, e.g. [{"org": "nas", "label": "NAS"}].
+    # Each needs its own InfluxDB org/bucket fed by node_exporter + smartctl_exporter +
+    # zfs_exporter. Proxmox-managed guests/nodes don't go here -- proxmox_section()
+    # discovers those directly from the `proxmox` org.
+    "hosts": [],
     "expected_stopped": [],
     "known_removed": [],
     "thresholds": {
@@ -102,7 +107,7 @@ DEFAULTS = {
         "node_mem_warn": 80,
         "node_mem_crit": 95,
         "zfs_frag_warn": 50,
-        # How stale a device's SMART data may be before the "Last check"
+        # How stale a device's SMART data may be before the "Checked"
         # column in the SMART table is flagged and a finding is emitted.
         "smart_stale_hours": 6,
     },
@@ -155,12 +160,23 @@ class Cell:
 
 @dataclass(frozen=True)
 class Table:
-    """A rendered table: headers and rows of Cells, with per-column alignment/monospace flags."""
+    """A rendered table: headers and rows of Cells, with per-column alignment/monospace/width."""
 
     headers: tuple[str, ...]
     rows: tuple[tuple[Cell, ...], ...]
     align: tuple[str, ...] = ()
     mono: tuple[bool, ...] = ()
+    # Percentage width per column for the HTML output (sums to ~100), derived from
+    # how much text that column actually holds -- see _column_widths().
+    widths: tuple[float, ...] = ()
+    # True for columns that only ever hold a short, single-token value (a
+    # percentage, a byte size, a state word...): the HTML output keeps those from
+    # ever breaking mid-value, even if the column ends up narrower than the text.
+    # On narrow screens, a `nowrap` column also gets a rotated header instead of a
+    # horizontal one -- see report.html.j2, which uses a CSS :has() selector to
+    # rotate *every* header in a table the moment any one column needs it, so a
+    # table never ends up with some headers rotated and others not.
+    nowrap: tuple[bool, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -239,12 +255,30 @@ def fmt_dur(seconds: float) -> str:
     return f"{m}m"
 
 
+def fmt_dur_short(seconds: float) -> str:
+    """Single-unit duration for narrow table cells, e.g. "2d", "3h", "12m" -- the
+    precise fmt_dur() is still used in finding text, where the room isn't tight."""
+    d, rem = divmod(int(seconds), 86400)
+    h, rem = divmod(rem, 3600)
+    m = rem // 60
+    if d:
+        return f"{d}d"
+    if h:
+        return f"{h}h"
+    return f"{m}m"
+
+
+# U+00A0: keeps a number and its unit together on one line in the HTML report
+NBSP = "\u00a0"
+
+
 def fmt_bytes(b: float) -> str:
-    """Format a byte count using binary units, e.g. "1.5 GiB"."""
+    """Format a byte count using binary units, e.g. "1.5 GiB" (joined by NBSP so
+    the number and unit can't be split across a line break in the HTML report)."""
     for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
         # scale down until it fits the unit, or we've hit the largest one we support
         if abs(b) < 1024 or unit == "TiB":
-            return f"{b:.0f} B" if unit == "B" else f"{b:.1f} {unit}"
+            return f"{b:.0f}{NBSP}B" if unit == "B" else f"{b:.1f}{NBSP}{unit}"
         b /= 1024
 
 
@@ -255,12 +289,16 @@ def clip(text: str, n: int) -> str:
 
 
 def _cell(value: object) -> Cell:
-    """Build a Cell from a plain value, or from a (text, level) tuple to colour it."""
+    """Build a Cell from a plain value, or from a (text, level) tuple to colour it.
+
+    Colouring only happens for an explicit tuple, at any level including OK (so a
+    good status like a passed health check reads as green, not just bad ones as
+    orange/red) -- a bare value is just a label and stays in the default text colour.
+    """
     if isinstance(value, tuple):
         text, level = value
-    else:
-        text, level = value, OK
-    return Cell(str(text), COLORS[level] if level >= WARN else None)
+        return Cell(str(text), COLORS[level])
+    return Cell(str(value))
 
 
 _ALIGN_MAP = {"l": "left", "r": "right", "c": "center"}
@@ -277,15 +315,66 @@ def _align_tuple(spec: str | Sequence[str] | None, n: int) -> tuple[str, ...]:
     return spec + ("left",) * (n - len(spec))
 
 
-def _mono_tuple(spec: str | Sequence[bool] | None, n: int) -> tuple[bool, ...]:
-    """Expand a mono spec (see `table`) to an `n`-long tuple of booleans."""
+def _bool_tuple(
+    spec: str | Sequence[bool] | None, n: int, marker: str
+) -> tuple[bool, ...]:
+    """Expand a per-column boolean spec (e.g. `table`'s `mono`/`nowrap`) to an `n`-long tuple."""
     if spec is None:
         return (False,) * n
     if isinstance(spec, str):
         spec = spec.ljust(n, " ")
-        return tuple(ch == "m" for ch in spec)
+        return tuple(ch == marker for ch in spec)
     spec = tuple(bool(x) for x in spec)
     return spec + (False,) * (n - len(spec))
+
+
+# A column's rendered width is proportional to how much text it actually holds
+# (header or cell, whichever is longer), capped so that one column with far
+# longer content than the rest -- a clipped log message, an error list -- can't
+# squeeze every other column down to nothing.
+_MAX_COLUMN_CHARS = 24
+
+# Even a column with 1-2 characters of content (a checkmark, a short count)
+# still needs real pixels for its padding and font -- pure proportional sizing
+# gives it a sliver of a percent, which is not enough. No column drops below this.
+_MIN_COLUMN_PERCENT = 9.0
+
+
+def _column_widths(
+    headers: Sequence[str], rows: Sequence[Sequence[Cell]], nowrap: Sequence[bool]
+) -> tuple[float, ...]:
+    """Percentage width per column (sums to 100), from actual header/cell text length.
+
+    A `nowrap` column gets its rotated header (see the HTML template) instead of
+    a horizontal one, so its header no longer needs to be counted against the
+    column's *width* -- only the cell text does, which is what actually decides
+    how narrow that column can be.
+    """
+    lengths = [
+        min(
+            (
+                max(1, max(len(row[i].text) for row in rows))
+                if nowrap[i]
+                else max([len(h)] + [len(row[i].text) for row in rows])
+            ),
+            _MAX_COLUMN_CHARS,
+        )
+        for i, h in enumerate(headers)
+    ]
+    total = sum(lengths)
+    raw = [100 * n / total for n in lengths]
+
+    # Bring every column up to the floor, taking the space back out of columns
+    # that are above it -- proportionally to how far above it they are, so the
+    # column(s) that actually need the extra room keep the most of it.
+    room_above_floor = [max(0.0, p - _MIN_COLUMN_PERCENT) for p in raw]
+    shortfall = sum(_MIN_COLUMN_PERCENT - p for p in raw if p < _MIN_COLUMN_PERCENT)
+    pool = sum(room_above_floor) or 1.0
+    widths = [
+        max(_MIN_COLUMN_PERCENT, p) - shortfall * (room / pool)
+        for p, room in zip(raw, room_above_floor)
+    ]
+    return tuple(round(w, 1) for w in widths)
 
 
 def table(
@@ -293,19 +382,28 @@ def table(
     rows: Sequence[Sequence[object]],
     align: str | Sequence[str] | None = None,
     mono: str | Sequence[bool] | None = None,
+    nowrap: str | Sequence[bool] | None = None,
 ) -> Table | None:
     """Build a Table. `align` is e.g. "llrr" (left/right per column); `mono` is
-    e.g. "mm.." (m = monospace, anything else = proportional). Cell values may
-    be plain strings, or (text, level) tuples to colour the cell.
+    e.g. "mm.." (m = monospace, anything else = proportional); `nowrap` is e.g.
+    "_nn_" (n = a column that only ever holds a short single-token value -- a
+    percentage, a byte size, a state word. Its cell text never breaks mid-value,
+    and its header renders rotated in the HTML output instead of horizontal, so
+    a long header doesn't force the column wider than its data needs).
+    Cell values may be plain strings, or (text, level) tuples to colour the cell.
     Returns None if there is nothing to render."""
     if not rows:
         return None
     n = len(headers)
+    cells = tuple(tuple(_cell(c) for c in row) for row in rows)
+    nowrap_t = _bool_tuple(nowrap, n, "n")
     return Table(
         headers=tuple(headers),
-        rows=tuple(tuple(_cell(c) for c in row) for row in rows),
+        rows=cells,
         align=_align_tuple(align, n),
-        mono=_mono_tuple(mono, n),
+        mono=_bool_tuple(mono, n, "m"),
+        widths=_column_widths(headers, cells, nowrap_t),
+        nowrap=nowrap_t,
     )
 
 
@@ -585,10 +683,10 @@ def summarize(lines: list[tuple[int, str]]) -> list[dict[str, object]]:
     return sorted(groups.values(), key=lambda g: -g["n"])
 
 
-def _fmt_delta(cur: float, prev: float) -> tuple[str, int]:
-    """Returns (text, level) for the 'vs previous' cell."""
+def _fmt_delta(cur: float, prev: float) -> tuple[str, int] | str:
+    """Returns (text, level) for the 'vs previous' cell, or a bare "no data" dash."""
     if cur == 0 and prev == 0:
-        return ("—", OK)
+        return "—"  # nothing to compare, not a good/bad result -- stays uncoloured
     if not prev:
         return ("new", INFO)
     ratio = cur / prev
@@ -695,10 +793,11 @@ def log_errors_section(cfg: Config, loki: Loki, rep: Report) -> None:
     rep.section(
         "Log errors (last 24 h)",
         table(
-            ["Source (24 h errors)", "Count", "Last", "Message"],
+            ["Source", "Count", "Last", "Message"],
             rows,
             align="lrrl",
             mono="m...",
+            nowrap="_nn_",
         ),
         note,
     )
@@ -754,7 +853,11 @@ def log_volume_section(cfg: Config, loki: Loki, rep: Report) -> None:
     for host, n in sorted(vol_cur.items(), key=lambda kv: -kv[1]):
         volume_rows.append([host, f"{int(n):,}", _fmt_delta(n, vol_prev.get(host, 0))])
     volume_tbl = table(
-        ["Host", "Lines (24 h)", "vs previous"], volume_rows, align="lrr", mono="m.."
+        ["Host", "Lines", "vs prev"],
+        volume_rows,
+        align="lrr",
+        mono="m..",
+        nowrap="_nn",
     )
 
     top = loki.instant(
@@ -765,10 +868,11 @@ def log_volume_section(cfg: Config, loki: Loki, rep: Report) -> None:
         host, unit = m.get("host", "?"), m.get(label, "")
         producer_rows.append([f"{host}/{unit or 'kernel/other'}", f"{int(n):,}"])
     producer_tbl = table(
-        [f"Top producers (host / {label})", "Lines (24 h)"],
+        ["Producer", "Lines"],
         producer_rows,
         align="lr",
         mono="m.",
+        nowrap="_n",
     )
 
     rep.section("Log volume (last 24 h)", volume_tbl, producer_tbl)
@@ -838,7 +942,7 @@ def _proxmox_guests(
     disks.sort(reverse=True)  # highest usage % first
     summary = f"<p>{running} guests running, {stopped_ok} stopped as expected.</p>"
     disk_tbl = table(
-        ["Fullest LXC disks", "Node", "Used", "%"],
+        ["LXC disk", "Node", "Used", "%"],
         [
             [
                 n,
@@ -850,6 +954,7 @@ def _proxmox_guests(
         ],
         align="llrr",
         mono="mm..",
+        nowrap="_n_n",
     )
     return summary, disk_tbl
 
@@ -972,10 +1077,11 @@ def _proxmox_nodes(
             ]
         )
     return table(
-        ["Node", "Uptime", "CPU avg 24h", "Memory"],
+        ["Node", "Uptime", "CPU 24h", "Memory"],
         node_rows,
         align="lrrr",
         mono="m...",
+        nowrap="_nnn",
     )
 
 
@@ -1022,6 +1128,7 @@ def _proxmox_storages(
         ],
         align="lllrr",
         mono="mm...",
+        nowrap="_nn_n",
     )
 
 
@@ -1062,6 +1169,7 @@ def _proxmox_pbs(
         ],
         align="llrr",
         mono="mm..",
+        nowrap="n__n",
     )
 
 
@@ -1206,6 +1314,7 @@ def _zfs_pools(
         ],
         align="llrrr",
         mono="m....",
+        nowrap="_n_nn",
     )
     if not state:
         rep.add(WARN, label, "no ZFS pool state metrics found")
@@ -1257,6 +1366,7 @@ def _other_filesystems(
         ],
         align="lrr",
         mono="m..",
+        nowrap="__n",
     )
 
 
@@ -1423,7 +1533,7 @@ def _smart_health(
                     label,
                     f"{short(d)}: SMART last checked {fmt_dur(age)} ago",
                 )
-            check_cell = (f"{fmt_dur(age)} ago", check_level)
+            check_cell = (fmt_dur_short(age), check_level)
 
         for name, abbr in BAD_ATTRS.items():
             raw = dattrs.get(name, {}).get("raw")
@@ -1476,20 +1586,16 @@ def _smart_health(
         smart_rows.append(
             [
                 short(d),
-                (
-                    ("n/a", OK)
-                    if ok is None
-                    else ("PASSED", OK) if ok >= 0.5 else ("FAILED", CRIT)
-                ),
-                (f"{temp_c:.0f} C", temp_level) if temp_c is not None else "n/a",
-                f"{poh[d] / 86400:.0f} d" if d in poh else "n/a",
+                ("n/a" if ok is None else ("✓", OK) if ok >= 0.5 else ("✗", CRIT)),
+                (f"{temp_c:.0f}C", temp_level) if temp_c is not None else "n/a",
+                f"{poh[d] / 86400:.0f}d" if d in poh else "n/a",
                 check_cell,
                 (wear_text, w_level) if wear_text else "",
                 fmt_bytes(written[d]) if d in written else "",
                 (
                     (", ".join(x for _, x in errs), max(lv for lv, _ in errs))
                     if errs
-                    else "none"
+                    else ("0", OK)
                 ),
             ]
         )
@@ -1499,7 +1605,7 @@ def _smart_health(
             "Health",
             "Temp",
             "Power-on",
-            "Last check",
+            "Checked",
             "Wear",
             "Written",
             "Errors",
@@ -1507,6 +1613,10 @@ def _smart_health(
         smart_rows,
         align="llrrrrrl",
         mono="m.......",
+        # Disk/Wear/Errors are free-form (long model names, "x% used, spare y%",
+        # comma-joined error lists) and should still wrap; everything else is a
+        # short single-token value that shouldn't ever break mid-value.
+        nowrap="_nnnn_n_",
     )
 
 
@@ -1542,12 +1652,12 @@ def _timers(
                 rep.add(
                     INFO, label, f"{name} has not fired since boot {fmt_dur(up)} ago"
                 )
-                timer_rows.append([name, f"not since boot ({fmt_dur(up)} ago)"])
+                timer_rows.append([name, "since boot"])
             else:
                 rep.add(
                     WARN, label, f"{name} has not fired since boot {fmt_dur(up)} ago"
                 )
-                timer_rows.append([name, ("never since boot", WARN)])
+                timer_rows.append([name, ("never", WARN)])
             continue
         age_h = (now - v) / 3600
         level = WARN if age_h > max_h else OK
@@ -1557,8 +1667,8 @@ def _timers(
                 label,
                 f"{name} last fired {fmt_dur(now - v)} ago (limit {max_h} h)",
             )
-        timer_rows.append([name, (f"{fmt_dur(now - v)} ago", level)])
-    return table(["Timer", "Last run"], timer_rows, align="lr", mono="m.")
+        timer_rows.append([name, (fmt_dur_short(now - v), level)])
+    return table(["Timer", "Last run"], timer_rows, align="lr", mono="m.", nowrap="_n")
 
 
 def _failed_units(*, influx: Influx, rep: Report, org: str, label: str) -> None:
@@ -1690,10 +1800,11 @@ def gatus_section(cfg: Config, loki: Loki, rep: Report) -> None:
     rep.section(
         "Service checks (Gatus)",
         table(
-            ["Endpoint", "Failed", "Checks", "Failure rate"],
+            ["Endpoint", "Failed", "Checks", "Fail %"],
             rows,
             align="lrrr",
             mono="m...",
+            nowrap="_nnn",
         ),
         msg,
     )
@@ -1910,17 +2021,10 @@ def main() -> None:
     guarded(rep, "log-errors", log_errors_section, cfg, loki, rep)
     guarded(rep, "log-volume", log_volume_section, cfg, loki, rep)
     guarded(rep, "proxmox", proxmox_section, cfg, influx, rep)
-    guarded(rep, "nas", host_section, cfg, influx, rep, "nas", "NAS")
-    guarded(
-        rep,
-        "offsite",
-        host_section,
-        cfg,
-        influx,
-        rep,
-        "offsite-backup",
-        "Offsite backup host",
-    )
+    for host in cfg["hosts"]:
+        guarded(
+            rep, host["org"], host_section, cfg, influx, rep, host["org"], host["label"]
+        )
     guarded(rep, "energy", energy_section, cfg, influx, rep)
     guarded(rep, "gatus", gatus_section, cfg, loki, rep)
 

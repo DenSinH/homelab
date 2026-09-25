@@ -1,11 +1,26 @@
 {%- macro render_table(t) -%}
-<div class="table-wrap">
 <table>
+<thead>
 <tr>
 {%- for h in t.headers %}
-<th>{{ h }}</th>
+{%- set ci = loop.index0 %}
+{%- set cls = [] %}
+{#- headers match their column's data alignment, and only get the no-wrap
+   treatment for columns that are no-wrap for the same reason their cells
+   are: a free-form column's header is allowed to wrap same as its cells. #}
+{%- if t.align[ci] == 'right' %}{% set _ = cls.append('al-r') %}{% elif t.align[ci] == 'center' %}{% set _ = cls.append('al-c') %}{% endif %}
+{#- a nowrap column's header renders rotated (see .rot below) instead of
+   horizontal: that's what lets the column be as narrow as its short cell
+   values actually need, instead of as wide as the header text needs. #}
+{%- if t.nowrap[ci] %}{% set _ = cls.append('rot') %}{% endif %}
+{#- table-layout: fixed only reads column widths off this header row; the
+   percentage per column is computed from actual content length in Python
+   (see _column_widths in report.py), so it tracks each table's real data. #}
+<th{% if cls %} class="{{ cls | join(' ') }}"{% endif %} style="width:{{ t.widths[ci] }}%">{{ h }}</th>
 {%- endfor %}
 </tr>
+</thead>
+<tbody>
 {%- for row in t.rows %}
 <tr>
 {%- for cell in row %}
@@ -13,12 +28,13 @@
 {%- set cls = [] %}
 {%- if t.align[ci] == 'right' %}{% set _ = cls.append('al-r') %}{% elif t.align[ci] == 'center' %}{% set _ = cls.append('al-c') %}{% endif %}
 {%- if t.mono[ci] %}{% set _ = cls.append('mono') %}{% endif %}
+{%- if t.nowrap[ci] %}{% set _ = cls.append('nowrap') %}{% endif %}
 <td{% if cls %} class="{{ cls | join(' ') }}"{% endif %}{% if cell.color %} style="color:{{ cell.color }};font-weight:600"{% endif %}>{{ cell.text }}</td>
 {%- endfor %}
 </tr>
 {%- endfor %}
+</tbody>
 </table>
-</div>
 {%- endmacro -%}
 <!DOCTYPE html>
 <!-- report-status: {{ status }} -->
@@ -28,6 +44,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ subject }}</title>
 <style>
+  /* without this, a cell's padding is added on top of its declared width instead
+     of being counted against it -- with several narrow columns each contributing
+     their own padding on top of a computed percentage, the columns' actual
+     rendered widths sum to more than 100% of the table, and (now that headers
+     can't wrap to absorb the overflow) spill into their neighbours. */
+  table, th, td {
+    box-sizing: border-box;
+  }
   body {
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
     max-width: 820px;
@@ -35,9 +59,18 @@
     padding: 12px;
     color: #222;
     background: #fff;
+    /* long unbroken strings (log messages, disk model names, hostnames) wrap
+       instead of overflowing their container */
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   h3 { margin: 20px 0 4px; border-bottom: 1px solid #ddd; }
   table {
+    /* fixed layout makes the table respect width:100% no matter how long any
+       cell's content is, so it can never need horizontal scrolling in the
+       first place -- much more robust across browsers and mail apps than
+       trying to make an overflowing table scroll */
+    table-layout: fixed;
     border-collapse: collapse;
     width: 100%;
     font-size: 13px;
@@ -46,17 +79,28 @@
   }
   th {
     text-align: left;
-    padding: 5px 10px;
+    vertical-align: bottom;
+    padding: 5px 8px;
     border-bottom: 2px solid #ccc;
     background: #f6f6f6;
     font-weight: 600;
-    white-space: nowrap;
   }
-  td { padding: 4px 10px; border-bottom: 1px solid #eee; }
+  td { padding: 4px 8px; border-bottom: 1px solid #eee; }
   .al-r { text-align: right; }
   .al-c { text-align: center; }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 8px 0; }
+  /* short single-token cell values (percentages, byte sizes, state words) never
+     break mid-value, even if their column ends up narrower than the text --
+     tighter side padding too, this column has no room to spare for it. A
+     subtle divider on the right is cheap insurance: when two adjacent narrow
+     columns' content is right at the edge of fitting, there's still a visible
+     seam between them instead of the text looking like it's run together. */
+  .nowrap {
+    white-space: nowrap;
+    padding-left: 3px;
+    padding-right: 3px;
+    border-right: 1px solid #eee;
+  }
   .banner { padding: 12px 16px; border-radius: 6px; font-size: 18px; color: #fff; }
   .banner .sub { font-size: 13px; }
   ul { margin: 4px 0; padding-left: 22px; }
@@ -68,6 +112,25 @@
     table { font-size: 12px; }
     th, td { padding: 4px 6px; }
     .banner { font-size: 16px; padding: 10px 12px; }
+
+    /* Narrow screens only: a wide desktop table has no reason to rotate anything.
+       If any column needs a rotated header to stay narrow, rotate *every* header
+       in that table via :has() -- a mix of rotated and horizontal headers in the
+       same row reads as broken, not compact, and this way Python never has to
+       decide or encode that up front, the table's own contents decide it here.
+       text-align is reset because in vertical writing mode it controls the
+       vertical position of the text, not the horizontal one, so a column's
+       ordinary left/right data alignment would otherwise leave some rotated
+       headers sitting at the top of the row and others at the bottom. */
+    thead:has(th.rot) th {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      white-space: nowrap;
+      text-align: left;
+      vertical-align: bottom;
+      padding: 6px 3px;
+      border-right: 1px solid #eee;
+    }
   }
 </style>
 </head>
