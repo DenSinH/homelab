@@ -73,9 +73,13 @@ pkgs.writeShellScript "deploy" ''
 
       print_success "CTID OK, deploying to $actual@$ip..."
 
-      nixos-rebuild switch \
-          --flake ".#$host" \
-          --target-host root@$ip
+      env \
+          -u LD_LIBRARY_PATH \
+          -u NIX_LD \
+          -u NIX_LD_LIBRARY_PATH \
+          nixos-rebuild switch \
+              --flake ".#$host" \
+              --target-host "root@$ip"
 
       print_success "Deployment finished for $host"
 

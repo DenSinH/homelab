@@ -304,9 +304,16 @@ in
   };
 
   # add root domain mapping to jellyfin
-  services.nginx.virtualHosts."jellyfin.${domain}".serverAliases = [
-    domain
-  ];
+  services.nginx.virtualHosts."jellyfin.${domain}" = {
+    serverAliases = [ domain ];
+
+    # enable access through IP directly in case of DNS failure
+    default = true;
+  };
+
+  # force disable catchall to route it through the jellyfin virualHost instead
+  # (this is created / enabled in nixflix by default)
+  services.nginx.virtualHosts."_".default = lib.mkForce false;
 
   networking.firewall.allowedTCPPorts = [
     80 # nginx
