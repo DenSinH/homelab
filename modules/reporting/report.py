@@ -879,6 +879,23 @@ def log_volume_section(cfg: Config, loki: Loki, rep: Report) -> None:
     rep.section("Log volume (last 24 h)", volume_tbl, producer_tbl)
 
 
+def failed_units_section(cfg: Config, loki: Loki, rep: Report) -> None:
+    """Flag systemd units that logged a "Failed with result" line in the last 24 h,
+    across every host shipping its journal through Alloy.
+
+    This is the only failed-unit signal for Proxmox-managed LXCs/VMs: they have no
+    node_exporter, so the InfluxDB-based check in _failed_units() (used by
+    host_section() for the standalone NAS/offsite-backup hosts) can't see them.
+    """
+    rx = r'| regexp "(?P<unit>\S+): Failed with result"'
+    hits = loki.instant(
+        f'sum by (host, unit) (count_over_time({{host=~".+"}} |= "Failed with result" {rx} [24h]))'
+    )
+    for m, n in sorted(hits, key=lambda kv: (kv[0].get("host", ""), -kv[1])):
+        host, unit = m.get("host", "?"), m.get("unit", "?")
+        rep.add(WARN, "Logs", f"{host}: systemd unit {unit} failed ({int(n)}x in 24 h)")
+
+
 # ----------------------------------------------------------------------------- Proxmox + PBS
 def _proxmox_guests(
     *,
@@ -2054,6 +2071,7 @@ def main() -> None:
     # log errors first so they show up at the top of the body
     guarded(rep, "log-errors", log_errors_section, cfg, loki, rep)
     guarded(rep, "log-volume", log_volume_section, cfg, loki, rep)
+    guarded(rep, "failed-units", failed_units_section, cfg, loki, rep)
     guarded(rep, "proxmox", proxmox_section, cfg, influx, rep)
     for host in cfg["hosts"]:
         guarded(
