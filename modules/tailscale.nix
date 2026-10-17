@@ -5,7 +5,14 @@ let
   colorsScript = builtins.readFile ../scripts/colors.sh;
 in
 {
-  services.tailscale.enable = true;
+  services.tailscale = {
+    enable = true;
+
+    # disable log uploads
+    extraDaemonFlags = [
+      "--no-logs-no-support"
+    ];
+  };
 
   # Check existence of /dev/net/tun
   # this is required for tailscale to even work

@@ -48,8 +48,8 @@ let
     "192.168.50.31 homeassistant.home"
     "100.85.36.70 homeassistant.vpn"
 
-    "${lib.lxcs.static-site.ip} static.home"
-    "${lib.lxcs.static-site.tailnet_ip} static.vpn"
+    # "${lib.lxcs.static-site.ip} static.home"
+    # "${lib.lxcs.static-site.tailnet_ip} static.vpn"
 
     "192.168.50.33 actual.home"
 
@@ -293,5 +293,12 @@ in
   # https://tailscale.com/docs/solutions/block-ads-all-devices-anywhere-using-raspberry-pi#step-3-install-tailscale-on-your-raspberry-pi
   services.tailscale.extraUpFlags = [
     "--accept-dns=false"
+  ];
+
+  # remove excessive logs, these mean nothing to me and they fill up the journal
+  # log with like 5k lines a day
+  systemd.services.tailscaled.serviceConfig.LogFilterPatterns = [
+    "~magicsock: disco: node"
+    "~controlclient direct: (got TSMP disco key|updating discoKey)"
   ];
 }
