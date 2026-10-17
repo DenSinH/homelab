@@ -834,7 +834,8 @@ def log_volume_section(cfg: Config, loki: Loki, rep: Report) -> None:
     silent = [exp for exp in expected if exp not in claimed]
     for host in silent:
         vol_cur[host] = 0.0
-        rep.add(INFO, "Logs", f"{host}: expected to send logs but sent none in 24 h")
+        if vol_prev.get(host) or vol_prev.get(short(host)):
+            rep.add(INFO, "Logs", f"{host}: expected to send logs but sent none in 24 h")
 
     # Hosts that went quiet (previous volume collapsed) — skip the ones we just
     # flagged so we don't add two findings for the same host.
@@ -1403,6 +1404,7 @@ def _smart_health(
     )
     poh = by_dev("smartctl_device_power_on_seconds")
     wear = by_dev("smartctl_device_percentage_used")
+    wear_prev = by_dev("smartctl_device_percentage_used", agg="first", since="-24h")
     spare = by_dev("smartctl_device_available_spare")
     spare_min = by_dev("smartctl_device_available_spare_threshold")
     written = by_dev("smartctl_device_bytes_written")
@@ -1457,6 +1459,21 @@ def _smart_health(
             agg="first",
             since="-24h",
             where=f' and r.attribute_value_type == "raw" and ({bad_names})',
+        )
+    }
+    wear_names = " or ".join(f'r.attribute_name == "{n}"' for n in WEAR_ATTRS)
+    # normalised "value" of the wear-tracking attributes as of ~24h ago, for devices
+    # that don't report smartctl_device_percentage_used directly (see `w` below)
+    old_wear_value = {
+        (tag.device, tag.attribute_name): v
+        for tag, v in metric(
+            influx=influx,
+            org=org,
+            measurement="smartctl_device_attribute",
+            tag_type=DeviceAttributeTag,
+            agg="first",
+            since="-24h",
+            where=f' and r.attribute_value_type == "value" and ({wear_names})',
         )
     }
 
@@ -1550,6 +1567,15 @@ def _smart_health(
                 )
         for name, a in dattrs.items():
             v, th = a.get("value"), a.get("thresh")
+            if "unknown" in name.lower():
+                flag(
+                    d,
+                    errs,
+                    WARN,
+                    f"attribute {name} is unrecognised by smartctl",
+                    f"{name} unknown",
+                )
+                continue
             if v is not None and th and v <= th:
                 flag(
                     d,
@@ -1566,6 +1592,7 @@ def _smart_health(
                 flag(d, errs, level, finding, cell)
 
         w = wear.get(d)
+        w_old = wear_prev.get(d)
         if w is None:
             # smartctl_device_percentage_used isn't reported for SATA SSDs/HDDs; fall
             # back to whichever "remaining life" attribute the vendor does report.
@@ -1573,10 +1600,18 @@ def _smart_health(
                 v = dattrs.get(name, {}).get("value")
                 if v is not None:
                     w = 100 - v
+                    old_v = old_wear_value.get((d, name))
+                    w_old = 100 - old_v if old_v is not None else None
                     break
         w_level = lvl(w, T["nvme_wear_warn"]) if w is not None else OK
         if w_level:
             rep.add(w_level, label, f"{short(d)}: {w:.0f}% of endurance used")
+        if w is not None and w_old is not None and w != w_old:
+            rep.add(
+                WARN,
+                label,
+                f"{short(d)}: wear changed from {w_old:.0f}% to {w:.0f}% since yesterday",
+            )
         wear_text = ""
         if w is not None:
             wear_text = f"{w:.0f}% used" + (
@@ -1782,7 +1817,6 @@ def gatus_section(cfg: Config, loki: Loki, rep: Report) -> None:
         )
     }
     if not total:
-        rep.add(WARN, "Gatus", "no gatus check results found in Loki for the last 24 h")
         return
     rows = []
     for ep, n in sorted(fail.items(), key=lambda kv: -kv[1]):
