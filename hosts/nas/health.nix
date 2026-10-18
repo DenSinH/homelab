@@ -28,6 +28,21 @@
     smartmontools # for smartctl
   ];
 
+  # the HGST He8 drives tick every ~5s when idle unless we set a short
+  # EPC Idle B timer, which parks the heads ~60s after the last access
+  systemd.services.hdd-epc-idle-b = {
+    description = "Set EPC Idle B timer to 60s on HGST He8 drives";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      for d in \
+        /dev/disk/by-id/ata-HGST_HUH728080ALE604_VLJN8RGZ \
+        /dev/disk/by-id/ata-HGST_HUH728080ALE604_VLJKM0LZ; do
+        ${pkgs.openseachest}/bin/openSeaChest_PowerControl -d "$(readlink -f "$d")" --idle_b 60000
+      done
+    '';
+  };
+
   services.prometheus = {
     enable = true;
     port = 9090;
