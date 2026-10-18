@@ -73,7 +73,8 @@
           filter = "nginx-404";
           logpath = "/var/log/nginx/access.log";
 
-          maxretry = 100;
+          # actual scan bursts observed are ~10 requests/second
+          maxretry = 20;
           findtime = "10m";
           bantime = "1h";
         };
@@ -83,7 +84,12 @@
         enabled = true;
 
         settings = {
-          logpath = "/var/log/fail2ban.log";
+          # fail2ban's own logtarget defaults to SYSLOG on NixOS (see
+          # services.fail2ban.daemonSettings.Definition.logtarget), so
+          # /var/log/fail2ban.log is never actually written
+          # read its own ban notices from the journal instead.
+          backend = "systemd";
+          journalmatch = "_SYSTEMD_UNIT=fail2ban.service";
 
           findtime = "1d";
           maxretry = 5;
@@ -94,8 +100,12 @@
   };
 
   environment.etc."fail2ban/filter.d/nginx-probes.conf".text = ''
-    [Definition]  
-    failregex = ^<HOST> - .* "(GET|POST|HEAD) /(?:wp-admin(?:/|[ ?]|$)|wp-login\.php(?:[ ?]|$)|wp-content(?:/|[ ?]|$)|wp-includes(?:/|[ ?]|$)|xmlrpc\.php(?:[ ?]|$)|wordpress(?:/|[ ?]|$)|\.env(?:[/? ]|$)|\.env\.[^ ]*(?:[/? ]|$)|\.git(?:/|[ ?]|$)|\.svn(?:/|[ ?]|$)|\.hg(?:/|[ ?]|$)|\.bzr(?:/|[ ?]|$)|phpmyadmin(?:/|[ ?]|$)|phpMyAdmin(?:/|[ ?]|$)|pma(?:/|[ ?]|$)|adminer(?:\.php)?(?:[/? ]|$)|cgi-bin(?:/|[ ?]|$)|vendor/phpunit(?:/|[ ?]|$)|\.aws(?:/|[ ?]|$)|\.docker(?:/|[ ?]|$)|docker-compose(?:\.ya?ml)?(?:[ ?]|$)|Dockerfile(?:[ ?]|$)|id_rsa(?:[ ?]|$)|\.ssh(?:/|[ ?]|$)|config\.php(?:[ ?]|$)|configuration\.php(?:[ ?]|$)|backup(?:/|[._-]|[ ?]|$)|(?:db|database|dump|backup)\.(?:sql|sqlite|sqlite3|bak|old|zip|tar|gz)(?:[ ?]|$)) HTTP/.*" (?:400|401|403|404|405|444) .*
+    [Definition]
+    # Each alternative only asserts a boundary (lookahead, not consumed) right
+    # after the suspicious keyword, then the trailing ".*" before " HTTP/"
+    # absorbs whatever deeper path/query follows - e.g. "/wp-admin/admin-ajax.php"
+    # or "/wp-login.php?action=register", not just the bare "/wp-admin/" path.
+    failregex = ^<HOST> - .* "(GET|POST|HEAD) /(?:(?:wp-admin|wp-content|wp-includes|wordpress|\.git|\.svn|\.hg|\.bzr|phpmyadmin|phpMyAdmin|pma|cgi-bin|vendor/phpunit|(?:public/)?vendor/laravel-filemanager|\.aws|\.docker|\.ssh)(?=[/ ?]|$)|(?:wp-login\.php|xmlrpc\.php|adminer(?:\.php)?|docker-compose(?:\.ya?ml)?|Dockerfile|id_rsa|config\.php|configuration\.php|(?:db|database|dump|backup)\.(?:sql|sqlite|sqlite3|bak|old|zip|tar|gz)|(?:env-config|runtime-config|aws-exports|app\.config|config/config|env)\.js)(?=[ ?]|$)|\.env(?:\.[^ ?/]*)?(?=[/? ]|$)|backup(?=[/._\- ?]|$)).* HTTP/.*" (?:400|401|403|404|405|444) .*
     ignoreregex =
   '';
 
@@ -106,35 +116,37 @@
   '';
 
   # diagnostic script
-  environment.etc."fail2ban-status".source = pkgs.writeShellScript "fail2ban-status" ''
-    set -e
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "fail2ban-status" ''
+      set -e
 
-    jails=$(
-      sudo fail2ban-client status |
-        sed -n 's/.*Jail list:[[:space:]]*//p' |
-        tr ',' ' '
-    )
-
-    echo "=== Fail2Ban ==="
-    for jail in $jails; do
-      echo
-      echo "[$jail]"
-      sudo fail2ban-client status "$jail" |
-        grep -E 'Currently failed|Currently banned|Total failed|Total banned|Banned IP list'
-    done
-
-    echo
-    echo "=== All active bans ==="
-    for jail in $jails; do
-      banned=$(
-        sudo fail2ban-client status "$jail" |
-          sed -n 's/.*Banned IP list:[[:space:]]*//p'
+      jails=$(
+        sudo fail2ban-client status |
+          sed -n 's/.*Jail list:[[:space:]]*//p' |
+          tr ',' ' '
       )
 
-      if [ -n "$banned" ]; then
+      echo "=== Fail2Ban ==="
+      for jail in $jails; do
+        echo
         echo "[$jail]"
-        echo "$banned" | tr ' ' '\n' | sed 's/^/  /'
-      fi
-    done
-  '';
+        sudo fail2ban-client status "$jail" |
+          grep -E 'Currently failed|Currently banned|Total failed|Total banned|Banned IP list'
+      done
+
+      echo
+      echo "=== All active bans ==="
+      for jail in $jails; do
+        banned=$(
+          sudo fail2ban-client status "$jail" |
+            sed -n 's/.*Banned IP list:[[:space:]]*//p'
+        )
+
+        if [ -n "$banned" ]; then
+          echo "[$jail]"
+          echo "$banned" | tr ' ' '\n' | sed 's/^/  /'
+        fi
+      done
+    '')
+  ];
 }
