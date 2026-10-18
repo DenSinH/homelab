@@ -56,6 +56,9 @@
         port = 9633;
         listenAddress = "127.0.0.1";
 
+        # ensure drives go to idle
+        maxInterval = "15m";
+
         # smartctl fails on usb-connected drive
         extraFlags = [
           "--smartctl.scan-device-type=by-id"
