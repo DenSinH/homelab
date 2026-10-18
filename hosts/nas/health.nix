@@ -69,10 +69,12 @@
         # ensure drives go to idle
         maxInterval = "1h";
 
-        # smartctl fails on usb-connected drive
         extraFlags = [
+        # smartctl fails on usb-connected drive
           "--smartctl.scan-device-type=by-id"
           "--smartctl.device-exclude=^usb-Seagate_Expansion_HDD_00000000NT1AHEWJ-0:0$"
+          # don't disturb drive idle mode
+          "--smartctl.rescan=1h"
         ];
       };
       zfs = {
