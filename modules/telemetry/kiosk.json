@@ -70,7 +70,7 @@
                         "measurement": "system",
                         "orderByTime": "ASC",
                         "policy": "default",
-                        "query": "from(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"system\" and\n    r._field == \"uptime\" and\n    (\n      r.host == \"proxmox1\"\n      or r.host == \"proxmox2\"\n      or r.host == \"proxmox3\"\n      or r.host == \"pbs\"\n    )\n  )\n  |> last()\n  |> group(columns: [\"host\"])\n  |> keep(columns: [\"host\", \"_value\"])",
+                        "query": "from(bucket: \"proxmox\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"system\" and\n    r._field == \"uptime\" and\n    (\n      r.host == \"proxmox1\"\n      or r.host == \"proxmox2\"\n      or r.host == \"proxmox3\"\n      or r.host == \"pbs\"\n    )\n  )\n  |> last()\n  |> group(columns: [\"host\"])\n  |> keep(columns: [\"host\", \"_value\"])",
                         "resultFormat": "time_series",
                         "select": [
                           [
@@ -192,7 +192,7 @@
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"node_boot_time_seconds\")\n  |> last()\n  |> map(fn: (r) => ({\n      r with\n      _value: float(v: int(v: now()) / 1000000000) - r._value\n  }))"
+                        "query": "from(bucket: \"nas\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r._measurement == \"node_boot_time_seconds\")\n  |> last()\n  |> map(fn: (r) => ({\n      r with\n      _value: float(v: int(v: now()) / 1000000000) - r._value\n  }))"
                       },
                       "version": "v0"
                     },
@@ -292,7 +292,7 @@
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "from(bucket: \"offsite-backup\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> last()"
+                        "query": "from(bucket: \"offsite-backup\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: 1m, fn: mean)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -410,7 +410,7 @@
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"offsite-backup\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"node_memory_MemTotal_bytes\" or r._measurement == \"node_memory_MemFree_bytes\")\n    and r.host == \"offsite-backup\"\n  )\n  |> last()"
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"offsite-backup\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    (r._measurement == \"node_memory_MemTotal_bytes\" or r._measurement == \"node_memory_MemFree_bytes\")\n    and r.host == \"offsite-backup\"\n  )\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -553,7 +553,7 @@
                         "measurement": "blockstat",
                         "orderByTime": "DESC",
                         "policy": "default",
-                        "query": "import \"influxdata/influxdb/schema\"\n\n\nfrom(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"blockstat\" and\n    (r._field == \"used\" or r._field == \"total\") and\n    r.host == \"pbs\" and\n    r.datastore == \"tank\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"used\", \"total\"])",
+                        "query": "import \"influxdata/influxdb/schema\"\n\n\nfrom(bucket: \"proxmox\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"blockstat\" and\n    (r._field == \"used\" or r._field == \"total\") and\n    r.host == \"pbs\" and\n    r.datastore == \"tank\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"used\", \"total\"])",
                         "rawQuery": false,
                         "resultFormat": "time_series",
                         "select": [
@@ -929,7 +929,7 @@
                         "measurement": "W",
                         "orderByTime": "ASC",
                         "policy": "default",
-                        "query": "from(bucket: \"homeassistant\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r.entity_id == \"server_plug_power\" and\n    r._field == \"value\"\n  )\n  |> last()\n  |> keep(columns: [\"_value\"])",
+                        "query": "from(bucket: \"homeassistant\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r.entity_id == \"server_plug_power\" and\n    r._field == \"value\"\n  )\n  |> last()\n  |> keep(columns: [\"_value\"])",
                         "resultFormat": "time_series",
                         "select": [
                           [
@@ -1224,7 +1224,7 @@
                         "measurement": "cpustat",
                         "orderByTime": "ASC",
                         "policy": "default",
-                        "query": "from(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop:v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"cpustat\" and\n    r._field == \"cpu\"\n  )\n  |> last()\n  |> group(columns: [\"host\"])\n  |> keep(columns: [\"host\", \"_value\"])\n",
+                        "query": "from(bucket: \"proxmox\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"cpustat\" and\n    r._field == \"cpu\"\n  )\n  |> last()\n  |> group(columns: [\"host\"])\n  |> keep(columns: [\"host\", \"_value\"])\n",
                         "resultFormat": "time_series",
                         "select": [
                           [
@@ -1359,7 +1359,7 @@
                         "measurement": "memory",
                         "orderByTime": "DESC",
                         "policy": "default",
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"memory\" and\n    (r._field == \"memused\" or r._field == \"memtotal\") and\n    r.host == \"pbs\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"memused\", \"memtotal\"])\n",
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"proxmox\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"memory\" and\n    (r._field == \"memused\" or r._field == \"memtotal\") and\n    r.host == \"pbs\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"memused\", \"memtotal\"])\n",
                         "rawQuery": false,
                         "resultFormat": "time_series",
                         "select": [
@@ -1496,7 +1496,7 @@
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "from(bucket: \"offsite-backup\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"zfs_pool_allocated_bytes\" or r._measurement == \"zfs_pool_size_bytes\")and\n    r.pool == \"tank\"\n  )\n  |> last()"
+                        "query": "from(bucket: \"offsite-backup\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    (r._measurement == \"zfs_pool_allocated_bytes\" or r._measurement == \"zfs_pool_size_bytes\")and\n    r.pool == \"tank\"\n  )\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -1605,7 +1605,7 @@
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> last()"
+                        "query": "from(bucket: \"nas\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"node_cpu_seconds_total\" and\n    r.mode == \"idle\"\n  )\n  |> derivative(unit: 1s, nonNegative: true)\n  |> aggregateWindow(every: 1m, fn: mean)\n  |> group(columns: [\"_time\", \"instance\"])\n  |> mean()\n  |> group(columns: [\"instance\"])\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -1723,7 +1723,7 @@
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"node_memory_MemTotal_bytes\" or r._measurement == \"node_memory_MemFree_bytes\")\n    and r.host == \"nas\"\n  )\n  |> last()"
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"nas\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    (r._measurement == \"node_memory_MemTotal_bytes\" or r._measurement == \"node_memory_MemFree_bytes\")\n    and r.host == \"nas\"\n  )\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -1861,7 +1861,7 @@
                       "group": "influxdb",
                       "kind": "DataQuery",
                       "spec": {
-                        "query": "from(bucket: \"nas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    (r._measurement == \"zfs_pool_allocated_bytes\" or r._measurement == \"zfs_pool_size_bytes\")and\n    r.pool == \"tank\"\n  )\n  |> last()"
+                        "query": "from(bucket: \"nas\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    (r._measurement == \"zfs_pool_allocated_bytes\" or r._measurement == \"zfs_pool_size_bytes\")and\n    r.pool == \"tank\"\n  )\n  |> last()"
                       },
                       "version": "v0"
                     },
@@ -2122,7 +2122,7 @@
                         "measurement": "memory",
                         "orderByTime": "DESC",
                         "policy": "default",
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"memory\" and\n    (r._field == \"memused\" or r._field == \"memtotal\") and\n    r.host == \"proxmox1\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"memused\", \"memtotal\"])\n",
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"proxmox\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"memory\" and\n    (r._field == \"memused\" or r._field == \"memtotal\") and\n    r.host == \"proxmox1\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"memused\", \"memtotal\"])\n",
                         "rawQuery": false,
                         "resultFormat": "time_series",
                         "select": [
@@ -2835,7 +2835,7 @@
                         "measurement": "memory",
                         "orderByTime": "DESC",
                         "policy": "default",
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"memory\" and\n    (r._field == \"memused\" or r._field == \"memtotal\") and\n    r.host == \"proxmox2\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"memused\", \"memtotal\"])\n",
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"proxmox\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"memory\" and\n    (r._field == \"memused\" or r._field == \"memtotal\") and\n    r.host == \"proxmox2\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"memused\", \"memtotal\"])\n",
                         "rawQuery": false,
                         "resultFormat": "time_series",
                         "select": [
@@ -3187,7 +3187,7 @@
                         "measurement": "memory",
                         "orderByTime": "DESC",
                         "policy": "default",
-                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"proxmox\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) =>\n    r._measurement == \"memory\" and\n    (r._field == \"memused\" or r._field == \"memtotal\") and\n    r.host == \"proxmox3\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"memused\", \"memtotal\"])\n",
+                        "query": "import \"influxdata/influxdb/schema\"\n\nfrom(bucket: \"proxmox\")\n  |> range(start: -10m)\n  |> filter(fn: (r) =>\n    r._measurement == \"memory\" and\n    (r._field == \"memused\" or r._field == \"memtotal\") and\n    r.host == \"proxmox3\"\n  )\n  |> last()\n  |> schema.fieldsAsCols()\n  |> keep(columns: [\"_time\", \"memused\", \"memtotal\"])\n",
                         "rawQuery": false,
                         "resultFormat": "time_series",
                         "select": [
@@ -3670,7 +3670,7 @@
     "preload": false,
     "tags": [],
     "timeSettings": {
-      "autoRefresh": "5s",
+      "autoRefresh": "30s",
       "autoRefreshIntervals": [
         "5s",
         "10s",
