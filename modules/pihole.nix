@@ -294,11 +294,4 @@ in
   services.tailscale.extraUpFlags = [
     "--accept-dns=false"
   ];
-
-  # remove excessive logs, these mean nothing to me and they fill up the journal
-  # log with like 5k lines a day
-  systemd.services.tailscaled.serviceConfig.LogFilterPatterns = [
-    "~magicsock: disco: node"
-    "~controlclient direct: (got TSMP disco key|updating discoKey)"
-  ];
 }

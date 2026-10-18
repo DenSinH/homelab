@@ -80,6 +80,7 @@ let
         "pdm"
         "win-test"
         "nixos"
+        "static-site-nixos"
       ];
       # guests removed on purpose (name as it appears in the Proxmox metrics)
       known_removed = [

@@ -14,6 +14,14 @@ in
     ];
   };
 
+  # remove excessive logs, these mean nothing to me and they fill up the journal
+  # log with like 5k lines a day
+  systemd.services.tailscaled.serviceConfig.LogFilterPatterns = [
+    "~magicsock: disco: node"
+    "~controlclient direct: (got TSMP disco key|updating discoKey)"
+    "~magicsock: derp-[0-9]+ does not know about peer \\[[^]]+\\], removing route"
+  ];
+
   # Check existence of /dev/net/tun
   # this is required for tailscale to even work
   system.activationScripts.check-tun = ''
