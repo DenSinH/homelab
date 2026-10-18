@@ -22,6 +22,9 @@
       mail.enable = false;
       wall.enable = true;
     };
+    # default is every 30m; stretch it out so the HGST drives spend more
+    # time idle/parked between checks
+    extraOptions = [ "--interval=3600" ];
   };
 
   environment.systemPackages = with pkgs; [
@@ -64,7 +67,7 @@
         listenAddress = "127.0.0.1";
 
         # ensure drives go to idle
-        maxInterval = "15m";
+        maxInterval = "1h";
 
         # smartctl fails on usb-connected drive
         extraFlags = [
