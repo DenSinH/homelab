@@ -17,10 +17,6 @@ let
     "$__file{${secret.path}}";
 in
 {
-  imports = [
-    ./alloy.nix # gather own logs
-  ];
-
   # secret access management
   users.groups.metrics = { };
   users.users.grafana.extraGroups = [ "metrics" ];

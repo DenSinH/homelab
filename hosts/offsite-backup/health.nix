@@ -15,13 +15,8 @@
     };
   };
 
-  imports = [
-    # same alloy monitoring as LXCs
-    (import ../../modules/telemetry/alloy.nix {
-      inherit pkgs lib;
-      host = lib.backup.offsite-backup;
-    })
-  ];
+  # offsite-backup only reaches the telemetry host over Tailscale
+  homelab.alloy.lokiUrl = "http://${lib.lxcs.telemetry.tailnet_ip}:3100";
 
   # S.M.A.R.T values
   services.smartd = {

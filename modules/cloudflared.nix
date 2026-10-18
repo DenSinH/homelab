@@ -75,4 +75,24 @@ in
       default = "http_status:404";
     };
   };
+
+  # cloudflared logs its own level (ERR/WRN/INF); WRN-level lines often still
+  # contain the word "error" (e.g. in an `error=` field), which gets
+  # mis-detected by Loki as an actual error.
+  homelab.alloy.extraLokiProcessConfig = ''
+    stage.match {
+      selector = "{unit=~\"cloudflared-tunnel-.*\"} |~ \" WRN \""
+
+      stage.template {
+        source   = "level"
+        template = "warn"
+      }
+
+      stage.structured_metadata {
+        values = {
+          level = "",
+        }
+      }
+    }
+  '';
 }

@@ -71,4 +71,24 @@
       "mnt-photos.mount"
     ];
   };
+
+  # immich-server (NestJS) logs plenty of WARN-level lines (e.g. an upload
+  # aborted by the client) that mention "error"/"aborted" and get
+  # mis-detected as errors. Real errors are logged as "ERROR".
+  homelab.alloy.extraLokiProcessConfig = ''
+    stage.match {
+      selector = "{unit=\"immich-server.service\"} |~ \"WARN\""
+
+      stage.template {
+        source   = "level"
+        template = "warn"
+      }
+
+      stage.structured_metadata {
+        values = {
+          level = "",
+        }
+      }
+    }
+  '';
 }

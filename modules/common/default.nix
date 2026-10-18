@@ -6,6 +6,10 @@
 }:
 
 {
+  imports = [
+    ../telemetry/alloy.nix
+  ];
+
   # Default settings for any host (LXC and physical alike)
   nix.settings.experimental-features = [
     "nix-command"

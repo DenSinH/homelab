@@ -318,4 +318,54 @@ in
   networking.firewall.allowedTCPPorts = [
     80 # nginx
   ];
+
+  # Not interested in flaresolverr Cloudflare-challenge timeouts as errors
+  # (nor prowlarr's relayed copy of the same message, or its related "may
+  # need flaresolverr" notice) - downgrade them to warning instead.
+  homelab.alloy.extraLokiProcessConfig = ''
+    stage.match {
+      selector = "{unit=\"flaresolverr.service\"} |~ \"Error solving the challenge\""
+
+      stage.template {
+        source   = "level"
+        template = "warn"
+      }
+
+      stage.structured_metadata {
+        values = {
+          level = "",
+        }
+      }
+    }
+
+    stage.match {
+      selector = "{unit=\"prowlarr.service\"} |~ \"Error solving the challenge\""
+
+      stage.template {
+        source   = "level"
+        template = "warn"
+      }
+
+      stage.structured_metadata {
+        values = {
+          level = "",
+        }
+      }
+    }
+
+    stage.match {
+      selector = "{unit=\"prowlarr.service\"} |~ \"Cloudflare protection detected\""
+
+      stage.template {
+        source   = "level"
+        template = "warn"
+      }
+
+      stage.structured_metadata {
+        values = {
+          level = "",
+        }
+      }
+    }
+  '';
 }

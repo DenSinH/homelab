@@ -1,12 +1,12 @@
 {
-  pkgs,
   lib,
+  config,
   host,
   ...
 }:
 
 let
-  lokiUrl = "http://${lib.lxcs.telemetry.ip}:3100";
+  cfg = config.homelab.alloy;
 
   alloyConfig = ''
     // Relabeling rules applied to journal entries before they're read.
@@ -30,7 +30,8 @@ let
       }
     }
 
-    // Adds a constant "host" label to every log line passing through.
+    // Adds a constant "host" label to every log line passing through, then
+    // runs any host-specific stages set via homelab.alloy.extraLokiProcessConfig.
     loki.process "add_labels" {
       forward_to = [loki.write.default.receiver]
 
@@ -39,23 +40,80 @@ let
           host = "${host.hostname}",
         }
       }
+
+      ${cfg.extraLokiProcessConfig}
     }
 
     // Sends the final log stream to Loki.
     loki.write "default" {
       endpoint {
-        url = "${lokiUrl}/loki/api/v1/push"
+        url = "${cfg.lokiUrl}/loki/api/v1/push"
       }
     }
   '';
 in
 {
-  services.alloy = {
-    enable = true;
-    extraFlags = [
-      "--disable-reporting"
-    ];
+  options.homelab.alloy = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Whether to run Grafana Alloy to ship this host's systemd-journal
+        logs to the central Loki instance.
+      '';
+    };
+
+    lokiUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "http://${lib.lxcs.telemetry.ip}:3100";
+      description = ''
+        Base URL of the Loki instance to push logs to. Defaults to the
+        telemetry host's LAN IP; override per-host for hosts that can't
+        reach it over the LAN (e.g. use lib.lxcs.telemetry.tailnet_ip for a
+        host only reachable over Tailscale).
+      '';
+    };
+
+    extraLokiProcessConfig = lib.mkOption {
+      type = lib.types.lines;
+      default = "";
+      description = ''
+        Extra Alloy (River) pipeline stages injected into the "add_labels"
+        loki.process block defined by this module, after the static "host"
+        label is added. Useful for host-specific log processing, e.g.
+        forcing the detected level of a noisy-but-not-actually-erroring log
+        line to "warning" instead of the "error" Loki would otherwise
+        auto-detect from the raw log text, using a `stage.match` block such
+        as:
+
+        ```
+        stage.match {
+          selector = "{unit=\"someunit.service\"} |~ \"some regex\""
+
+          stage.template {
+            source   = "level"
+            template = "warn"
+          }
+
+          stage.structured_metadata {
+            values = {
+              level = "",
+            }
+          }
+        }
+        ```
+      '';
+    };
   };
 
-  environment.etc."alloy/config.alloy".text = alloyConfig;
+  config = lib.mkIf cfg.enable {
+    services.alloy = {
+      enable = true;
+      extraFlags = [
+        "--disable-reporting"
+      ];
+    };
+
+    environment.etc."alloy/config.alloy".text = alloyConfig;
+  };
 }

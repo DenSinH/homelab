@@ -101,7 +101,6 @@
           modules = [
             ./modules/pihole.nix
             ./modules/tailscale.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -117,7 +116,6 @@
           modules = [
             ./modules/pihole.nix
             ./modules/tailscale.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -133,7 +131,6 @@
           modules = [
             ./modules/pihole.nix
             ./modules/tailscale.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -148,7 +145,6 @@
 
           modules = [
             ./modules/cloudflared.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -163,7 +159,6 @@
 
           modules = [
             ./modules/subnet-router.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -178,7 +173,6 @@
 
           modules = [
             ./modules/reporting
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -231,7 +225,6 @@
 
           modules = [
             ./modules/gatus/default.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -249,7 +242,6 @@
             ./modules/igpu.nix
             ./modules/immich.nix
             ./modules/tailscale.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -266,7 +258,6 @@
           modules = [
             ./modules/vaultwarden.nix
             ./modules/tailscale.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -281,7 +272,6 @@
 
           modules = [
             ./modules/cookbook/default.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -296,7 +286,6 @@
 
           modules = [
             ./modules/blog.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -312,7 +301,6 @@
 
           modules = [
             ./modules/nixflix/default.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
 
@@ -373,7 +361,6 @@
           modules = [
             ./modules/paperless.nix
             ./modules/tailscale.nix
-            ./modules/telemetry/alloy.nix
           ];
         };
       };
@@ -417,6 +404,7 @@
           specialArgs = {
             # pass through lxc data
             inherit lib;
+            host = lib.storage.nas;
           };
 
           modules = [
@@ -431,6 +419,7 @@
           specialArgs = {
             # pass through lxc data
             inherit lib;
+            host = lib.router;
           };
 
           modules = [
@@ -444,6 +433,7 @@
           specialArgs = {
             # pass through lxc data
             inherit lib nixvirt;
+            host = lib.backup.offsite-backup;
           };
 
           modules = [
