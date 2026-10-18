@@ -154,7 +154,6 @@ zpool status tank   # expect: scrub repaired 0B ... with 0 errors
 
 ## Follow-ups
 
-- [ ] Fit screws in the drive caddies
 - [ ] Fill in the Results section above
 - [ ] Optional: enable drive write cache (`hdparm -W1 /dev/sdX`); disabled by default on these drives. ZFS issues cache flushes, so this is safe. Does not persist across power cycles; add to NixOS config (udev rule or systemd oneshot).
 - [ ] Optional: enable SCT Error Recovery Control (`smartctl -l scterc,70,70 /dev/sdX`) so a drive gives up on a bad sector after 7s and lets ZFS repair it. Also resets on power cycle; add to NixOS config.
