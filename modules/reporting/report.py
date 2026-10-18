@@ -887,7 +887,7 @@ def failed_units_section(cfg: Config, loki: Loki, rep: Report) -> None:
     node_exporter, so the InfluxDB-based check in _failed_units() (used by
     host_section() for the standalone NAS/offsite-backup hosts) can't see them.
     """
-    rx = r'| regexp "(?P<unit>\S+): Failed with result"'
+    rx = r'| regexp "(?P<unit>\\S+): Failed with result"'
     hits = loki.instant(
         f'sum by (host, unit) (count_over_time({{host=~".+"}} |= "Failed with result" {rx} [24h]))'
     )
