@@ -475,20 +475,39 @@
           };
         };
 
-      devShells.${system}.default = pkgs.mkShell {
-        packages = [
-          pkgs.sops
-          pkgs.age
-          pkgs.ssh-to-age
-        ];
+      devShells.${system} = {
+        default = pkgs.mkShell {
+          packages = [
+            pkgs.sops
+            pkgs.age
+            pkgs.ssh-to-age
+          ];
 
-        shellHook = ''
-          export EDITOR="code --wait"
-          export SOPS_EDITOR="code --wait"
-          export SOPS_AGE_KEY_FILE="/var/lib/sops-nix/keys.txt"
+          shellHook = ''
+            export EDITOR="code --wait"
+            export SOPS_EDITOR="code --wait"
+            export SOPS_AGE_KEY_FILE="/var/lib/sops-nix/keys.txt"
 
-          echo "Use: sops edit secrets/secrets.yaml"
-        '';
+            echo "Use: sops edit secrets/secrets.yaml"
+          '';
+        };
+
+        immich-go = pkgs.mkShell {
+          packages = [
+            pkgs.immich-go
+          ];
+
+          # for example:
+          # immich-go upload from-folder \
+          #  --server=http://192.168.50.36:2283 \
+          #  --api-key="$IMMICH_API_KEY" \
+          #  --folder-as-album=FOLDER \
+          #  /path/to/google-photos-album.zip
+          shellHook = ''
+            echo "Immich-Go $(immich-go --version)"
+            echo "Server: http://${lib.lxcs.immich.ip}:2283"
+          '';
+        };
       };
 
       formatter.${system} = pkgs.nixfmt-tree;
