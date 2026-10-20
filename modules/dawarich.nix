@@ -17,6 +17,17 @@
     };
   };
 
+  # Override log level for Sidekiq (really excessive logs...)
+  services.dawarich.package = pkgs.dawarich.overrideAttrs (old: {
+    postPatch = (old.postPatch or "") + ''
+      substituteInPlace config/initializers/sidekiq.rb \
+        --replace-fail \
+          'config.logger = Sidekiq::Logger.new($stdout)' \
+          'config.logger = Sidekiq::Logger.new($stdout)
+      config.logger.level = Logger::WARN'
+    '';
+  });
+
   # expose on vpn as well
   services.nginx.virtualHosts."dawarich.home" = {
     serverAliases = [
