@@ -14,6 +14,26 @@ in
     ];
   };
 
+  # Tailscale before the network/control plane is fully up yet, and without
+  # a TPM, logs a handful of benign one-shot startup messages at a level
+  # that gets mis-detected as "error".
+  homelab.alloy.extraLokiProcessConfig = ''
+    stage.match {
+      selector = "{unit=\"tailscaled.service\"} |~ \"health\\\\(warnable=warming-up\\\\)\""
+
+      stage.template {
+        source   = "level"
+        template = "warn"
+      }
+
+      stage.structured_metadata {
+        values = {
+          level = "",
+        }
+      }
+    }
+  '';
+
   # remove excessive logs, these mean nothing to me and they fill up the journal
   # log with like 5k lines a day
   systemd.services.tailscaled.serviceConfig.LogFilterPatterns = [
