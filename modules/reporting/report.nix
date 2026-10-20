@@ -96,7 +96,10 @@ let
       };
       # any other key of DEFAULTS in report.py can be overridden here, e.g.:
       # timers = { "syncoid-tank-drive.timer" = 30; };
-      # thresholds = { temp_warn = 55; };
+      thresholds = {
+        disk_warn = 90;
+        disk_crit = 95;
+      };
     }
   );
 
