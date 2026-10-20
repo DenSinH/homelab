@@ -13,6 +13,7 @@
     # expose over VPN hostname as well
     environment = {
       APPLICATION_HOSTS = "127.0.0.1,::1,dawarich.home,dawarich.vpn";
+      RAILS_LOG_LEVEL = "info";
     };
   };
 
