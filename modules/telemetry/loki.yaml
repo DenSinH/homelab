@@ -1,5 +1,4 @@
-# from 
-# https://grafana.com/docs/loki/latest/configure/examples/configuration-examples/auth_enabled: false
+auth_enabled: false
 
 server:
   http_listen_port: 3100
