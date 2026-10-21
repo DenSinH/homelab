@@ -77,6 +77,23 @@
     ];
   };
 
+  # Fix access to passed through iGPU
+  # May break when installed on a new system (different render GID), test with
+  #   ls -ln /dev/dri/renderD128
+  #   id immich
+  # in the LXC, or for actually using the device, run
+  #   nix-shell -p libva-utils --run 'sudo -u immich $(command -v vainfo) --display drm --device /dev/dri/renderD128'
+  # or run ffmpeg:
+  #   nix-shell -p ffmpeg --run 'sudo -u immich $(command -v ffmpeg) -init_hw_device vaapi=accel:/dev/dri/renderD128 -f lavfi -i testsrc=duration=2:size=1280x720:rate=30 -vf "format=nv12,hwupload" -c:v h264_vaapi -f null -'
+  #
+  # On a new install, get the render group GID with:
+  # - on the LXC:
+  #     stat -c %g /dev/dri/renderD128
+  # - on the host:
+  #     getent group render
+  users.groups.hostrender.gid = 993;
+  users.users.immich.extraGroups = [ "hostrender" ];
+
   # immich-server (NestJS) logs plenty of WARN-level lines (e.g. an upload
   # aborted by the client) that mention "error"/"aborted" and get
   # mis-detected as errors. Real errors are logged as "ERROR".
