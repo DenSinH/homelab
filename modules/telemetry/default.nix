@@ -295,6 +295,13 @@ in
       # this is needed for accessing the kiosk dashboard on my homelab display
       "auth.anonymous".enabled = true;
       "auth.anonymous".org_role = "Viewer";
+
+      # Disable external checks and reporting
+      plugins.check_for_plugin_updates = false;
+      analytics = {
+        reporting_enabled = false;
+        check_for_updates = false;
+      };
     };
 
     provision = {
