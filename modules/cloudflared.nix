@@ -97,7 +97,6 @@ in
   # though I have not copied over the cert.pem file
   sops.defaultSopsFile = ../secrets/cloudflared.yaml;
   sops.secrets = {
-    # influxdb2 service runs as user `influxdb2` in group `influxdb2
     "cloudflared/tunnel-creds" = { };
   };
 
