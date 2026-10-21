@@ -6,6 +6,11 @@
 }:
 
 {
+  # TODO: remove after updating to 26.11
+  nixpkgs.config.permittedInsecurePackages = [
+    "immich-2.7.5"
+  ];
+
   sops.defaultSopsFile = ../secrets/immich.yaml;
   sops.secrets = {
     "immich/secrets" = {
