@@ -6,12 +6,15 @@
 }:
 
 let
+  # Local Caddy listener. NOT 8080: the CrowdSec LAPI defaults to 127.0.0.1:8080.
+  proxyPort = 8081;
+
   proxies = {
     "status.dennishilhorst.nl" = {
-      service = "http://${lib.lxcs.gatus.ip}";
+      upstream = "http://${lib.lxcs.gatus.ip}";
     };
     "blog.dennishilhorst.nl" = {
-      service = "http://${lib.lxcs.blog.ip}";
+      upstream = "http://${lib.lxcs.blog.ip}";
     };
     "cdn.dennishilhorst.nl" = {
       # Cache control set via
@@ -23,12 +26,60 @@ let
       # Eligible for cache
       # Edge TTL: Ignore cache-control header and use this TTL: 6 Months
       # Browser TTL: Ignore cache-control header and use this TTL: 6 Months
-      service = "http://${lib.lxcs.garage.ip}";
+      upstream = "http://${lib.lxcs.garage.ip}";
     };
     "chef.dennishilhorst.nl" = {
-      service = "http://${lib.lxcs.cookbook.ip}";
+      upstream = "http://${lib.lxcs.cookbook.ip}";
     };
   };
+
+  releasePins = {
+    caddy-crowdsec-bouncer = {
+      repo = "hslatman/caddy-crowdsec-bouncer";
+      version = "0.14.1";
+    };
+  };
+
+  releaseGuard = pkgs.writeShellApplication {
+    name = "release-guard";
+    runtimeInputs = [
+      pkgs.curl
+      pkgs.jq
+      pkgs.gnused
+      pkgs.coreutils
+    ];
+    text = ''
+      if [ -e /run/skip-release-guard ]; then
+        echo "release-guard: skipped via /run/skip-release-guard"
+        exit 0
+      fi
+
+      fail=0
+      ${lib.concatStrings (
+        lib.mapAttrsToList (name: pin: ''
+          latest=$(curl -fsS --max-time 15 \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/${pin.repo}/releases/latest" \
+            | jq -r '.tag_name // empty' | sed 's/^v//') || latest=""
+
+          if [ -z "$latest" ]; then
+            echo "release-guard: WARN could not determine latest release of ${name}" >&2
+          elif [ "$latest" != "${pin.version}" ] \
+            && [ "$(printf '%s\n%s\n' "$latest" "${pin.version}" | sort -V | tail -n1)" = "$latest" ]; then
+            echo "release-guard: FAIL ${name} pinned at ${pin.version}, latest is $latest" >&2
+            echo "  bump releasePins.${name}.version and its hash, or touch /run/skip-release-guard" >&2
+            fail=1
+          else
+            echo "release-guard: ${name} ${pin.version} is current"
+          fi
+        '') releasePins
+      )}
+
+      exit "$fail"
+    '';
+  };
+
+  proxyListen = "bind 127.0.0.1";
 in
 {
   # https://search.nixos.org/options?channel=26.05&query=cloudflared
@@ -47,34 +98,152 @@ in
   sops.defaultSopsFile = ../secrets/cloudflared.yaml;
   sops.secrets = {
     # influxdb2 service runs as user `influxdb2` in group `influxdb2
-    "cloudflared/tunnel-creds" = {
-      # group = "cloudflared";
-      mode = "0440";
-    };
+    "cloudflared/tunnel-creds" = { };
   };
 
+  # ---- deploy guard ----
+  system.preSwitchChecks.release-guard = ''
+    ${releaseGuard}/bin/release-guard || exit 1
+  '';
+
+  # ---- cloudflared: all hosts go through the local Caddy ----
   services.cloudflared = {
     enable = true;
-
-    # 'dennishilhorst' tunnel
     tunnels."2520e8d8-cf93-4acf-a433-a3706133195f" = {
-      credentialsFile = "${config.sops.secrets."cloudflared/tunnel-creds".path}";
-
-      ingress = lib.mapAttrs (
-        host: proxy:
-        {
-          # copy over request headers by default
-          originRequest = {
-            httpHostHeader = host;
-            originServerName = host;
-          };
-        }
-        // proxy
-      ) proxies;
-
+      credentialsFile = config.sops.secrets."cloudflared/tunnel-creds".path;
+      ingress = lib.mapAttrs (host: _: {
+        service = "http://127.0.0.1:${toString proxyPort}";
+        originRequest = {
+          httpHostHeader = host;
+          originServerName = host;
+        };
+      }) proxies;
       default = "http_status:404";
     };
   };
+
+  # ---- Caddy with the CrowdSec bouncer plugin ----
+  services.caddy = {
+    enable = true;
+    package = pkgs.caddy.withPlugins {
+      plugins = [
+        "github.com/${releasePins.caddy-crowdsec-bouncer.repo}@v${releasePins.caddy-crowdsec-bouncer.version}"
+      ];
+      hash = "sha256-cEx69XLcug8ZCtpfspZJZVPkSysZkJK67xGbvFi1QOo=";
+    };
+
+    environmentFile = "/run/crowdsec-caddy-bouncer/env";
+
+    globalConfig = ''
+      auto_https off
+      order crowdsec first
+      crowdsec {
+        api_url http://127.0.0.1:8080
+        api_key {$CROWDSEC_API_KEY}
+      }
+      servers {
+        # only cloudflared (loopback) may set the client IP header
+        trusted_proxies static 127.0.0.1/32
+        client_ip_headers CF-Connecting-IP
+      }
+    '';
+
+    virtualHosts =
+      (lib.mapAttrs' (
+        host: proxy:
+        lib.nameValuePair "http://${host}:${toString proxyPort}" {
+          logFormat = "output stderr"; # -> journald, read by CrowdSec
+          extraConfig = ''
+            ${proxyListen}
+            route {
+              crowdsec
+              reverse_proxy ${proxy.upstream}
+            }
+          '';
+        }
+      ) proxies)
+      // {
+        "http://:${toString proxyPort}".extraConfig = ''
+          ${proxyListen}
+          respond 404
+        '';
+      };
+  };
+
+  # ---- CrowdSec engine ----
+  systemd.services.crowdsec-register-caddy-bouncer = {
+    description = "Create and register the Caddy bouncer key for the local CrowdSec API";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "crowdsec.service" ];
+    requires = [ "crowdsec.service" ];
+    before = [ "caddy.service" ];
+    path = [
+      pkgs.openssl
+      pkgs.coreutils
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      StateDirectory = "crowdsec-caddy-bouncer"; # /var/lib/..., root-only
+      RuntimeDirectory = "crowdsec-caddy-bouncer"; # /run/..., holds the env file
+      RuntimeDirectoryPreserve = true;
+      StateDirectoryMode = "0700";
+      RuntimeDirectoryMode = "0700";
+    };
+    script = ''
+      cscli=/run/current-system/sw/bin/cscli
+      key=/var/lib/crowdsec-caddy-bouncer/key
+      [ -s "$key" ] || (umask 077; openssl rand -hex 32 > "$key")
+
+      for i in $(seq 1 30); do
+        "$cscli" lapi status >/dev/null 2>&1 && break
+        sleep 2
+      done
+
+      "$cscli" bouncers delete caddy >/dev/null 2>&1 || true
+      "$cscli" bouncers add caddy -k "$(cat "$key")" >/dev/null
+
+      (umask 077; echo "CROWDSEC_API_KEY=$(cat "$key")" > /run/crowdsec-caddy-bouncer/env)
+    '';
+  };
+
+  systemd.services.caddy = {
+    requires = [ "crowdsec-register-caddy-bouncer.service" ];
+    after = [ "crowdsec-register-caddy-bouncer.service" ];
+  };
+
+  # verify crowdsec works with your own IP (https://whatsmyip.com/):
+  #   sudo cscli decisions add -i <your-ip> -d 5m
+  # wait 10 seconds, you should get a 403 when going to the website
+  #   sudo cscli decisions delete -i <your-ip>
+  services.crowdsec = {
+    enable = true;
+    name = "cloudflared";
+
+    hub.collections = [
+      "crowdsecurity/caddy"
+      "crowdsecurity/base-http-scenarios"
+      "crowdsecurity/http-cve"
+    ];
+
+    localConfig.acquisitions = [
+      {
+        source = "journalctl";
+        journalctl_filter = [ "_SYSTEMD_UNIT=caddy.service" ];
+        labels.type = "caddy";
+      }
+    ];
+
+    settings = {
+      general.api.server = {
+        enable = true;
+        listen_uri = "127.0.0.1:8080";
+      };
+      lapi.credentialsFile = "/var/lib/crowdsec/state/local_api_credentials.yaml";
+      capi.credentialsFile = "/var/lib/crowdsec/state/online_api_credentials.yaml";
+    };
+  };
+  users.users.crowdsec.extraGroups = [ "systemd-journal" ];
 
   # cloudflared logs its own level (ERR/WRN/INF); WRN-level lines often still
   # contain the word "error" (e.g. in an `error=` field), which gets
