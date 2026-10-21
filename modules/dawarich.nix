@@ -28,6 +28,24 @@
     '';
   });
 
+  services.redis.servers.dawarich = {
+    logLevel = "warning";
+
+    # Reduce disk writes
+    # Redis only holds the job queue/cache here, so snapshots
+    # are mostly wasted disk writes. Removing this also stops the BGSAVE churn itself.
+    save = [
+      [
+        3600
+        1
+      ]
+      [
+        300
+        100
+      ]
+    ];
+  };
+
   # expose on vpn as well
   services.nginx.virtualHosts."dawarich.home" = {
     serverAliases = [
