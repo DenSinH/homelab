@@ -13,6 +13,10 @@ keys:
   - &nas age16jqlp2qmjvqhmdehh7xgdu3dwxnm4wlh4dyd9cnf7cgp6t23yddqvsd8rl
   - &offsite-backup age1gj7nmwgkpyfxzq0k9fuqrcspu37pcggmc52ecwd9vzls63suk9tqhr6zwg
 creation_rules:
+  - path_regex: secrets/nas\.yaml$
+    key_groups:
+    - age: [*master, *admin, *nas]
+
   - path_regex: secrets/reporting\.yaml$
     key_groups:
     - age: [*master, *admin, *reporting]

@@ -4,6 +4,7 @@
   imports = [
     ./zfs.nix
     ./nfs.nix
+    ./smb.nix
     ./replication.nix
     ./health.nix
     ./offsite-backup.nix

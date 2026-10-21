@@ -6,9 +6,9 @@
 }:
 
 {
-  sops.defaultSopsFile = ../../secrets/telemetry.yaml;
   sops.secrets = {
     "influxdb/tokens/nas" = {
+      sopsFile = ../../secrets/telemetry.yaml;
       group = "telegraf";
       mode = "0440";
     };

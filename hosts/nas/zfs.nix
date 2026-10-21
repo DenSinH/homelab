@@ -66,6 +66,10 @@
         ${zfs} set recordsize=1M tank/media
         ${zfs} set atime=off backup
         ${zfs} set atime=off tank
+
+        # SMB share: POSIX ACLs and system-attribute xattrs (faster metadata access)
+        ${zfs} set acltype=posixacl tank/drive
+        ${zfs} set xattr=sa tank/drive
       '';
   };
 }
