@@ -72,6 +72,7 @@ in
     nginx = {
       enable = true;
       domain = domain;
+      forceSSL = true;
     };
     postgres.enable = true;
 
@@ -303,12 +304,52 @@ in
     };
   };
 
+  # one cert covers every nixflix.* subdomain nixflix generates a vhost for
+  # (see pihole.nix's cnameRecords for the exact list in use).
+  homelab.selfSignedCerts.nixflix = {
+    hostName = "jellyfin.nixflix.home";
+    extraSANs = [
+      "DNS:jellyfin.nixflix.vpn"
+      "DNS:sonarr.nixflix.home"
+      "DNS:sonarr.nixflix.vpn"
+      "DNS:radarr.nixflix.home"
+      "DNS:radarr.nixflix.vpn"
+      "DNS:prowlarr.nixflix.home"
+      "DNS:prowlarr.nixflix.vpn"
+      "DNS:qbittorrent.nixflix.home"
+      "DNS:qbittorrent.nixflix.vpn"
+      "DNS:nixflix.home"
+      "DNS:nixflix.vpn"
+    ];
+  };
+
   # add root domain mapping to jellyfin
   services.nginx.virtualHosts."jellyfin.${domain}" = {
     serverAliases = [ domain ];
+    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
+    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
 
     # enable access through IP directly in case of DNS failure
     default = true;
+  };
+
+  # every other nixflix-managed vhost (forceSSL is already set via
+  # nixflix.nginx.forceSSL above) needs the same cert pointed at it.
+  services.nginx.virtualHosts."sonarr.${domain}" = {
+    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
+    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
+  };
+  services.nginx.virtualHosts."radarr.${domain}" = {
+    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
+    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
+  };
+  services.nginx.virtualHosts."prowlarr.${domain}" = {
+    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
+    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
+  };
+  services.nginx.virtualHosts."qbittorrent.${domain}" = {
+    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
+    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
   };
 
   # force disable catchall to route it through the jellyfin virualHost instead
@@ -317,6 +358,7 @@ in
 
   networking.firewall.allowedTCPPorts = [
     80 # nginx
+    443
   ];
 
   # Not interested in flaresolverr Cloudflare-challenge timeouts as errors

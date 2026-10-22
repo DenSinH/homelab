@@ -11,6 +11,21 @@ in
 {
   homelab.hardenedServices = [ "garage-webui" ];
 
+  homelab.selfSignedCerts.garage-webui.hostName = "garage-admin.home";
+
+  # garage-webui itself binds 0.0.0.0:3909 with no TLS of its own; nginx (see
+  # network.nix for the main garage.home vhost) terminates TLS and proxies in.
+  services.nginx.virtualHosts."garage-admin.home" = {
+    forceSSL = true;
+    sslCertificate = config.homelab.selfSignedCerts.garage-webui.certFile;
+    sslCertificateKey = config.homelab.selfSignedCerts.garage-webui.keyFile;
+
+    locations."/" = {
+      proxyPass = "http://127.0.0.1:3909";
+      proxyWebsockets = true;
+    };
+  };
+
   # this insecure package is used for the webui package
   nixpkgs.config.permittedInsecurePackages = [
     "pnpm-9.15.9"

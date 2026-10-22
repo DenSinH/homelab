@@ -34,9 +34,9 @@
 
   services.immich = {
     enable = true;
-    host = "0.0.0.0";
+    host = "127.0.0.1"; # nginx in front now terminates TLS and proxies in
     # port = 80;  # default: 2283
-    openFirewall = true;
+    openFirewall = false;
     mediaLocation = "/mnt/photos";
 
     # These are settings I set in the past, I figured I'd just re-use them
@@ -64,6 +64,35 @@
       "/dev/dri/renderD128"
     ];
   };
+
+  homelab.selfSignedCerts.immich = {
+    hostName = "immich.home";
+    extraSANs = [ "DNS:immich.vpn" ];
+  };
+
+  services.nginx = {
+    enable = true;
+
+    virtualHosts."immich.home" = {
+      forceSSL = true;
+      sslCertificate = config.homelab.selfSignedCerts.immich.certFile;
+      sslCertificateKey = config.homelab.selfSignedCerts.immich.keyFile;
+      serverAliases = [ "immich.vpn" ];
+
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString config.services.immich.port}";
+        proxyWebsockets = true;
+        extraConfig = ''
+          client_max_body_size 0;
+        '';
+      };
+    };
+  };
+
+  networking.firewall.allowedTCPPorts = [
+    80
+    443
+  ];
 
   systemd.services.immich-server = {
     # wait for mount to be available

@@ -46,8 +46,16 @@
     ];
   };
 
+  homelab.selfSignedCerts.dawarich = {
+    hostName = "dawarich.home";
+    extraSANs = [ "DNS:dawarich.vpn" ];
+  };
+
   # expose on vpn as well
   services.nginx.virtualHosts."dawarich.home" = {
+    forceSSL = true;
+    sslCertificate = config.homelab.selfSignedCerts.dawarich.certFile;
+    sslCertificateKey = config.homelab.selfSignedCerts.dawarich.keyFile;
     serverAliases = [
       "dawarich.vpn"
     ];
@@ -55,6 +63,9 @@
 
   # open firewall to nginx
   networking.firewall = {
-    allowedTCPPorts = [ 80 ];
+    allowedTCPPorts = [
+      80
+      443
+    ];
   };
 }

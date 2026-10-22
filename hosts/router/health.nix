@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   network = import ./network.nix { inherit lib; };
@@ -6,12 +11,28 @@ let
 
   lanNetwork = "${lanSubnet}.0/24";
 
-  # Keep in sync with the nftables input-chain rule in router.nix that
-  # allows this port from lanIf.
-  webPort = 80;
+  # Loopback-only now; nginx (below) is the LAN-facing side on 80/443.
+  # Keep in sync with the nftables input-chain rule in router.nix.
+  webPort = 8080;
 in
 {
   homelab.hardenedServices = [ "darkstat" ];
+
+  homelab.selfSignedCerts.darkstat.hostName = "router.home";
+
+  services.nginx = {
+    enable = true;
+
+    virtualHosts."router.home" = {
+      forceSSL = true;
+      sslCertificate = config.homelab.selfSignedCerts.darkstat.certFile;
+      sslCertificateKey = config.homelab.selfSignedCerts.darkstat.keyFile;
+
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString webPort}";
+      };
+    };
+  };
 
   # darkstat: lightweight passive traffic monitor - shows currently active
   # LAN hosts and per-host traffic on a small built-in web dashboard.
@@ -38,7 +59,7 @@ in
         "RestrictNamespaces"
       ]
       // {
-        ExecStart = "${pkgs.darkstat}/bin/darkstat --no-daemon -i ${lanIf} -l ${lanNetwork} --local-only -p ${toString webPort} -b 0.0.0.0 --chroot /var/empty --user nobody";
+        ExecStart = "${pkgs.darkstat}/bin/darkstat --no-daemon -i ${lanIf} -l ${lanNetwork} --local-only -p ${toString webPort} -b 127.0.0.1 --chroot /var/empty --user nobody";
         Restart = "on-failure";
         RestartSec = 5;
 
@@ -46,9 +67,9 @@ in
         Group = "root";
         PrivateDevices = false; # needs the NIC for packet capture
 
-        # The dashboard is deliberately LAN-only.
+        # The dashboard is only reachable through nginx now (loopback).
         IPAddressDeny = "any";
-        IPAddressAllow = [ lanNetwork ];
+        IPAddressAllow = [ "127.0.0.1" ];
       };
   };
 }

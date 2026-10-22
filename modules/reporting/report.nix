@@ -323,7 +323,9 @@ in
     };
   };
 
-  # --- serve the reports over HTTP ----------------------------------------
+  homelab.selfSignedCerts.reporting.hostName = "reporting.home";
+
+  # --- serve the reports over HTTPS (redirected from HTTP) -----------------
   # - /             -> index.html (list of all reports, newest first)
   # - /latest.html  -> newest report (updated after every run)
   # - /report-*.html -> individual reports
@@ -331,6 +333,9 @@ in
     enable = true;
 
     virtualHosts."_" = {
+      forceSSL = true;
+      sslCertificate = config.homelab.selfSignedCerts.reporting.certFile;
+      sslCertificateKey = config.homelab.selfSignedCerts.reporting.keyFile;
       root = reportsDir;
       locations."/" = {
         index = "index.html";
@@ -339,5 +344,8 @@ in
     };
   };
 
-  networking.firewall.allowedTCPPorts = [ 80 ];
+  networking.firewall.allowedTCPPorts = [
+    80
+    443
+  ];
 }

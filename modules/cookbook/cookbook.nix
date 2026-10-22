@@ -159,10 +159,19 @@ in
     '';
   };
 
+  homelab.selfSignedCerts.cookbook = {
+    hostName = "cookbook.home";
+    extraSANs = [ "DNS:chef.dennishilhorst.nl" ];
+  };
+
   services.nginx = {
     enable = true;
 
     virtualHosts.default = {
+      forceSSL = true;
+      sslCertificate = config.homelab.selfSignedCerts.cookbook.certFile;
+      sslCertificateKey = config.homelab.selfSignedCerts.cookbook.keyFile;
+
       locations."/" = {
         proxyPass = "http://127.0.0.1:${builtins.toString port}";
         proxyWebsockets = true;
@@ -182,6 +191,7 @@ in
   networking.firewall = {
     allowedTCPPorts = [
       80
+      443
     ];
   };
 }
