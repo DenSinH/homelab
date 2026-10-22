@@ -165,63 +165,12 @@ let
     python = reportPython;
   };
 
-  # ---------------------------------------------------------------------------
-  # Hardened systemd services
-  # ---------------------------------------------------------------------------
-  #
-  # Common sandboxing for all three reporting services.  They all run as the
-  # unprivileged `reporting` user and only ever touch /var/lib/reports.
-  #
-  # A quick way to check the result on a running system:
-  #   systemd-analyze security daily-report.service
-  #   systemd-analyze security reports-index.service
-  #   systemd-analyze security reports-cleanup.service
+  # Hardened systemd services, built on lib.hardenedService. All three run as
+  # the unprivileged `reporting` user and only touch /var/lib/reports.
 
-  commonHardening = {
-    # --- Privilege restrictions ------------------------------------------
-    NoNewPrivileges = true; # cannot gain privileges via setuid/setgid
-    RestrictSUIDSGID = true; # cannot create setuid/setgid files
-    LockPersonality = true; # cannot change execution domain
-    RestrictRealtime = true; # cannot use realtime scheduling
-    RestrictNamespaces = true; # cannot unshare namespaces
-    RemoveIPC = true; # no shared IPC objects after exit
-    PrivateUsers = true; # own user namespace
-
-    # --- Filesystem restrictions -----------------------------------------
-    ProtectSystem = "strict"; # / is read-only except ReadWritePaths
-    ProtectHome = true; # /home, /root, /run/user are invisible
-    PrivateTmp = true; # own /tmp and /var/tmp
-    PrivateDevices = true; # no access to physical devices
-    ProtectProc = "invisible"; # /proc hides other users' processes
-    ProcSubset = "pid"; # only own PIDs visible under /proc
-
-    # --- Kernel / hardware restrictions ----------------------------------
-    ProtectClock = true; # cannot set the system clock
-    ProtectHostname = true; # cannot change hostname
-    ProtectKernelLogs = true; # cannot read the kernel log
-    ProtectKernelModules = true; # cannot load/unload modules
-    ProtectKernelTunables = true; # cannot write sysctl/kernel tunables
-    ProtectControlGroups = true; # cgroup hierarchy is read-only
-
-    # --- Memory / syscall restrictions -----------------------------------
-    MemoryDenyWriteExecute = true; # no W+X mappings (blocks many exploits)
-    SystemCallArchitectures = "native";
-    SystemCallFilter = [
-      "@system-service" # a reasonable base for services
-      "~@privileged" # deny privileged syscalls
-      "~@resources" # deny resource-setting syscalls
-      "~@obsolete" # deny obsolete syscalls
-    ];
-    CapabilityBoundingSet = [ "" ]; # drop all capabilities
-
-    # --- Device / mount restrictions -------------------------------------
-    DevicePolicy = "closed"; # no device access except /dev/null etc.
-    PrivateMounts = true; # own mount namespace
-  };
-
-  # Networking differs per service, so it is not in commonHardening.
-  reportNetwork = {
-    # report-now needs to reach InfluxDB, Loki, and the SMTP server.
+  # report-now needs to reach InfluxDB, Loki, and the SMTP server.
+  reportHardening = lib.hardenedService // {
+    ReadWritePaths = [ reportsDir ];
     RestrictAddressFamilies = [
       "AF_INET"
       "AF_INET6"
@@ -229,14 +178,20 @@ let
     ];
   };
 
-  indexNetwork = {
-    # report-index only reads local files and writes index.html.  It does not
-    # talk to the network at all, so we allow only AF_UNIX (for syslog) and
-    # explicitly deny everything else.
+  # report-index/cleanup only read/write local files; no network needed at
+  # all, so only AF_UNIX (for syslog) is allowed.
+  indexHardening = lib.hardenedService // {
+    ReadWritePaths = [ reportsDir ];
     RestrictAddressFamilies = [ "AF_UNIX" ];
   };
 in
 {
+  homelab.hardenedServices = [
+    "daily-report"
+    "reports-index"
+    "reports-cleanup"
+  ];
+
   environment.systemPackages = [
     sendMail
     reportNow
@@ -286,19 +241,15 @@ in
     description = "Daily homelab e-mail report";
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
-    serviceConfig =
-      commonHardening
-      // reportNetwork
-      // {
-        Type = "oneshot";
-        User = "reporting";
-        Group = "reporting";
-        StateDirectory = "reports";
-        StateDirectoryMode = "0750";
-        UMask = "0027";
-        ReadWritePaths = [ reportsDir ]; # the only writable path
-        ExecStart = "${reportNow}/bin/report-now";
-      };
+    serviceConfig = reportHardening // {
+      Type = "oneshot";
+      User = "reporting";
+      Group = "reporting";
+      StateDirectory = "reports";
+      StateDirectoryMode = "0750";
+      UMask = "0027";
+      ExecStart = "${reportNow}/bin/report-now";
+    };
   };
 
   systemd.timers.daily-report = {
@@ -313,20 +264,16 @@ in
   # Bootstrap / refresh index.html at boot, before nginx needs to serve it.
   systemd.services.reports-index = {
     description = "Regenerate the homelab report index";
-    serviceConfig =
-      commonHardening
-      // indexNetwork
-      // {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        User = "reporting";
-        Group = "reporting";
-        StateDirectory = "reports";
-        StateDirectoryMode = "0750";
-        UMask = "0027";
-        ReadWritePaths = [ reportsDir ];
-        ExecStart = "${reportIndex}/bin/report-index";
-      };
+    serviceConfig = indexHardening // {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      User = "reporting";
+      Group = "reporting";
+      StateDirectory = "reports";
+      StateDirectoryMode = "0750";
+      UMask = "0027";
+      ExecStart = "${reportIndex}/bin/report-index";
+    };
   };
 
   # nginx pulls in the index service, no sandbox fight, no ownership dance.
@@ -339,37 +286,33 @@ in
   systemd.services.reports-cleanup = {
     description = "Prune homelab reports older than 30 days";
     after = [ "reports-index.service" ];
-    serviceConfig =
-      commonHardening
-      // indexNetwork
-      // {
-        Type = "oneshot";
-        User = "reporting";
-        Group = "reporting";
-        StateDirectory = "reports";
-        StateDirectoryMode = "0750";
-        UMask = "0027";
-        ReadWritePaths = [ reportsDir ];
-        ExecStart = pkgs.writeShellScript "reports-cleanup" ''
-          set -euo pipefail
-          export PATH=${
-            lib.makeBinPath [
-              pkgs.findutils
-              pkgs.coreutils
-            ]
-          }
-          cd "$STATE_DIRECTORY"
-          find . -maxdepth 1 -type f \( -name 'report-*.html' -o -name 'report-*.txt' \) -mtime +30 -delete
-          newest=$(find . -maxdepth 1 -type f -name 'report-*.html' | sort | tail -n1)
-          if [ -n "$newest" ]; then
-            ln -sfn "$newest" latest.html
-          else
-            rm -f latest.html
-          fi
-        '';
-        # refresh the index so it no longer lists the deleted reports
-        ExecStartPost = "${reportIndex}/bin/report-index";
-      };
+    serviceConfig = indexHardening // {
+      Type = "oneshot";
+      User = "reporting";
+      Group = "reporting";
+      StateDirectory = "reports";
+      StateDirectoryMode = "0750";
+      UMask = "0027";
+      ExecStart = pkgs.writeShellScript "reports-cleanup" ''
+        set -euo pipefail
+        export PATH=${
+          lib.makeBinPath [
+            pkgs.findutils
+            pkgs.coreutils
+          ]
+        }
+        cd "$STATE_DIRECTORY"
+        find . -maxdepth 1 -type f \( -name 'report-*.html' -o -name 'report-*.txt' \) -mtime +30 -delete
+        newest=$(find . -maxdepth 1 -type f -name 'report-*.html' | sort | tail -n1)
+        if [ -n "$newest" ]; then
+          ln -sfn "$newest" latest.html
+        else
+          rm -f latest.html
+        fi
+      '';
+      # refresh the index so it no longer lists the deleted reports
+      ExecStartPost = "${reportIndex}/bin/report-index";
+    };
   };
 
   systemd.timers.reports-cleanup = {

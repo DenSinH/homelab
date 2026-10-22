@@ -9,6 +9,8 @@ let
   cfg = import ./common.nix { inherit pkgs; };
 in
 {
+  homelab.hardenedServices = [ "garage-provision" ];
+
   sops.secrets = {
     "cookbook/masterchef-access-key" = {
       sopsFile = ../../secrets/cookbook-s3.yaml;
@@ -45,64 +47,39 @@ in
     after = [ "garage.service" ];
     requires = [ "garage.service" ];
 
-    serviceConfig = {
-      Type = "oneshot";
+    serviceConfig =
+      # PrivateUsers would remap the BindReadOnlyPaths owner (garage's own
+      # DynamicUser) to "nobody", breaking read access.
+      removeAttrs lib.hardenedService [ "PrivateUsers" ] // {
+        Type = "oneshot";
 
-      Environment = [
-        "GARAGE_RPC_ADDR=127.0.0.1:${builtins.toString cfg.s3_rpc_bind_port}"
-      ];
-      EnvironmentFile = [
-        config.sops.templates."garage.env".path
-        config.sops.templates."garage-masterchef.env".path
-      ];
+        Environment = [
+          "GARAGE_RPC_ADDR=127.0.0.1:${builtins.toString cfg.s3_rpc_bind_port}"
+        ];
+        EnvironmentFile = [
+          config.sops.templates."garage.env".path
+          config.sops.templates."garage-masterchef.env".path
+        ];
 
-      # Privilege
-      NoNewPrivileges = true;
-      CapabilityBoundingSet = "";
-      AmbientCapabilities = "";
+        BindReadOnlyPaths = [
+          "/var/lib/private/garage/meta:/var/lib/garage/meta"
+        ];
 
-      # Filesystem
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateTmp = true;
-      PrivateDevices = true;
-      BindReadOnlyPaths = [
-        "/var/lib/private/garage/meta:/var/lib/garage/meta"
-      ];
+        # Don't hang indefinitely if Garage's RPC endpoint is broken.
+        TimeoutStartSec = "2min";
+        TimeoutStopSec = "10s";
 
-      # Kernel / namespace
-      ProtectKernelTunables = true;
-      ProtectKernelModules = true;
-      ProtectKernelLogs = true;
-      ProtectControlGroups = true;
-      ProtectHostname = true;
-
-      LockPersonality = true;
-      RestrictSUIDSGID = true;
-      RestrictRealtime = true;
-      RestrictNamespaces = true;
-
-      SystemCallArchitectures = "native";
-
-      # No core dumps containing credentials.
-      LimitCORE = 0;
-
-      # Don't hang indefinitely if Garage's RPC endpoint is broken.
-      TimeoutStartSec = "2min";
-      TimeoutStopSec = "10s";
-
-      # Network
-      # Garage RPC is local TCP only.
-      RestrictAddressFamilies = [
-        "AF_INET"
-        "AF_INET6"
-      ];
-
-      IPAddressAllow = [
-        "127.0.0.1"
-        "::1"
-      ];
-    };
+        # Garage RPC is local TCP only.
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+        ];
+        IPAddressDeny = "any";
+        IPAddressAllow = [
+          "127.0.0.1"
+          "::1"
+        ];
+      };
 
     path = [
       cfg.garagePackage

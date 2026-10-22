@@ -9,6 +9,8 @@ let
   cfg = import ./common.nix { inherit pkgs; };
 in
 {
+  homelab.hardenedServices = [ "garage-webui" ];
+
   # this insecure package is used for the webui package
   nixpkgs.config.permittedInsecurePackages = [
     "pnpm-9.15.9"
@@ -41,7 +43,7 @@ in
     after = [ "garage.service" ];
     requires = [ "garage.service" ];
 
-    serviceConfig = {
+    serviceConfig = lib.hardenedService // {
       ExecStart = "${pkgs.garage-webui}/bin/garage-webui";
 
       EnvironmentFile = config.sops.templates."garage-webui.env".path;
@@ -49,45 +51,18 @@ in
       Restart = "on-failure";
       RestartSec = 5;
 
-      # Identity / privilege
+      # Identity
       DynamicUser = true;
       SupplementaryGroups = [
         "garage-webui-secrets"
         "garage-secrets"
       ];
-      NoNewPrivileges = true;
-      CapabilityBoundingSet = "";
-      AmbientCapabilities = "";
 
-      # Filesystem
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateTmp = true;
-      PrivateDevices = true;
-
-      # Kernel / host isolation
-      ProtectKernelTunables = true;
-      ProtectKernelModules = true;
-      ProtectKernelLogs = true;
-      ProtectControlGroups = true;
-      ProtectHostname = true;
-
-      LockPersonality = true;
-      RestrictSUIDSGID = true;
-      RestrictRealtime = true;
-      RestrictNamespaces = true;
-
-      SystemCallArchitectures = "native";
-
-      # No useful reason for this process to dump its memory.
-      LimitCORE = 0;
-
-      # Network
+      # Network: admin API + S3 API are both on localhost only.
       RestrictAddressFamilies = [
         "AF_INET"
         "AF_INET6"
       ];
-
       IPAddressDeny = "any";
       IPAddressAllow = [
         "127.0.0.1"

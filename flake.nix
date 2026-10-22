@@ -373,6 +373,7 @@
           router = router;
           storage = storage;
           backup = backup;
+          hardenedService = import ./lib/hardenedService.nix;
           admin = {
             ssh_keys = [
               # master key
@@ -472,6 +473,11 @@
           config-proxmox = {
             type = "app";
             program = toString (callScript ./scripts/config-proxmox.nix);
+          };
+
+          security-report = {
+            type = "app";
+            program = toString (callScript ./scripts/security-report.nix);
           };
         };
 

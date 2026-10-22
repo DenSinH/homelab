@@ -103,6 +103,8 @@ let
   ];
 in
 {
+  homelab.hardenedServices = [ "pihole-regex-allowlist" ];
+
   services.pihole-web = {
     enable = true;
     ports = [
@@ -148,51 +150,26 @@ in
     after = [ "pihole-ftl.service" ];
     requires = [ "pihole-ftl.service" ];
 
-    serviceConfig = {
+    serviceConfig = lib.hardenedService // {
       Type = "oneshot";
       RemainAfterExit = true;
 
       User = config.services.pihole-ftl.user;
       Group = config.services.pihole-ftl.group;
 
-      # Privilege / filesystem hardening
-      NoNewPrivileges = true;
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateTmp = true;
-      PrivateDevices = true;
-
-      # Kernel / namespace hardening
-      ProtectKernelTunables = true;
-      ProtectKernelModules = true;
-      ProtectKernelLogs = true;
-      ProtectControlGroups = true;
-      ProtectHostname = true;
-      LockPersonality = true;
-      RestrictSUIDSGID = true;
-      RestrictRealtime = true;
-      MemoryDenyWriteExecute = true;
-
-      # Don't allow the service to create additional namespaces.
-      RestrictNamespaces = true;
-
-      # Only native syscalls for this architecture.
-      SystemCallArchitectures = "native";
-
-      # No need for raw/network administration capabilities.
-      CapabilityBoundingSet = "";
-      AmbientCapabilities = "";
-
       # Make the filesystem explicitly read-only except for Pi-hole state.
-      #
       # Pi-hole's database/configuration lives here.
       ReadWritePaths = [
         "/etc/pihole"
         "/var/lib/pihole"
       ];
 
-      # Don't leave core dumps containing potentially useful information.
-      LimitCORE = 0;
+      # pihole-FTL is reached over its local Unix socket / loopback API.
+      RestrictAddressFamilies = [
+        "AF_UNIX"
+        "AF_INET"
+        "AF_INET6"
+      ];
     };
 
     script = ''

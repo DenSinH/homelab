@@ -28,6 +28,8 @@ in
     ../fail2ban.nix
   ];
 
+  homelab.hardenedServices = [ "cookbook" ];
+
   sops.defaultSopsFile = ../../secrets/cookbook.yaml;
   sops.secrets = {
     # S3 secrets (shared with garage)
@@ -137,42 +139,19 @@ in
 
       Restart = "on-failure";
       RestartSec = 5;
-
-      # Privilege / capability hardening
-      NoNewPrivileges = true;
-      CapabilityBoundingSet = "";
-      AmbientCapabilities = "";
-
-      # Filesystem hardening
-      ProtectSystem = "strict";
-      ProtectHome = true;
-
-      PrivateTmp = true;
-      PrivateDevices = true;
-
+    }
+    // lib.hardenedService
+    // {
       # StateDirectory remains writable despite ProtectSystem=strict.
       ReadWritePaths = [
         "/var/lib/cookbook"
       ];
 
-      # Kernel / namespace hardening
-      ProtectKernelTunables = true;
-      ProtectKernelModules = true;
-      ProtectKernelLogs = true;
-      ProtectControlGroups = true;
-      ProtectHostname = true;
-
-      LockPersonality = true;
-      RestrictSUIDSGID = true;
-      RestrictRealtime = true;
-      RestrictNamespaces = true;
-
-      MemoryDenyWriteExecute = true;
-      SystemCallArchitectures = "native";
-
-      # Misc
-      PrivateMounts = true;
-      LimitCORE = 0;
+      # Needs to reach S3 (garage), GitHub, OpenAI, Instagram.
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+      ];
 
       # Don't let a broken dependency hang shutdown forever.
       TimeoutStartSec = "5min";

@@ -1,9 +1,16 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   usbip = config.boot.kernelPackages.usbip;
 in
 {
+  homelab.hardenedServices = [ "usbipd" ];
+
   # USB/IP: exports the zigbee dongle (plugged directly into the router)
   # over the network, so e.g. Home Assistant can use it without a USB
   # extension cord + passthrough into a VM/LXC.
@@ -20,51 +27,42 @@ in
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
 
-    serviceConfig = {
-      ExecStart = "${usbip}/bin/usbipd";
-      Restart = "on-failure";
+    serviceConfig =
+      # usbipd needs full root to bind the USB device to the usbip-host
+      # driver and export it over the network.
+      removeAttrs lib.hardenedService [
+        "CapabilityBoundingSet"
+        "AmbientCapabilities"
+        "PrivateUsers"
+        "DevicePolicy"
+        "SystemCallFilter"
+      ]
+      // {
+        ExecStart = "${usbip}/bin/usbipd";
+        Restart = "on-failure";
 
-      # suppress messages like
-      # usbipd: info: connection from 192.168.50.31:34106
-      LogLevelMax = "notice";
+        # suppress messages like
+        # usbipd: info: connection from 192.168.50.31:34106
+        LogLevelMax = "notice";
 
-      RestartSec = 5;
+        RestartSec = 5;
 
-      # Privilege
-      User = "root";
-      Group = "root";
+        User = "root";
+        Group = "root";
 
-      # Filesystem
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateTmp = true;
-      PrivateDevices = false;
+        PrivateDevices = false; # needs the USB device
+        ProtectKernelModules = false; # needs to load/bind usbip-host
 
-      # Host/kernel isolation
-      ProtectKernelTunables = true;
-      ProtectKernelModules = false;
-      ProtectKernelLogs = true;
-      ProtectControlGroups = true;
-      ProtectHostname = true;
+        # USB/IP needs networking.
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+        ];
 
-      LockPersonality = true;
-      RestrictSUIDSGID = true;
-      RestrictRealtime = true;
-      RestrictNamespaces = true;
-      SystemCallArchitectures = "native";
-
-      LimitCORE = 0;
-
-      # USB/IP needs networking.
-      RestrictAddressFamilies = [
-        "AF_INET"
-        "AF_INET6"
-      ];
-
-      # Only allow the LAN to connect to usbipd.
-      IPAddressDeny = "any";
-      IPAddressAllow = "192.168.50.0/24";
-    };
+        # Only allow the LAN to connect to usbipd.
+        IPAddressDeny = "any";
+        IPAddressAllow = "192.168.50.0/24";
+      };
   };
 
   # Auto-bind the dongle (Silicon Labs CP210x UART bridge, 10c4:ea60) to the
