@@ -6,10 +6,6 @@
 }:
 
 {
-  imports = [
-    ../fail2ban.nix
-  ];
-
   services.gatus = {
     enable = true;
     openFirewall = false;

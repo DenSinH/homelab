@@ -10,7 +10,7 @@ let
     repo = "blog";
     rev = "refs/heads/main";
     fetchSubmodules = true; # theme submodule
-    hash = "sha256-RLaSgK4aUaNWwgpdp465CBffK21LIsI9r84vqk/RNW4=";
+    hash = "sha256-YyZKoAPdwqwgz907g7hXP5jzC+6d66qP/58ec8B65E4=";
   };
 
   blog = pkgs.stdenvNoCC.mkDerivation {
@@ -42,10 +42,6 @@ let
   };
 in
 {
-  imports = [
-    ./fail2ban.nix
-  ];
-
   services.nginx = {
     enable = true;
 

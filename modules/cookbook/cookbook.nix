@@ -24,10 +24,6 @@ let
   port = 8000;
 in
 {
-  imports = [
-    ../fail2ban.nix
-  ];
-
   homelab.hardenedServices = [ "cookbook" ];
 
   sops.defaultSopsFile = ../../secrets/cookbook.yaml;

@@ -13,10 +13,6 @@ let
   ];
 in
 {
-  imports = [
-    ../fail2ban.nix
-  ];
-
   # Reverse proxy / firewall config for the garage instance
   services.nginx = {
     enable = true;

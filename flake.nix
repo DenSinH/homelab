@@ -144,7 +144,7 @@
           stateVersion = "26.05";
 
           modules = [
-            ./modules/cloudflared.nix
+            ./modules/cloudflared
           ];
         };
 

@@ -82,6 +82,8 @@ let
   proxyListen = "bind 127.0.0.1";
 in
 {
+  imports = [ ./fail2ban.nix ];
+
   # https://search.nixos.org/options?channel=26.05&query=cloudflared
   # For initialization:
   # https://wiki.nixos.org/wiki/Cloudflared
@@ -95,7 +97,7 @@ in
   #
   # These last 2 steps do NOT need to be done when setting up on a new host
   # though I have not copied over the cert.pem file
-  sops.defaultSopsFile = ../secrets/cloudflared.yaml;
+  sops.defaultSopsFile = ../../secrets/cloudflared.yaml;
   sops.secrets = {
     "cloudflared/tunnel-creds" = { };
   };
@@ -151,7 +153,7 @@ in
       (lib.mapAttrs' (
         host: proxy:
         lib.nameValuePair "http://${host}:${toString proxyPort}" {
-          logFormat = "output stderr"; # -> journald, read by CrowdSec
+          logFormat = "output stderr"; # -> journald, read by CrowdSec and fail2ban
           extraConfig = ''
             ${proxyListen}
             route {
@@ -189,21 +191,7 @@ in
       StateDirectoryMode = "0700";
       RuntimeDirectoryMode = "0700";
     };
-    script = ''
-      cscli=/run/current-system/sw/bin/cscli
-      key=/var/lib/crowdsec-caddy-bouncer/key
-      [ -s "$key" ] || (umask 077; openssl rand -hex 32 > "$key")
-
-      for i in $(seq 1 30); do
-        "$cscli" lapi status >/dev/null 2>&1 && break
-        sleep 2
-      done
-
-      "$cscli" bouncers delete caddy >/dev/null 2>&1 || true
-      "$cscli" bouncers add caddy -k "$(cat "$key")" >/dev/null
-
-      (umask 077; echo "CROWDSEC_API_KEY=$(cat "$key")" > /run/crowdsec-caddy-bouncer/env)
-    '';
+    script = builtins.readFile ./register-caddy-bouncer.sh;
   };
 
   systemd.services.caddy = {
