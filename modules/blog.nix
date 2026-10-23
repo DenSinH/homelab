@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   lib,
   ...
@@ -46,6 +45,7 @@ in
   homelab.selfSignedCerts.blog = {
     hostName = "blog.home";
     extraSANs = [ "DNS:blog.dennishilhorst.nl" ];
+    vhosts = [ "default" ];
   };
 
   services.nginx = {
@@ -53,9 +53,6 @@ in
 
     virtualHosts.default = {
       default = true;
-      forceSSL = true;
-      sslCertificate = config.homelab.selfSignedCerts.blog.certFile;
-      sslCertificateKey = config.homelab.selfSignedCerts.blog.keyFile;
       root = blog;
 
       locations."/" = {

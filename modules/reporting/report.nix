@@ -323,7 +323,10 @@ in
     };
   };
 
-  homelab.selfSignedCerts.reporting.hostName = "reporting.home";
+  homelab.selfSignedCerts.reporting = {
+    hostName = "reporting.home";
+    vhosts = [ "_" ];
+  };
 
   # --- serve the reports over HTTPS (redirected from HTTP) -----------------
   # - /             -> index.html (list of all reports, newest first)
@@ -333,9 +336,6 @@ in
     enable = true;
 
     virtualHosts."_" = {
-      forceSSL = true;
-      sslCertificate = config.homelab.selfSignedCerts.reporting.certFile;
-      sslCertificateKey = config.homelab.selfSignedCerts.reporting.keyFile;
       root = reportsDir;
       locations."/" = {
         index = "index.html";

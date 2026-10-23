@@ -321,35 +321,23 @@ in
       "DNS:nixflix.home"
       "DNS:nixflix.vpn"
     ];
+    vhosts = [
+      "jellyfin.${domain}"
+      "sonarr.${domain}"
+      "radarr.${domain}"
+      "prowlarr.${domain}"
+      "qbittorrent.${domain}"
+    ];
+    # nixflix.nginx.forceSSL above already sets forceSSL on all of these.
+    forceSSL = false;
   };
 
   # add root domain mapping to jellyfin
   services.nginx.virtualHosts."jellyfin.${domain}" = {
     serverAliases = [ domain ];
-    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
-    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
 
     # enable access through IP directly in case of DNS failure
     default = true;
-  };
-
-  # every other nixflix-managed vhost (forceSSL is already set via
-  # nixflix.nginx.forceSSL above) needs the same cert pointed at it.
-  services.nginx.virtualHosts."sonarr.${domain}" = {
-    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
-    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
-  };
-  services.nginx.virtualHosts."radarr.${domain}" = {
-    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
-    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
-  };
-  services.nginx.virtualHosts."prowlarr.${domain}" = {
-    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
-    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
-  };
-  services.nginx.virtualHosts."qbittorrent.${domain}" = {
-    sslCertificate = config.homelab.selfSignedCerts.nixflix.certFile;
-    sslCertificateKey = config.homelab.selfSignedCerts.nixflix.keyFile;
   };
 
   # force disable catchall to route it through the jellyfin virualHost instead

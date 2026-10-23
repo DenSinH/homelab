@@ -162,16 +162,13 @@ in
   homelab.selfSignedCerts.cookbook = {
     hostName = "cookbook.home";
     extraSANs = [ "DNS:chef.dennishilhorst.nl" ];
+    vhosts = [ "default" ];
   };
 
   services.nginx = {
     enable = true;
 
     virtualHosts.default = {
-      forceSSL = true;
-      sslCertificate = config.homelab.selfSignedCerts.cookbook.certFile;
-      sslCertificateKey = config.homelab.selfSignedCerts.cookbook.keyFile;
-
       locations."/" = {
         proxyPass = "http://127.0.0.1:${builtins.toString port}";
         proxyWebsockets = true;

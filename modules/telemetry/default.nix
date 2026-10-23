@@ -458,6 +458,11 @@ in
       "DNS:loki.telemetry.home"
       "DNS:loki.telemetry.vpn"
     ];
+    vhosts = [
+      "grafana.telemetry.home"
+      "influxdb.telemetry.home"
+      "loki.telemetry.home"
+    ];
   };
 
   services.nginx = {
@@ -466,9 +471,6 @@ in
     virtualHosts =
       let
         mkVhost = port: {
-          forceSSL = true;
-          sslCertificate = config.homelab.selfSignedCerts.telemetry.certFile;
-          sslCertificateKey = config.homelab.selfSignedCerts.telemetry.keyFile;
           locations."/" = {
             proxyPass = "http://127.0.0.1:${toString port}";
             proxyWebsockets = true;

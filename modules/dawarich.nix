@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   lib,
   ...
@@ -49,13 +48,11 @@
   homelab.selfSignedCerts.dawarich = {
     hostName = "dawarich.home";
     extraSANs = [ "DNS:dawarich.vpn" ];
+    vhosts = [ "dawarich.home" ];
   };
 
   # expose on vpn as well
   services.nginx.virtualHosts."dawarich.home" = {
-    forceSSL = true;
-    sslCertificate = config.homelab.selfSignedCerts.dawarich.certFile;
-    sslCertificateKey = config.homelab.selfSignedCerts.dawarich.keyFile;
     serverAliases = [
       "dawarich.vpn"
     ];

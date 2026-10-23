@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   lib,
   ...
@@ -18,16 +17,15 @@ in
 {
   homelab.hardenedServices = [ "darkstat" ];
 
-  homelab.selfSignedCerts.darkstat.hostName = "router.home";
+  homelab.selfSignedCerts.darkstat = {
+    hostName = "router.home";
+    vhosts = [ "router.home" ];
+  };
 
   services.nginx = {
     enable = true;
 
     virtualHosts."router.home" = {
-      forceSSL = true;
-      sslCertificate = config.homelab.selfSignedCerts.darkstat.certFile;
-      sslCertificateKey = config.homelab.selfSignedCerts.darkstat.keyFile;
-
       locations."/" = {
         proxyPass = "http://127.0.0.1:${toString webPort}";
       };

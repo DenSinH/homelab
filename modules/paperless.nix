@@ -38,11 +38,10 @@ in
   homelab.selfSignedCerts.paperless = {
     hostName = "paperless.home";
     extraSANs = [ "DNS:paperless.vpn" ];
+    vhosts = [ "paperless.home" ];
   };
 
   services.nginx.virtualHosts."paperless.home" = {
-    sslCertificate = config.homelab.selfSignedCerts.paperless.certFile;
-    sslCertificateKey = config.homelab.selfSignedCerts.paperless.keyFile;
     serverAliases = [ "paperless.vpn" ];
     extraConfig = "client_max_body_size 50M;";
   };

@@ -1,9 +1,4 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+{ pkgs, ... }:
 
 {
   services.gatus = {
@@ -24,16 +19,13 @@
       "DNS:status.home"
       "DNS:status.dennishilhorst.nl"
     ];
+    vhosts = [ "default" ];
   };
 
   services.nginx = {
     enable = true;
 
     virtualHosts.default = {
-      forceSSL = true;
-      sslCertificate = config.homelab.selfSignedCerts.gatus.certFile;
-      sslCertificateKey = config.homelab.selfSignedCerts.gatus.keyFile;
-
       locations."/" = {
         proxyPass = "http://127.0.0.1:8080";
         proxyWebsockets = true;

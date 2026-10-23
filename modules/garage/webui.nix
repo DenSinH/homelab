@@ -11,7 +11,13 @@ in
 {
   homelab.hardenedServices = [ "garage-webui" ];
 
-  homelab.selfSignedCerts.garage-webui.hostName = "garage-admin.home";
+  homelab.selfSignedCerts.garage-webui = {
+    hostName = "garage-admin.home";
+    vhosts = [ "garage-admin.home" ];
+    # forceSSL's automatic redirect assumes the default 443 port, which is
+    # wrong here (we're on 3911) - redirect manually instead, below.
+    forceSSL = false;
+  };
 
   # garage-webui itself binds 0.0.0.0:3909 with no TLS of its own (nginx
   # proxies to it below, so 3909/3911 here are nginx's OWN external ports -
@@ -32,11 +38,7 @@ in
         ssl = true;
       }
     ];
-    sslCertificate = config.homelab.selfSignedCerts.garage-webui.certFile;
-    sslCertificateKey = config.homelab.selfSignedCerts.garage-webui.keyFile;
 
-    # forceSSL's automatic redirect assumes the default 443 port, which is
-    # wrong here (we're on 3911) - redirect manually instead.
     locations."/" = {
       proxyPass = "http://127.0.0.1:3909";
       proxyWebsockets = true;

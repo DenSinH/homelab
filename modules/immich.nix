@@ -68,15 +68,13 @@
   homelab.selfSignedCerts.immich = {
     hostName = "immich.home";
     extraSANs = [ "DNS:immich.vpn" ];
+    vhosts = [ "immich.home" ];
   };
 
   services.nginx = {
     enable = true;
 
     virtualHosts."immich.home" = {
-      forceSSL = true;
-      sslCertificate = config.homelab.selfSignedCerts.immich.certFile;
-      sslCertificateKey = config.homelab.selfSignedCerts.immich.keyFile;
       serverAliases = [ "immich.vpn" ];
 
       locations."/" = {

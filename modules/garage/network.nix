@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   lib,
   ...
@@ -16,6 +15,7 @@ in
   homelab.selfSignedCerts.garage = {
     hostName = "garage.home";
     extraSANs = [ "DNS:cdn.dennishilhorst.nl" ];
+    vhosts = [ "default" ];
   };
 
   # Reverse proxy / firewall config for the garage instance
@@ -26,9 +26,6 @@ in
       # explicit, so this stays the fallback for any Host header on 80/443
       # even if another vhost is ever added to this LXC.
       default = true;
-      forceSSL = true;
-      sslCertificate = config.homelab.selfSignedCerts.garage.certFile;
-      sslCertificateKey = config.homelab.selfSignedCerts.garage.keyFile;
 
       listen = [
         {

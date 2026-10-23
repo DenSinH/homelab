@@ -14,8 +14,12 @@ in
     default = { };
     description = ''
       Self-signed TLS certs generated once at activation, for internal-only
-      services. Add an entry here, then point the consuming nginx vhost's
-      sslCertificate/sslCertificateKey at the entry's certFile/keyFile.
+      services. Add an entry here; if `vhosts` is non-empty, the listed
+      services.nginx.virtualHosts entries get forceSSL/sslCertificate/
+      sslCertificateKey wired automatically. For anything the automation
+      doesn't cover (a non-nginx consumer, a vhost needing a custom
+      redirect, a module needing its own cert passthrough option), use
+      certFile/keyFile directly instead of `vhosts`.
     '';
     type = lib.types.attrsOf (
       lib.types.submodule (
@@ -35,6 +39,24 @@ in
                 "IP:192.168.50.50"
               ];
               description = "Extra SAN entries beyond DNS:<hostName>.";
+            };
+            vhosts = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = [ ];
+              description = ''
+                services.nginx.virtualHosts names to auto-wire this cert onto
+                (sslCertificate/sslCertificateKey, plus forceSSL unless
+                disabled below). Leave empty to wire things up yourself.
+              '';
+            };
+            forceSSL = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = ''
+                Whether to also set forceSSL=true on each of `vhosts`.
+                Disable if a vhost needs a custom (e.g. non-standard-port)
+                redirect instead of nginx's default one.
+              '';
             };
             certFile = lib.mkOption {
               type = lib.types.path;
@@ -78,5 +100,20 @@ in
         '';
       }
     ) cfg;
+
+    services.nginx.virtualHosts = lib.mkMerge (
+      lib.flatten (
+        lib.mapAttrsToList (
+          _: c:
+          map (vhostName: {
+            ${vhostName} = {
+              sslCertificate = c.certFile;
+              sslCertificateKey = c.keyFile;
+            }
+            // lib.optionalAttrs c.forceSSL { forceSSL = true; };
+          }) c.vhosts
+        ) cfg
+      )
+    );
   };
 }
