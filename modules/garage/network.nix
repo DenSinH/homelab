@@ -23,6 +23,9 @@ in
     enable = true;
 
     virtualHosts.default = {
+      # explicit, so this stays the fallback for any Host header on 80/443
+      # even if another vhost is ever added to this LXC.
+      default = true;
       forceSSL = true;
       sslCertificate = config.homelab.selfSignedCerts.garage.certFile;
       sslCertificateKey = config.homelab.selfSignedCerts.garage.keyFile;
@@ -82,7 +85,7 @@ in
   networking.firewall = {
     allowedTCPPorts = [
       80 # Public HTTP access to nginx
-      443 # also fronts garage-admin.home (garage-webui), see webui.nix
+      443
     ];
 
     # Garage S3 API: only reachable by cookbook LXC

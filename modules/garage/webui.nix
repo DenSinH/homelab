@@ -13,18 +13,46 @@ in
 
   homelab.selfSignedCerts.garage-webui.hostName = "garage-admin.home";
 
-  # garage-webui itself binds 0.0.0.0:3909 with no TLS of its own; nginx (see
-  # network.nix for the main garage.home vhost) terminates TLS and proxies in.
+  # garage-webui itself binds 0.0.0.0:3909 with no TLS of its own (nginx
+  # proxies to it below, so 3909/3911 here are nginx's OWN external ports -
+  # deliberately NOT 80/443, which the main garage.home/cdn vhost in
+  # network.nix owns) so this admin dashboard can never end up served as the
+  # fallback vhost for cloudflared's cdn.dennishilhorst.nl traffic - it's
+  # LAN-only and must stay that way.
   services.nginx.virtualHosts."garage-admin.home" = {
-    forceSSL = true;
+    listen = [
+      {
+        addr = "0.0.0.0";
+        port = 3908;
+        ssl = false;
+      }
+      {
+        addr = "0.0.0.0";
+        port = 3911;
+        ssl = true;
+      }
+    ];
     sslCertificate = config.homelab.selfSignedCerts.garage-webui.certFile;
     sslCertificateKey = config.homelab.selfSignedCerts.garage-webui.keyFile;
 
+    # forceSSL's automatic redirect assumes the default 443 port, which is
+    # wrong here (we're on 3911) - redirect manually instead.
     locations."/" = {
       proxyPass = "http://127.0.0.1:3909";
       proxyWebsockets = true;
     };
+    extraConfig = ''
+      if ($scheme = http) {
+        return 301 https://$host:3911$request_uri;
+      }
+    '';
   };
+
+  # LAN-only dashboard: separate ports from the public garage.home/cdn vhost.
+  networking.firewall.allowedTCPPorts = [
+    3908
+    3911
+  ];
 
   # this insecure package is used for the webui package
   nixpkgs.config.permittedInsecurePackages = [
