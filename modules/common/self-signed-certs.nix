@@ -115,5 +115,25 @@ in
         ) cfg
       )
     );
+
+    # Our own merge above always makes `services.nginx.virtualHosts ? name`
+    # true, so that alone can't catch a typo'd vhost name - check that some
+    # other module actually gave it real content instead.
+    assertions = lib.flatten (
+      lib.mapAttrsToList (
+        name: c:
+        map (vhostName: {
+          assertion =
+            let
+              v = config.services.nginx.virtualHosts.${vhostName} or null;
+            in
+            v != null
+            && (v.locations != { } || v.root != null || v.extraConfig != "" || v.globalRedirect != null);
+          message = ''
+            homelab.selfSignedCerts.${name}.vhosts references services.nginx.virtualHosts."${vhostName}", but no module defines any content for it (no locations/root/extraConfig/globalRedirect) - check for a typo in the vhost name.
+          '';
+        }) c.vhosts
+      ) cfg
+    );
   };
 }
