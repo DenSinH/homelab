@@ -46,6 +46,40 @@
     ];
   };
 
+  # Default 5 threads hit Nominatim's public API concurrently, well above its
+  # ~1 req/s policy - the real cause of the Geocoder::NetworkError bursts.
+  # Serialize geocoding-related queues onto their own single-threaded process.
+  services.dawarich.sidekiqProcesses = {
+    default = {
+      jobClasses = [
+        "app_version_checking"
+        "archival"
+        "cache"
+        "data_migrations"
+        "default"
+        "digests"
+        "exports"
+        "families"
+        "imports"
+        "mailers"
+        "points"
+        "stats"
+        "tracks"
+        "trips"
+        "visit_suggesting"
+      ];
+      threads = null; # uses services.dawarich.sidekiqThreads
+    };
+
+    geocoding = {
+      jobClasses = [
+        "places"
+        "reverse_geocoding"
+      ];
+      threads = 1;
+    };
+  };
+
   # expose on vpn as well
   services.nginx.virtualHosts."dawarich.home" = {
     serverAliases = [
