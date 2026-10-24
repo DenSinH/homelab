@@ -91,6 +91,7 @@ in
 
   services.influxdb2 = {
     enable = true;
+    settings."http-bind-address" = "127.0.0.1:8086"; # nginx in front terminates TLS
     provision = {
       enable = true;
 
@@ -283,7 +284,8 @@ in
 
     settings = {
       # https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/
-      server.http_addr = "0.0.0.0";
+      # nginx in front now terminates TLS and proxies in.
+      server.http_addr = "127.0.0.1";
 
       security.admin_password = grafanaSecretFile "grafana/admin_pass";
       security.secret_key = grafanaSecretFile "grafana/secret_key";
@@ -446,11 +448,46 @@ in
     "L+ /var/lib/grafana/dashboards/kiosk.json - - - - /etc/grafana/dashboards/kiosk.json"
   ];
 
+  # One cert for all three subdomains (see pihole.nix's cnameRecords).
+  homelab.selfSignedCerts.telemetry = {
+    hostName = "grafana.telemetry.home";
+    extraSANs = [
+      "DNS:grafana.telemetry.vpn"
+      "DNS:influxdb.telemetry.home"
+      "DNS:influxdb.telemetry.vpn"
+      "DNS:loki.telemetry.home"
+      "DNS:loki.telemetry.vpn"
+    ];
+    vhosts = [
+      "grafana.telemetry.home"
+      "influxdb.telemetry.home"
+      "loki.telemetry.home"
+    ];
+  };
+
+  services.nginx = {
+    enable = true;
+
+    virtualHosts =
+      let
+        mkVhost = port: {
+          locations."/" = {
+            proxyPass = "http://127.0.0.1:${toString port}";
+            proxyWebsockets = true;
+          };
+        };
+      in
+      {
+        "grafana.telemetry.home" = mkVhost 3000;
+        "influxdb.telemetry.home" = mkVhost 8086;
+        "loki.telemetry.home" = mkVhost 3100;
+      };
+  };
+
   networking.firewall = {
     allowedTCPPorts = [
-      8086 # influxdb2
-      3000 # grafana
-      3100 # loki
+      80
+      443
     ];
   };
 }

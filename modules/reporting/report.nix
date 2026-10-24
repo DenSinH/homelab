@@ -323,7 +323,7 @@ in
     };
   };
 
-  # --- serve the reports over HTTP ----------------------------------------
+  # No TLS: a read-only report archive, fine over plain HTTP on the LAN.
   # - /             -> index.html (list of all reports, newest first)
   # - /latest.html  -> newest report (updated after every run)
   # - /report-*.html -> individual reports
@@ -339,5 +339,7 @@ in
     };
   };
 
-  networking.firewall.allowedTCPPorts = [ 80 ];
+  networking.firewall.allowedTCPPorts = [
+    80
+  ];
 }

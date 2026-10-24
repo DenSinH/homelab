@@ -75,6 +75,7 @@ let
     "${lib.lxcs.dawarich.tailnet_ip} dawarich.vpn"
 
     "${lib.lxcs.garage.ip} garage.home"
+    "${lib.lxcs.garage.ip} webui.garage.home"
 
     "${lib.lxcs.bentopdf.ip} bentopdf.home"
 
@@ -100,17 +101,56 @@ let
     "jellyfin.nixflix.vpn,nixflix.vpn"
     "prowlarr.nixflix.vpn,nixflix.vpn"
     "qbittorrent.nixflix.vpn,nixflix.vpn"
+
+    # subdomain mappings for the telemetry stack (now behind nginx/TLS,
+    # each service split onto its own hostname instead of :port)
+    "grafana.telemetry.home,telemetry.home"
+    "influxdb.telemetry.home,telemetry.home"
+    "loki.telemetry.home,telemetry.home"
+
+    "grafana.telemetry.vpn,telemetry.vpn"
+    "influxdb.telemetry.vpn,telemetry.vpn"
+    "loki.telemetry.vpn,telemetry.vpn"
   ];
 in
 {
   homelab.hardenedServices = [ "pihole-regex-allowlist" ];
 
+  # pihole-FTL's embedded webserver has native TLS support (no nginx needed):
+  # "r" redirects the plain port to the first "s" (SSL) port.
+  homelab.selfSignedCerts.pihole.hostName = "${config.networking.hostName}.home";
+
   services.pihole-web = {
     enable = true;
     ports = [
-      80
+      "80r"
+      "443s"
     ];
     hostName = "192.168.50.215";
+  };
+
+  # FTL wants a single PEM with cert+key concatenated, at a fixed path under
+  # its state directory - assemble it from the generated cert/key once ready.
+  systemd.services.pihole-tls-cert = {
+    description = "Assemble pihole-FTL's combined TLS cert+key file";
+    before = [ "pihole-ftl.service" ];
+    requiredBy = [ "pihole-ftl.service" ];
+    after = [
+      "self-signed-cert-pihole.service"
+      "systemd-tmpfiles-setup.service"
+    ];
+    requires = [ "self-signed-cert-pihole.service" ];
+    unitConfig.ConditionPathExists = "!${config.services.pihole-ftl.stateDirectory}/tls.pem";
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      cat ${config.homelab.selfSignedCerts.pihole.certFile} ${config.homelab.selfSignedCerts.pihole.keyFile} \
+        > ${config.services.pihole-ftl.stateDirectory}/tls.pem
+      chown ${config.services.pihole-ftl.user}:${config.services.pihole-ftl.group} ${config.services.pihole-ftl.stateDirectory}/tls.pem
+      chmod 0600 ${config.services.pihole-ftl.stateDirectory}/tls.pem
+    '';
   };
 
   services.pihole-ftl = {

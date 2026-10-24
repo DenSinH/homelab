@@ -11,6 +11,24 @@ in
 {
   homelab.hardenedServices = [ "garage-webui" ];
 
+  homelab.selfSignedCerts.garage-webui = {
+    hostName = "webui.garage.home";
+    vhosts = [ "webui.garage.home" ];
+  };
+
+  # garage-webui itself binds 0.0.0.0:3909 with no TLS of its own; nginx
+  # proxies to it on the same 80/443 the main garage.home/cdn vhost (see
+  # network.nix) already owns, distinguished by hostname. Safe to share now
+  # that vhost is explicitly `default = true` - an unmatched Host header
+  # (e.g. cloudflared's cdn.dennishilhorst.nl) always falls through to it,
+  # never to this one.
+  services.nginx.virtualHosts."webui.garage.home" = {
+    locations."/" = {
+      proxyPass = "http://127.0.0.1:3909";
+      proxyWebsockets = true;
+    };
+  };
+
   # this insecure package is used for the webui package
   nixpkgs.config.permittedInsecurePackages = [
     "pnpm-9.15.9"

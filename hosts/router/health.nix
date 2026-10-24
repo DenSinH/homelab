@@ -17,7 +17,8 @@ in
   # LAN hosts and per-host traffic on a small built-in web dashboard.
   # Deliberately kept minimal: no --daylog/--export, so nothing is ever
   # written to disk (stats live in memory only, reset on restart), no
-  # database, no separate Prometheus/Grafana wiring needed.
+  # database, no separate Prometheus/Grafana wiring needed. No TLS: it's a
+  # read-only traffic graph with nothing sensitive in it, LAN-only.
   # https://unix4lyfe.org/darkstat/
   systemd.services.darkstat = {
     description = "darkstat - per-host LAN traffic dashboard";

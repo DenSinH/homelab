@@ -25,22 +25,29 @@ in
     domain = "paperless.home"; # canonical; paperless.vpn is added as an alias below
 
     settings = {
-      # PAPERLESS_URL is set automatically to https://${domain} by configureNginx;
-      # override it back to plain http since we're not using TLS
-      PAPERLESS_URL = lib.mkForce "http://paperless.vpn";
+      # PAPERLESS_URL defaults to https://${domain} via configureNginx, which
+      # is correct now that paperless.home is TLS-terminated below.
       PAPERLESS_ALLOWED_HOSTS = "paperless.home,paperless.vpn,paperless";
-      PAPERLESS_CSRF_TRUSTED_ORIGINS = "http://paperless.home,http://paperless.vpn";
+      PAPERLESS_CSRF_TRUSTED_ORIGINS = "https://paperless.home,https://paperless.vpn";
       PAPERLESS_FILENAME_FORMAT = "{{ created_year }}/{{ correspondent }}/{{ title }}";
       PAPERLESS_CONSUMER_RECURSIVE = true;
       PAPERLESS_OCR_LANGUAGE = "eng+nld";
     };
   };
 
+  homelab.selfSignedCerts.paperless = {
+    hostName = "paperless.home";
+    extraSANs = [ "DNS:paperless.vpn" ];
+    vhosts = [ "paperless.home" ];
+  };
+
   services.nginx.virtualHosts."paperless.home" = {
-    forceSSL = lib.mkForce false;
     serverAliases = [ "paperless.vpn" ];
     extraConfig = "client_max_body_size 50M;";
   };
 
-  networking.firewall.allowedTCPPorts = [ 80 ];
+  networking.firewall.allowedTCPPorts = [
+    80
+    443
+  ];
 }

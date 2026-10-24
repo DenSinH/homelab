@@ -12,7 +12,7 @@ let
     owner = "DenSinH";
     repo = "master-chef";
     rev = "refs/heads/master";
-    hash = "sha256-QIjjaUyrOtmGWjfwCqFhP2gtAFiatr62KIQYYZMcCXQ=";
+    hash = "sha256-/A7Mee06FU8sXOI+Kg4z88iEsy7eq8LCeDbYFqg6610=";
   };
 
   # for testing (needs --impure in the deploy script)
@@ -159,6 +159,12 @@ in
     '';
   };
 
+  homelab.selfSignedCerts.cookbook = {
+    hostName = "cookbook.home";
+    extraSANs = [ "DNS:chef.dennishilhorst.nl" ];
+    vhosts = [ "default" ];
+  };
+
   services.nginx = {
     enable = true;
 
@@ -182,6 +188,7 @@ in
   networking.firewall = {
     allowedTCPPorts = [
       80
+      443
     ];
   };
 }

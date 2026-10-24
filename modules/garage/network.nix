@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   lib,
   ...
@@ -13,15 +12,31 @@ let
   ];
 in
 {
+  homelab.selfSignedCerts.garage = {
+    hostName = "garage.home";
+    extraSANs = [ "DNS:cdn.dennishilhorst.nl" ];
+    vhosts = [ "default" ];
+  };
+
   # Reverse proxy / firewall config for the garage instance
   services.nginx = {
     enable = true;
 
     virtualHosts.default = {
+      # explicit, so this stays the fallback for any Host header on 80/443
+      # even if another vhost is ever added to this LXC.
+      default = true;
+
       listen = [
         {
           addr = "0.0.0.0";
           port = 80;
+          ssl = false;
+        }
+        {
+          addr = "0.0.0.0";
+          port = 443;
+          ssl = true;
         }
       ];
 
@@ -67,7 +82,7 @@ in
   networking.firewall = {
     allowedTCPPorts = [
       80 # Public HTTP access to nginx
-      3909 # LAN access to webui dashboard
+      443
     ];
 
     # Garage S3 API: only reachable by cookbook LXC

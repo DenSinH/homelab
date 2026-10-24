@@ -9,6 +9,12 @@ let
   # Local Caddy listener. NOT 8080: the CrowdSec LAPI defaults to 127.0.0.1:8080.
   proxyPort = 8081;
 
+  # cookbook/garage terminate TLS themselves with a self-signed cert (see
+  # homelab.selfSignedCerts on each), so Caddy talks HTTPS upstream to them,
+  # skipping verification since those certs aren't from a trusted CA.
+  # blog/gatus are plain read-only content with nothing sensitive in it, so
+  # they stay on plain HTTP internally (the public domain is still TLS
+  # end-to-end via Cloudflare either way).
   proxies = {
     "status.dennishilhorst.nl" = {
       upstream = "http://${lib.lxcs.gatus.ip}";
@@ -26,10 +32,10 @@ let
       # Eligible for cache
       # Edge TTL: Ignore cache-control header and use this TTL: 6 Months
       # Browser TTL: Ignore cache-control header and use this TTL: 6 Months
-      upstream = "http://${lib.lxcs.garage.ip}";
+      upstream = "https://${lib.lxcs.garage.ip}";
     };
     "chef.dennishilhorst.nl" = {
-      upstream = "http://${lib.lxcs.cookbook.ip}";
+      upstream = "https://${lib.lxcs.cookbook.ip}";
     };
   };
 
@@ -158,7 +164,12 @@ in
             ${proxyListen}
             route {
               crowdsec
-              reverse_proxy ${proxy.upstream}
+              reverse_proxy ${proxy.upstream} ${lib.optionalString (lib.hasPrefix "https://" proxy.upstream) ''
+                {
+                  transport http {
+                    tls_insecure_skip_verify
+                  }
+                }''}
             }
           '';
         }

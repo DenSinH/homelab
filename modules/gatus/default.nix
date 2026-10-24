@@ -1,9 +1,4 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+{ pkgs, ... }:
 
 {
   services.gatus = {
@@ -18,6 +13,9 @@
     LogLevelMax = "notice";
   };
 
+  # No TLS: a read-only status page, fine over plain HTTP on the LAN (the
+  # public status.dennishilhorst.nl domain is already TLS end-to-end via
+  # Cloudflare - see modules/cloudflared).
   services.nginx = {
     enable = true;
 

@@ -9,6 +9,7 @@
   imports = [
     ../telemetry/alloy.nix
     ./hardened-services.nix
+    ./self-signed-certs.nix
   ];
 
   # Default settings for any host (LXC and physical alike)

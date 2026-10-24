@@ -72,6 +72,7 @@ in
     nginx = {
       enable = true;
       domain = domain;
+      forceSSL = true;
     };
     postgres.enable = true;
 
@@ -303,6 +304,34 @@ in
     };
   };
 
+  # one cert covers every nixflix.* subdomain nixflix generates a vhost for
+  # (see pihole.nix's cnameRecords for the exact list in use).
+  homelab.selfSignedCerts.nixflix = {
+    hostName = "jellyfin.nixflix.home";
+    extraSANs = [
+      "DNS:jellyfin.nixflix.vpn"
+      "DNS:sonarr.nixflix.home"
+      "DNS:sonarr.nixflix.vpn"
+      "DNS:radarr.nixflix.home"
+      "DNS:radarr.nixflix.vpn"
+      "DNS:prowlarr.nixflix.home"
+      "DNS:prowlarr.nixflix.vpn"
+      "DNS:qbittorrent.nixflix.home"
+      "DNS:qbittorrent.nixflix.vpn"
+      "DNS:nixflix.home"
+      "DNS:nixflix.vpn"
+    ];
+    vhosts = [
+      "jellyfin.${domain}"
+      "sonarr.${domain}"
+      "radarr.${domain}"
+      "prowlarr.${domain}"
+      "qbittorrent.${domain}"
+    ];
+    # nixflix.nginx.forceSSL above already sets forceSSL on all of these.
+    forceSSL = false;
+  };
+
   # add root domain mapping to jellyfin
   services.nginx.virtualHosts."jellyfin.${domain}" = {
     serverAliases = [ domain ];
@@ -317,6 +346,7 @@ in
 
   networking.firewall.allowedTCPPorts = [
     80 # nginx
+    443
   ];
 
   # Not interested in flaresolverr Cloudflare-challenge timeouts as errors

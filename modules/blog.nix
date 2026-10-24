@@ -42,6 +42,9 @@ let
   };
 in
 {
+  # No TLS: a static blog with nothing sensitive in it, fine over plain HTTP
+  # on the LAN (the public blog.dennishilhorst.nl domain is already TLS
+  # end-to-end via Cloudflare - see modules/cloudflared).
   services.nginx = {
     enable = true;
 
