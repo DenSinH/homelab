@@ -323,12 +323,7 @@ in
     };
   };
 
-  homelab.selfSignedCerts.reporting = {
-    hostName = "reporting.home";
-    vhosts = [ "_" ];
-  };
-
-  # --- serve the reports over HTTPS (redirected from HTTP) -----------------
+  # No TLS: a read-only report archive, fine over plain HTTP on the LAN.
   # - /             -> index.html (list of all reports, newest first)
   # - /latest.html  -> newest report (updated after every run)
   # - /report-*.html -> individual reports
@@ -346,6 +341,5 @@ in
 
   networking.firewall.allowedTCPPorts = [
     80
-    443
   ];
 }

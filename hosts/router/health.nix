@@ -1,8 +1,4 @@
-{
-  pkgs,
-  lib,
-  ...
-}:
+{ pkgs, lib, ... }:
 
 let
   network = import ./network.nix { inherit lib; };
@@ -10,33 +6,19 @@ let
 
   lanNetwork = "${lanSubnet}.0/24";
 
-  # Loopback-only now; nginx (below) is the LAN-facing side on 80/443.
-  # Keep in sync with the nftables input-chain rule in router.nix.
-  webPort = 8080;
+  # Keep in sync with the nftables input-chain rule in router.nix that
+  # allows this port from lanIf.
+  webPort = 80;
 in
 {
   homelab.hardenedServices = [ "darkstat" ];
-
-  homelab.selfSignedCerts.darkstat = {
-    hostName = "router.home";
-    vhosts = [ "router.home" ];
-  };
-
-  services.nginx = {
-    enable = true;
-
-    virtualHosts."router.home" = {
-      locations."/" = {
-        proxyPass = "http://127.0.0.1:${toString webPort}";
-      };
-    };
-  };
 
   # darkstat: lightweight passive traffic monitor - shows currently active
   # LAN hosts and per-host traffic on a small built-in web dashboard.
   # Deliberately kept minimal: no --daylog/--export, so nothing is ever
   # written to disk (stats live in memory only, reset on restart), no
-  # database, no separate Prometheus/Grafana wiring needed.
+  # database, no separate Prometheus/Grafana wiring needed. No TLS: it's a
+  # read-only traffic graph with nothing sensitive in it, LAN-only.
   # https://unix4lyfe.org/darkstat/
   systemd.services.darkstat = {
     description = "darkstat - per-host LAN traffic dashboard";
@@ -57,7 +39,7 @@ in
         "RestrictNamespaces"
       ]
       // {
-        ExecStart = "${pkgs.darkstat}/bin/darkstat --no-daemon -i ${lanIf} -l ${lanNetwork} --local-only -p ${toString webPort} -b 127.0.0.1 --chroot /var/empty --user nobody";
+        ExecStart = "${pkgs.darkstat}/bin/darkstat --no-daemon -i ${lanIf} -l ${lanNetwork} --local-only -p ${toString webPort} -b 0.0.0.0 --chroot /var/empty --user nobody";
         Restart = "on-failure";
         RestartSec = 5;
 
@@ -65,9 +47,9 @@ in
         Group = "root";
         PrivateDevices = false; # needs the NIC for packet capture
 
-        # The dashboard is only reachable through nginx now (loopback).
+        # The dashboard is deliberately LAN-only.
         IPAddressDeny = "any";
-        IPAddressAllow = [ "127.0.0.1" ];
+        IPAddressAllow = [ lanNetwork ];
       };
   };
 }

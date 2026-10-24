@@ -13,15 +13,9 @@
     LogLevelMax = "notice";
   };
 
-  homelab.selfSignedCerts.gatus = {
-    hostName = "gatus.home";
-    extraSANs = [
-      "DNS:status.home"
-      "DNS:status.dennishilhorst.nl"
-    ];
-    vhosts = [ "default" ];
-  };
-
+  # No TLS: a read-only status page, fine over plain HTTP on the LAN (the
+  # public status.dennishilhorst.nl domain is already TLS end-to-end via
+  # Cloudflare - see modules/cloudflared).
   services.nginx = {
     enable = true;
 
@@ -35,6 +29,5 @@
 
   networking.firewall.allowedTCPPorts = [
     80
-    443
   ];
 }

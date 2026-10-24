@@ -7,19 +7,16 @@
 
 let
   cfg = config.homelab.selfSignedCerts;
-  certDir = name: "/var/lib/self-signed-certs/${name}";
+  baseDir = "/var/lib/self-signed-certs";
+  certDir = name: "${baseDir}/${name}";
 in
 {
   options.homelab.selfSignedCerts = lib.mkOption {
     default = { };
     description = ''
-      Self-signed TLS certs generated once at activation, for internal-only
-      services. Add an entry here; if `vhosts` is non-empty, the listed
-      services.nginx.virtualHosts entries get forceSSL/sslCertificate/
-      sslCertificateKey wired automatically. For anything the automation
-      doesn't cover (a non-nginx consumer, a vhost needing a custom
-      redirect, a module needing its own cert passthrough option), use
-      certFile/keyFile directly instead of `vhosts`.
+      Self-signed TLS certs generated at activation. Setting `vhosts`
+      auto-wires sslCertificate/sslCertificateKey/forceSSL onto those nginx
+      vhosts; otherwise use certFile/keyFile directly.
     '';
     type = lib.types.attrsOf (
       lib.types.submodule (
@@ -75,31 +72,55 @@ in
   };
 
   config = lib.mkIf (cfg != { }) {
-    systemd.services = lib.mapAttrs' (
-      name: c:
-      lib.nameValuePair "self-signed-cert-${name}" {
-        description = "Generate self-signed TLS cert for ${c.hostName}";
-        before = [ "nginx.service" ];
-        wantedBy = [ "nginx.service" ];
-        unitConfig.ConditionPathExists = "!${c.certFile}";
-        path = [ pkgs.openssl ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          UMask = "0077";
+    systemd.services =
+      lib.mapAttrs' (
+        name: c:
+        lib.nameValuePair "self-signed-cert-${name}" {
+          description = "Generate self-signed TLS cert for ${c.hostName}";
+          before = [ "nginx.service" ];
+          wantedBy = [ "nginx.service" ];
+          unitConfig.ConditionPathExists = "!${c.certFile}";
+          path = [ pkgs.openssl ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            UMask = "0077";
+          };
+          script = ''
+            mkdir -p ${certDir name}
+            openssl req -x509 -nodes -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+              -days 3650 \
+              -keyout ${c.keyFile} -out ${c.certFile} \
+              -subj "/CN=${c.hostName}" \
+              -addext "subjectAltName=DNS:${c.hostName}${lib.concatMapStrings (s: ",${s}") c.extraSANs}"
+            # tmpfiles.rules below isn't ordered against this service, so set
+            # perms here too for correctness on this activation, not just future ones.
+            chmod 0755 ${baseDir} ${certDir name}
+            chmod 0644 ${c.certFile}
+            chown root:nginx ${c.keyFile}
+            chmod 0640 ${c.keyFile}
+          '';
+        }
+      ) cfg
+      # Make the self-healing below race-free: force nginx to wait for
+      # tmpfiles to reapply the rules on every activation, not just boot.
+      // {
+        nginx = {
+          after = [ "systemd-tmpfiles-resetup.service" ];
+          wants = [ "systemd-tmpfiles-resetup.service" ];
         };
-        script = ''
-          mkdir -p ${certDir name}
-          openssl req -x509 -nodes -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
-            -days 3650 \
-            -keyout ${c.keyFile} -out ${c.certFile} \
-            -subj "/CN=${c.hostName}" \
-            -addext "subjectAltName=DNS:${c.hostName}${lib.concatMapStrings (s: ",${s}") c.extraSANs}"
-          chown root:nginx ${c.keyFile}
-          chmod 0640 ${c.keyFile}
-        '';
-      }
-    ) cfg;
+      };
+
+    # Declared so a stale permission self-heals on the next switch, not just
+    # on first creation (cert.pem isn't secret; nginx needs to read it).
+    systemd.tmpfiles.rules = lib.flatten (
+      lib.mapAttrsToList (name: c: [
+        "z ${baseDir} 0755 root root -"
+        "z ${certDir name} 0755 root root -"
+        "z ${c.certFile} 0644 root root -"
+        "z ${c.keyFile} 0640 root nginx -"
+      ]) cfg
+    );
 
     services.nginx.virtualHosts = lib.mkMerge (
       lib.flatten (

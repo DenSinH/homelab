@@ -42,12 +42,9 @@ let
   };
 in
 {
-  homelab.selfSignedCerts.blog = {
-    hostName = "blog.home";
-    extraSANs = [ "DNS:blog.dennishilhorst.nl" ];
-    vhosts = [ "default" ];
-  };
-
+  # No TLS: a static blog with nothing sensitive in it, fine over plain HTTP
+  # on the LAN (the public blog.dennishilhorst.nl domain is already TLS
+  # end-to-end via Cloudflare - see modules/cloudflared).
   services.nginx = {
     enable = true;
 
@@ -71,7 +68,6 @@ in
   networking.firewall = {
     allowedTCPPorts = [
       80
-      443
     ];
   };
 }

@@ -12,49 +12,22 @@ in
   homelab.hardenedServices = [ "garage-webui" ];
 
   homelab.selfSignedCerts.garage-webui = {
-    hostName = "garage-admin.home";
-    vhosts = [ "garage-admin.home" ];
-    # forceSSL's automatic redirect assumes the default 443 port, which is
-    # wrong here (we're on 3911) - redirect manually instead, below.
-    forceSSL = false;
+    hostName = "webui.garage.home";
+    vhosts = [ "webui.garage.home" ];
   };
 
-  # garage-webui itself binds 0.0.0.0:3909 with no TLS of its own (nginx
-  # proxies to it below, so 3909/3911 here are nginx's OWN external ports -
-  # deliberately NOT 80/443, which the main garage.home/cdn vhost in
-  # network.nix owns) so this admin dashboard can never end up served as the
-  # fallback vhost for cloudflared's cdn.dennishilhorst.nl traffic - it's
-  # LAN-only and must stay that way.
-  services.nginx.virtualHosts."garage-admin.home" = {
-    listen = [
-      {
-        addr = "0.0.0.0";
-        port = 3908;
-        ssl = false;
-      }
-      {
-        addr = "0.0.0.0";
-        port = 3911;
-        ssl = true;
-      }
-    ];
-
+  # garage-webui itself binds 0.0.0.0:3909 with no TLS of its own; nginx
+  # proxies to it on the same 80/443 the main garage.home/cdn vhost (see
+  # network.nix) already owns, distinguished by hostname. Safe to share now
+  # that vhost is explicitly `default = true` - an unmatched Host header
+  # (e.g. cloudflared's cdn.dennishilhorst.nl) always falls through to it,
+  # never to this one.
+  services.nginx.virtualHosts."webui.garage.home" = {
     locations."/" = {
       proxyPass = "http://127.0.0.1:3909";
       proxyWebsockets = true;
     };
-    extraConfig = ''
-      if ($scheme = http) {
-        return 301 https://$host:3911$request_uri;
-      }
-    '';
   };
-
-  # LAN-only dashboard: separate ports from the public garage.home/cdn vhost.
-  networking.firewall.allowedTCPPorts = [
-    3908
-    3911
-  ];
 
   # this insecure package is used for the webui package
   nixpkgs.config.permittedInsecurePackages = [

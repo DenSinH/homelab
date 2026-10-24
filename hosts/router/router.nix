@@ -290,8 +290,8 @@ in
         iifname "${lanIf}" udp dport { 53, 67 } accept comment "DNS+DHCP for all LAN clients"
         iifname "${lanIf}" tcp dport 53 accept comment "DNS (TCP fallback) for all LAN clients"
 
-        # darkstat web dashboard, now behind nginx/TLS (see hosts/router/health.nix) - LAN only
-        iifname "${lanIf}" tcp dport { 80, 443 } accept comment "darkstat dashboard for LAN clients"
+        # darkstat web dashboard (see hosts/router/health.nix) - LAN only, keep port in sync
+        iifname "${lanIf}" tcp dport 80 accept comment "darkstat dashboard for LAN clients"
 
         # usbip (see hosts/router/usbip.nix) - zigbee dongle export. No auth
         # of its own, so restrict to home-assistant's MAC (see

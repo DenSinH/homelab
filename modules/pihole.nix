@@ -75,7 +75,7 @@ let
     "${lib.lxcs.dawarich.tailnet_ip} dawarich.vpn"
 
     "${lib.lxcs.garage.ip} garage.home"
-    "${lib.lxcs.garage.ip} garage-admin.home"
+    "${lib.lxcs.garage.ip} webui.garage.home"
 
     "${lib.lxcs.bentopdf.ip} bentopdf.home"
 
