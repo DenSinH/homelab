@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 
 let
   # Every probe pattern is wrapped as <pre><body><post>, matched directly
@@ -36,6 +41,21 @@ let
   ];
 
   probeRegexes = lib.concatMapStringsSep "\n    " (body: "${pre}${body}${post}") probeBodies;
+
+  # The crowdsec module starts the daemon with `-c <generated config>`.
+  # Reuse that same file so cscli talks to the same LAPI.
+  args = lib.splitString " " (
+    lib.last (lib.toList config.systemd.services.crowdsec.serviceConfig.ExecStart)
+  );
+
+  # pair every argument with the one after it: [ {a="…/crowdsec"; b="-c";} {a="-c"; b="/nix/store/….yaml";} … ]
+  pairs = lib.zipListsWith (a: b: { inherit a b; }) args (lib.drop 1 args);
+  hit = lib.findFirst (p: p.a == "-c") null pairs;
+  crowdsecConfig =
+    if hit == null then throw "fail2ban.nix: no -c <config> found in the crowdsec ExecStart" else hit.b;
+
+  # fail2ban's unit can't use the sudo wrapper, so call the real binary directly
+  cscli = "${lib.getExe' config.services.crowdsec.package "cscli"} -c ${crowdsecConfig}";
 in
 {
   # Bans feed straight into CrowdSec's decision engine (already enforced by
@@ -46,12 +66,17 @@ in
     actionstart =
     actionstop =
     actioncheck =
-    actionban = /run/current-system/sw/bin/cscli decisions add -i <ip> -d <bantime>s -r "fail2ban/<name>"
-    actionunban = /run/current-system/sw/bin/cscli decisions delete -i <ip>
+    actionban = ${cscli} decisions add -i <ip> -d <bantime>s --reason "fail2ban/<name>"
+    actionunban = ${cscli} decisions delete -i <ip> --origin cscli
 
     [Init]
     name = default
   '';
+
+  # Restart fail2ban on config changes
+  systemd.services.fail2ban.restartTriggers = [
+    config.environment.etc."fail2ban/action.d/cscli-ban.conf".source
+  ];
 
   services.fail2ban = {
     enable = true;
@@ -145,29 +170,4 @@ in
     # missing media/assets are normal (old blog images, favicon, crawlers)
     ignoreregex = "client_ip":"<HOST>".*"method":"(?:GET|HEAD)".*"uri":"[^"]*\.(?:jpe?g|png|gif|webp|avif|svg|ico|css|map|woff2?|ttf|txt|xml)(?:\?[^"]*)?".*"status":404
   '';
-
-  # diagnostic script
-  environment.systemPackages = [
-    (pkgs.writeShellScriptBin "fail2ban-status" ''
-      set -e
-
-      jails=$(
-        sudo fail2ban-client status |
-          sed -n 's/.*Jail list:[[:space:]]*//p' |
-          tr ',' ' '
-      )
-
-      echo "=== Fail2Ban ==="
-      for jail in $jails; do
-        echo
-        echo "[$jail]"
-        sudo fail2ban-client status "$jail" |
-          grep -E 'Currently failed|Currently banned|Total failed|Total banned|Banned IP list'
-      done
-
-      echo
-      echo "=== CrowdSec decisions (incl. fail2ban bans) ==="
-      sudo cscli decisions list
-    '')
-  ];
 }

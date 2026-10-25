@@ -29,8 +29,12 @@
       APPLICATION_HOSTS = "127.0.0.1,::1,dawarich.home,dawarich.vpn";
       RAILS_LOG_LEVEL = "info";
 
-      PHOTON_API_HOST = "photon.komoot.io";
-      PHOTON_API_USE_HTTPS = "true";
+      NOMINATIM_API_HOST = "nominatim.openstreetmap.org";
+      NOMINATIM_API_USE_HTTPS = "true";
+
+      # Nominatim sets a rate limit of 1rps, let's just be a
+      # little more conservative
+      REVERSE_GEOCODING_RPS = "0.5";
     };
   };
 

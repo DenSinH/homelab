@@ -232,6 +232,45 @@ in
   };
   users.users.crowdsec.extraGroups = [ "systemd-journal" ];
 
+  # diagnostic script
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "ban-status" ''
+      set -e
+
+      jails=$(
+        sudo fail2ban-client status |
+          sed -n 's/.*Jail list:[[:space:]]*//p' |
+          tr ',' ' '
+      )
+
+      echo "=== Fail2Ban jails ==="
+      for jail in $jails; do
+        echo
+        echo "[$jail]"
+        sudo fail2ban-client status "$jail" |
+          grep -E 'Currently failed|Currently banned|Total failed|Total banned|Banned IP list'
+      done
+
+      echo
+      echo "=== All banned IPs (CrowdSec scenarios + fail2ban) ==="
+      # --limit 0 disables the default cap; add -a to also include the community blocklist
+      sudo cscli decisions list --limit 0 -o json |
+        ${pkgs.jq}/bin/jq -r '
+          (. // [])[] | .decisions[]?
+          | [.value, .origin, .scenario, .duration] | @tsv
+        ' |
+        sort -u |
+        ${pkgs.util-linux}/bin/column -t -s "$(printf '\t')" \
+          -N IP,ORIGIN,REASON,REMAINING
+      echo
+      echo "Total: $(sudo cscli decisions list --limit 0 -o json | ${pkgs.jq}/bin/jq '[(. // [])[] | .decisions[]?] | length') decisions"
+
+      echo
+      echo "=== Bouncers (is Caddy pulling decisions?) ==="
+      sudo cscli bouncers list
+    '')
+  ];
+
   # cloudflared logs its own level (ERR/WRN/INF); WRN-level lines often still
   # contain the word "error" (e.g. in an `error=` field), which gets
   # mis-detected by Loki as an actual error.
