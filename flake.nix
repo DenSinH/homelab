@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     nixflix = {
       url = "github:kiriwalawren/nixflix";
@@ -24,6 +25,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-unstable,
       sops-nix,
       nixflix,
       nixvirt,
@@ -31,6 +33,7 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+      pkgs-unstable = import nixpkgs-unstable { inherit system; };
 
       hosts = {
         proxmox1 = {
@@ -391,6 +394,7 @@
         inherit
           nixpkgs
           pkgs
+          pkgs-unstable
           nixflix
           sops-nix
           lib

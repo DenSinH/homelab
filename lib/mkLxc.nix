@@ -1,6 +1,7 @@
 {
   nixpkgs,
   pkgs,
+  pkgs-unstable,
   nixflix,
   sops-nix,
   lib,
@@ -36,7 +37,12 @@ nixpkgs.lib.nixosSystem {
 
   # pass through extended lib with access to lxc / pve host configurations
   specialArgs = {
-    inherit lib nixflix host;
+    inherit
+      lib
+      nixflix
+      host
+      pkgs-unstable
+      ;
   };
 
   modules = [
