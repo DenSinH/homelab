@@ -77,7 +77,6 @@ let
         "actualbudget"
         "bazarr"
         "byparr"
-        "pdm"
         "win-test"
         "nixos"
         "static-site-nixos"
@@ -86,6 +85,7 @@ let
       known_removed = [
         "firefly"
         "trek-nixos"
+        "pdm"
       ];
       # regexes matched against "host/unit latest-message"; matching log sources are hidden
       log_ignore = [ ];

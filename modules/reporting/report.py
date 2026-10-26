@@ -986,32 +986,64 @@ def _proxmox_stale_guests(
     thresholds: dict,
     known_removed: list[str],
 ) -> None:
-    """Flag any host/guest whose `system.uptime` series hasn't updated recently.
+    """Flag any node or guest whose `system.uptime` series hasn't updated recently.
 
     Queried separately from the guest inventory above: this looks at the raw
-    per-series last-write time over 7 days, which also catches guests that have
-    disappeared from Proxmox entirely (and so are absent from the inventory query).
+    per-series last-write time over 7 days, which also catches nodes/guests
+    that have disappeared entirely (and so are absent from the inventory query).
+
+    Guests are deduplicated by Proxmox's stable `vmid` tag rather than by name:
+    a rename (or a restore that briefly lands under a placeholder name) starts
+    a new named series under the same vmid, so only the most-recently-written
+    name for each vmid is checked for staleness -- the old name's now-dead
+    series is ignored automatically instead of alerting forever. `known_removed`
+    is only needed once a vmid is deleted from Proxmox outright, and even then
+    it just saves a few days of noise, since points older than the 7d range
+    drop out of the query on their own.
     """
-    stale = influx.query(
+    now = time.time()
+
+    def flag(rows: list[CsvRow]) -> None:
+        for r in rows:
+            age = now - int(r["t"]) / 1e9
+            if age > thresholds["stale_minutes"] * 60 and r["host"] not in known_removed:
+                rep.add(
+                    WARN,
+                    sec,
+                    f"{r['object']} {r['host']} has sent no metrics for {fmt_dur(age)}",
+                )
+
+    flag(
+        influx.query(
+            org,
+            (
+                f'from(bucket: "{org}")\n'
+                f"  |> range(start: -7d)\n"
+                f'  |> filter(fn: (r) => r._measurement == "system" and r._field == "uptime" and r.object == "nodes")\n'
+                f"  |> last()\n"
+                f"  |> map(fn: (r) => ({{host: r.host, object: r.object, t: string(v: uint(v: r._time))}}))\n"
+                f"  |> group()\n"
+            ),
+        )
+    )
+
+    guest_rows = influx.query(
         org,
         (
             f'from(bucket: "{org}")\n'
             f"  |> range(start: -7d)\n"
-            f'  |> filter(fn: (r) => r._measurement == "system" and r._field == "uptime")\n'
+            f'  |> filter(fn: (r) => r._measurement == "system" and r._field == "uptime" and (r.object == "lxc" or r.object == "qemu"))\n'
             f"  |> last()\n"
-            f"  |> map(fn: (r) => ({{host: r.host, object: r.object, t: string(v: uint(v: r._time))}}))\n"
+            f"  |> map(fn: (r) => ({{vmid: r.vmid, host: r.host, object: r.object, t: string(v: uint(v: r._time))}}))\n"
             f"  |> group()\n"
         ),
     )
-    now = time.time()
-    for r in stale:
-        age = now - int(r["t"]) / 1e9
-        if age > thresholds["stale_minutes"] * 60 and r["host"] not in known_removed:
-            rep.add(
-                WARN,
-                sec,
-                f"{r['object']} {r['host']} has sent no metrics for {fmt_dur(age)}",
-            )
+    latest_per_vmid: dict[str, CsvRow] = {}
+    for r in guest_rows:
+        prev = latest_per_vmid.get(r["vmid"])
+        if prev is None or int(r["t"]) > int(prev["t"]):
+            latest_per_vmid[r["vmid"]] = r
+    flag(list(latest_per_vmid.values()))
 
 
 def _proxmox_nodes(
