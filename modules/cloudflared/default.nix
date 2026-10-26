@@ -80,6 +80,35 @@ let
   };
 
   proxyListen = "bind 127.0.0.1";
+
+  go1273 = pkgs.go_1_27.overrideAttrs (old: rec {
+    version = "1.27.3";
+    src = pkgs.fetchurl {
+      url = "https://go.dev/dl/go${version}.src.tar.gz";
+      hash = "sha256-bndJA1zzYPBrJXXRYup535/ajvZxiJ5cN1+OUHd/Jrs=";
+    };
+  });
+
+  cloudflaredPackage = (
+    pkgs.cloudflared.overrideAttrs (
+      final: prev: {
+        version = "2026.10.4";
+
+        src = pkgs.fetchFromGitHub {
+          owner = "cloudflare";
+          repo = "cloudflared";
+          tag = final.version;
+          hash = "sha256-HuKjytbGutwjUMepozeUmeeHczm4qI7vMvS+hgLsaZ0=";
+        };
+
+        vendorHash = "sha256-WtGk5HE6PxAWqwvj8mAAzobuoSw+y6BqBEEB0hRQafk=";
+
+        doCheck = false;
+
+        nativeBuildInputs = builtins.filter (p: p != pkgs.go) prev.nativeBuildInputs ++ [ go1273 ];
+      }
+    )
+  );
 in
 {
   imports = [ ./fail2ban.nix ];
@@ -110,6 +139,12 @@ in
   # ---- cloudflared: all hosts go through the local Caddy ----
   services.cloudflared = {
     enable = true;
+
+    # Package update required for security
+    # (Received email on 26-10-2026 telling me to update to at least 2026.10.2)
+    # TODO: remove this with 26.11
+    package = cloudflaredPackage;
+
     tunnels."2520e8d8-cf93-4acf-a433-a3706133195f" = {
       credentialsFile = config.sops.secrets."cloudflared/tunnel-creds".path;
       ingress = lib.mapAttrs (host: _: {
