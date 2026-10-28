@@ -15,7 +15,7 @@ is declarative — there is no config drift to reason about, only what's in this
 |---|---|
 | `flake.nix` | Single source of truth for topology: every host/LXC's hostname, IP, MAC, and which modules it imports. Also defines `apps` (deploy scripts) and `devShells`. |
 | `hosts/<name>/` | Full NixOS configs for the three non-LXC machines: `nas`, `router`, `offsite-backup`. Each has its own `default.nix`, `hardware-configuration.nix`, and often a `README.md` with machine-specific notes. |
-| `modules/` | Reusable NixOS modules, mostly one per LXC service (`vaultwarden.nix`, `immich.nix`, `paperless.nix`, ...) or a directory when a service needs multiple files (`modules/cookbook/`, `modules/garage/`, `modules/reporting/`). `modules/common/` and `modules/host/` are the base layers every machine imports. |
+| `modules/` | Reusable NixOS modules, mostly one per LXC service (`vaultwarden.nix`, `paperless.nix`, ...) or a directory when a service needs multiple files (`modules/cookbook/`, `modules/garage/`, `modules/reporting/`). `modules/common/` and `modules/host/` are the base layers every machine imports. |
 | `lib/` | Nix helper functions: `mkLxc.nix` builds an LXC `nixosSystem` from a `flake.nix` entry; `hardenedService.nix` is the shared systemd sandboxing baseline for self-written services. |
 | `scripts/` | Nix-wrapped shell apps exposed via `nix run .#<name>` (deploy, tailscale login, igpu/proxmox config, security report). |
 | `secrets/` | `sops-nix`-encrypted secrets, one YAML file per service/host. `.sops.yaml` (repo root) maps each file to the age keys allowed to decrypt it. |

@@ -243,7 +243,7 @@
 
           modules = [
             ./modules/igpu.nix
-            ./modules/immich.nix
+            ./modules/immich
             ./modules/tailscale.nix
           ];
         };

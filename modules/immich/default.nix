@@ -11,7 +11,7 @@
     "immich-2.7.5"
   ];
 
-  sops.defaultSopsFile = ../secrets/immich.yaml;
+  sops.defaultSopsFile = ../../secrets/immich.yaml;
   sops.secrets = {
     "immich/secrets" = {
       group = "immich";
@@ -76,6 +76,14 @@
       "mnt-photos.mount"
     ];
   };
+
+  # Helper script for matching up live photos to corresponding videos
+  environment.systemPackages = [
+    (pkgs.writers.writePython3Bin "immich-link-live-photos" {
+      # the script has long lines; flake8 runs at build time by default
+      flakeIgnore = [ "E501" "E265" ];
+    } (builtins.readFile ./immich-link-live-photos.py))
+  ];
 
   # Fix access to passed through iGPU
   # May break when installed on a new system (different render GID), test with
