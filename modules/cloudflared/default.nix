@@ -80,35 +80,6 @@ let
   };
 
   proxyListen = "bind 127.0.0.1";
-
-  go1273 = pkgs.go_1_27.overrideAttrs (old: rec {
-    version = "1.27.3";
-    src = pkgs.fetchurl {
-      url = "https://go.dev/dl/go${version}.src.tar.gz";
-      hash = "sha256-bndJA1zzYPBrJXXRYup535/ajvZxiJ5cN1+OUHd/Jrs=";
-    };
-  });
-
-  cloudflaredPackage = (
-    pkgs.cloudflared.overrideAttrs (
-      final: prev: {
-        version = "2026.10.4";
-
-        src = pkgs.fetchFromGitHub {
-          owner = "cloudflare";
-          repo = "cloudflared";
-          tag = final.version;
-          hash = "sha256-HuKjytbGutwjUMepozeUmeeHczm4qI7vMvS+hgLsaZ0=";
-        };
-
-        vendorHash = "sha256-WtGk5HE6PxAWqwvj8mAAzobuoSw+y6BqBEEB0hRQafk=";
-
-        doCheck = false;
-
-        nativeBuildInputs = builtins.filter (p: p != pkgs.go) prev.nativeBuildInputs ++ [ go1273 ];
-      }
-    )
-  );
 in
 {
   imports = [ ./fail2ban.nix ];
