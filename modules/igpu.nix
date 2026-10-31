@@ -89,8 +89,8 @@ in
   hardware.graphics = {
     enable = true;
     extraPackages = [
-      # todo: if I ever have a proxmox node with a different GPU,
-      #       these need to be updated
+      # If I ever have a proxmox node with a different GPU,
+      # these need to be updated
       pkgs.intel-media-driver
     ];
   };

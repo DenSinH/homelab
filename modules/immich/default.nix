@@ -1,16 +1,12 @@
 {
   config,
   pkgs,
+  pkgs-unstable,
   lib,
   ...
 }:
 
 {
-  # TODO: remove after updating to 26.11
-  nixpkgs.config.permittedInsecurePackages = [
-    "immich-2.7.5"
-  ];
-
   sops.defaultSopsFile = ../../secrets/immich.yaml;
   sops.secrets = {
     "immich/secrets" = {
@@ -34,6 +30,9 @@
 
   services.immich = {
     enable = true;
+    # TODO: remove after updating to 26.11
+    package = pkgs-unstable.immich;
+
     host = "0.0.0.0";
     # port = 80;  # default: 2283
     openFirewall = true;
@@ -81,7 +80,10 @@
   environment.systemPackages = [
     (pkgs.writers.writePython3Bin "immich-link-live-photos" {
       # the script has long lines; flake8 runs at build time by default
-      flakeIgnore = [ "E501" "E265" ];
+      flakeIgnore = [
+        "E501"
+        "E265"
+      ];
     } (builtins.readFile ./immich-link-live-photos.py))
   ];
 

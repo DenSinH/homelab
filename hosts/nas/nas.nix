@@ -18,6 +18,4 @@
     ];
     interval = "monthly"; # recommended and default
   };
-
-  # todo: add backup management (ZFS send / rcv from / to PBS?)
 }

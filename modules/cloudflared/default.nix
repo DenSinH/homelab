@@ -140,11 +140,6 @@ in
   services.cloudflared = {
     enable = true;
 
-    # Package update required for security
-    # (Received email on 26-10-2026 telling me to update to at least 2026.10.2)
-    # TODO: remove this with 26.11
-    package = cloudflaredPackage;
-
     tunnels."2520e8d8-cf93-4acf-a433-a3706133195f" = {
       credentialsFile = config.sops.secrets."cloudflared/tunnel-creds".path;
       ingress = lib.mapAttrs (host: _: {
