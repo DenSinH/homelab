@@ -6,9 +6,14 @@
 let
   colorsScript = builtins.readFile ./colors.sh;
 
-  # lib.hosts only (never lib.lxcs); provision.* flags become hostvars.
+  # Grafana dashboard URL for the kiosk role; reads lib.lxcs.telemetry only to
+  # derive this value, not as an inventory target.
+  grafanaKioskUrl = "http://${lib.lxcs.telemetry.ip}:3000/d/advzc6f/kiosk?kiosk&_dash.hideTimePicker=true&_dash.hideVariables=true&hideLogo=true";
+
+  # lib.hosts only (never lib.lxcs as inventory targets); provision.* flags become hostvars.
   hostVars = builtins.mapAttrs (_: host: {
     ansible_host = host.ip;
+    pve_hostname = host.hostname;
     pve_powertop_enabled = (host.provision or { }).powertop or false;
     pve_unattended_upgrades_enabled = (host.provision or { }).autoUpdates or false;
     pve_ssd_optimization_enabled = (host.provision or { }).ssdOptimization or false;
@@ -16,6 +21,10 @@ let
     # Opt-out, not opt-in: true unless a host explicitly sets cpuGovernor = false.
     pve_cpu_governor_enabled = (host.provision or { }).cpuGovernor or true;
     pve_pvestatd_autorestart_enabled = (host.provision or { }).pvestatdAutoRestart or false;
+    pve_vmid_range_lower = host.ctidRange.min;
+    pve_vmid_range_upper = host.ctidRange.max;
+    pve_grafana_kiosk_enabled = (host.provision or { }).grafanaKiosk or false;
+    pve_grafana_kiosk_url = grafanaKioskUrl;
   }) lib.hosts;
 
   allHosts = builtins.attrNames lib.hosts;

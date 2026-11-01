@@ -1,0 +1,32 @@
+#!/bin/sh
+# Managed by ansible/roles/pve_grafana_kiosk; the dashboard URL is derived
+# from homelab.nix's telemetry LXC IP (see scripts/provision-proxmox.nix).
+
+set -e
+
+xset s off
+xset s noblank
+xset +dpms
+xset dpms 0 0 0
+
+xrandr \
+  --output {{ pve_grafana_kiosk_main_output }} --auto --rotate right \
+  --output {{ pve_grafana_kiosk_kiosk_output }} --primary --auto --left-of {{ pve_grafana_kiosk_main_output }} --mode {{ pve_grafana_kiosk_kiosk_mode }}
+
+xrandr --output {{ pve_grafana_kiosk_main_output }} --brightness {{ pve_grafana_kiosk_main_brightness }}
+
+openbox-session &
+sleep 4
+
+export MOZ_CRASHREPORTER_DISABLE=1
+
+firefox-esr \
+    --kiosk \
+    --class GrafanaDashboard \
+    -P grafana \
+    --no-remote \
+    "{{ pve_grafana_kiosk_url }}" &
+
+kitty --title "{{ pve_hostname }}" --start-as fullscreen &
+
+wait

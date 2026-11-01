@@ -10,9 +10,25 @@
   vars_files:
     - ../group_vars/proxmox.yml
 
+  # Runs before every role's own tasks: a broken apt source here would fail
+  # every apt: task in the play, not just pve_ssd_optimization's own. This
+  # cleans up a legacy sources.list.d file from an earlier version of that
+  # role (ansible.builtin.apt_repository) that conflicts with its current
+  # deb822 .sources file over the Signed-By keyring path.
+  pre_tasks:
+    - name: Remove legacy log2ram apt source
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/apt/sources.list.d/azlux.list
+        - /usr/share/keyrings/azlux-archive-keyring.gpg
+
   roles:
     - role: pve_firewall
       tags: [firewall]
+    - role: pve_vmid_range
+      tags: [vmid-range]
     - role: pve_powertop
       tags: [powertop]
       # false just skips this role; it doesn't remove an already-installed service.
@@ -33,3 +49,6 @@
     - role: pve_pvestatd_autorestart
       tags: [pvestatd-autorestart]
       when: pve_pvestatd_autorestart_enabled | default(false)
+    - role: pve_grafana_kiosk
+      tags: [grafana-kiosk]
+      when: pve_grafana_kiosk_enabled | default(false)

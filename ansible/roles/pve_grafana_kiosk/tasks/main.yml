@@ -1,0 +1,100 @@
+---
+# Shows a Grafana dashboard full-screen via X/openbox/firefox-esr on the
+# Proxmox host's own attached display. See modules/telemetry/default.nix for
+# the Grafana-side setup (anonymous viewer auth, disable_sanitize_html, the
+# hide-header/footer dashboard panel) - that part is already NixOS-managed.
+
+- name: Install X/kiosk packages
+  ansible.builtin.apt:
+    name:
+      - xserver-xorg
+      - xinit
+      - openbox
+      - xterm
+      - kitty
+      - firefox-esr
+      - xvfb
+    state: present
+    install_recommends: false
+    update_cache: true
+
+- name: Install .xinitrc
+  ansible.builtin.template:
+    src: xinitrc.j2
+    dest: /root/.xinitrc
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Ensure openbox config directory exists
+  ansible.builtin.file:
+    path: /root/.config/openbox
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install openbox rc.xml
+  ansible.builtin.template:
+    src: openbox-rc.xml.j2
+    dest: /root/.config/openbox/rc.xml
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Check whether the grafana firefox profile already exists
+  ansible.builtin.stat:
+    path: "{{ pve_grafana_kiosk_firefox_profile_dir }}"
+  register: pve_grafana_kiosk_profile_dir
+
+# Firefox only writes out a real profile from within an X session - under
+# xvfb here, so this doesn't depend on the physical kiosk display being up.
+- name: Create grafana firefox profile
+  ansible.builtin.command: >
+    xvfb-run -a firefox-esr -CreateProfile "grafana {{ pve_grafana_kiosk_firefox_profile_dir }}"
+  when: not pve_grafana_kiosk_profile_dir.stat.exists
+
+- name: Ensure firefox profile directory exists
+  ansible.builtin.file:
+    path: "{{ pve_grafana_kiosk_firefox_profile_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install firefox profile settings
+  ansible.builtin.copy:
+    src: user.js
+    dest: "{{ pve_grafana_kiosk_firefox_profile_dir }}/user.js"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install dashboard.service
+  ansible.builtin.copy:
+    src: dashboard.service
+    dest: /etc/systemd/system/dashboard.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start dashboard.service
+  ansible.builtin.systemd:
+    name: dashboard.service
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Turn the kiosk display off at night
+  ansible.builtin.cron:
+    name: "grafana kiosk display off"
+    minute: "0"
+    hour: "23"
+    job: "DISPLAY=:0 /usr/bin/xset dpms force off"
+
+- name: Turn the kiosk display on in the morning
+  ansible.builtin.cron:
+    name: "grafana kiosk display on"
+    minute: "0"
+    hour: "7"
+    job: "DISPLAY=:0 /usr/bin/xset dpms force on"

@@ -118,6 +118,7 @@ let
         ssdOptimization = true;
         consolePowerSaving = true;
         pvestatdAutoRestart = true;
+        grafanaKiosk = true; # has the attached kiosk display
       };
     };
   };

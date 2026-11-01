@@ -48,18 +48,14 @@
   when: pve_rrdcached_flush_grep.stdout | default("1") == "0"
   notify: Restart rrdcached
 
-- name: Install log2ram apt signing key
-  ansible.builtin.get_url:
-    url: https://azlux.fr/repo.gpg
-    dest: /usr/share/keyrings/azlux-archive-keyring.gpg
-    mode: "0644"
-
 - name: Add log2ram apt repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian/ {{ ansible_distribution_release }} main"
-    filename: azlux
-    state: present
-    update_cache: true
+  ansible.builtin.deb822_repository:
+    name: azlux
+    types: deb
+    uris: http://packages.azlux.fr/debian/
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: main
+    signed_by: https://azlux.fr/repo.gpg
 
 - name: Install log2ram and rsync
   ansible.builtin.apt:
@@ -67,6 +63,7 @@
       - log2ram
       - rsync
     state: present
+    update_cache: true
 
 - name: Mount /tmp as a ramdisk
   ansible.posix.mount:
@@ -78,7 +75,7 @@
 
 - name: Gather root filesystem mount facts
   ansible.builtin.set_fact:
-    pve_root_mount: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | first }}"
+    pve_root_mount: "{{ ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | first }}"
 
 - name: Add noatime to the root filesystem's fstab entry
   ansible.posix.mount:
