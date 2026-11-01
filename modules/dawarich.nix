@@ -7,6 +7,9 @@
 }:
 
 {
+  homelab.egress.enable = true;
+  homelab.ingress.enable = true;
+
   services.dawarich = {
     enable = true;
 

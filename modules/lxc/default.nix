@@ -13,6 +13,9 @@
     (modulesPath + "/virtualisation/proxmox-lxc.nix")
   ];
 
+  # iot untrusted by default for every LXC; mkDefault lets a module override.
+  homelab.ingress.blockIot = lib.mkDefault true;
+
   nix.settings = {
     sandbox = false;
   };

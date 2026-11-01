@@ -1,6 +1,5 @@
 ---
-# /etc/pve (pmxcfs) rejects Ansible's copy/template writes even with
-# unsafe_writes, so we write via `tee` instead.
+# /etc/pve (pmxcfs) rejects Ansible's copy/template writes, so we use `tee`.
 # See https://github.com/ansible/ansible/issues/70535
 
 - name: Render desired datacenter-wide firewall options
@@ -45,9 +44,7 @@
     (pve_host_fw_current.content | default('') | b64decode) != pve_host_fw_desired
   notify: Reload pve-firewall
 
-# pve-firewall skips unparseable rules rather than rejecting the whole file
-# (e.g. a range mixed into a -source list), so a bad rule fails silently
-# otherwise - this makes it fail loudly instead.
+# pve-firewall silently skips unparseable rules instead of failing - catch that here.
 - name: Verify the written rules actually parsed
   ansible.builtin.command: pve-firewall compile
   register: pve_firewall_compile

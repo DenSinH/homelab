@@ -14,6 +14,9 @@ in
     ];
   };
 
+  # Tailnet peers arrive on tailscale0 with a 100.x address, outside any LAN range.
+  homelab.ingress.allowTailscale = true;
+
   # Tailscale before the network/control plane is fully up yet, and without
   # a TPM, logs a handful of benign one-shot startup messages at a level
   # that gets mis-detected as "error".

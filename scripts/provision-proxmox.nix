@@ -6,10 +6,7 @@
 let
   colorsScript = builtins.readFile ./colors.sh;
 
-  # lib.hosts is the only source of inventory data (never lib.lxcs). Shaped
-  # for the ansible yaml inventory plugin: group -> hosts -> {host: vars}.
-  # provision.* flags become hostvars, so roles can gate on them (e.g.
-  # pve_powertop_enabled below).
+  # lib.hosts only (never lib.lxcs); provision.* flags become hostvars.
   hostVars = builtins.mapAttrs (_: host: {
     ansible_host = host.ip;
     pve_powertop_enabled = (host.provision or { }).powertop or false;
@@ -27,8 +24,7 @@ let
   inventoryFile = pkgs.writeText "proxmox-inventory.json" inventoryJson;
 
   # Ranges allowed to reach Proxmox SSH/web UI; excludes services/iot.
-  # Individual IPs (not hyphenated ranges - Proxmox ipsets don't accept
-  # those) from lib.lan.rangeIps, fed into the Proxmox "management" ipset.
+  # Individual IPs, not ranges - Proxmox ipsets don't accept those.
   pveFirewallManagementCategories = [
     "compute"
     "dynamic"

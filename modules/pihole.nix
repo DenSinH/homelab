@@ -103,6 +103,25 @@ let
   ];
 in
 {
+  homelab.egress.enable = true;
+
+  # DHCP hands every device this host directly as DNS (router.nix option 6),
+  # so port 53 must stay open to all; :80 admin UI keeps the default lockdown.
+  homelab.ingress = {
+    enable = true;
+    allowed = [
+      {
+        host = "0.0.0.0/0";
+        ports = [ 53 ];
+        protos = [
+          "tcp"
+          "udp"
+        ];
+        comment = "DNS from every device";
+      }
+    ];
+  };
+
   homelab.hardenedServices = [ "pihole-regex-allowlist" ];
 
   services.pihole-web = {

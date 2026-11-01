@@ -82,6 +82,10 @@ let
   proxyListen = "bind 127.0.0.1";
 in
 {
+  homelab.egress.enable = true;
+  # Caddy only binds loopback - nothing LAN-facing to protect, but harmless.
+  homelab.ingress.enable = true;
+
   imports = [ ./fail2ban.nix ];
 
   # https://search.nixos.org/options?channel=26.05&query=cloudflared

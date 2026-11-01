@@ -6,6 +6,10 @@
 }:
 
 {
+  # Doesn't affect this LXC's FORWARD-ed tailnet<->LAN routing, only OUTPUT.
+  homelab.egress.enable = true;
+  homelab.ingress.enable = true;
+
   # Enable tailscale
   imports = [
     ./tailscale.nix

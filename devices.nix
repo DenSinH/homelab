@@ -84,9 +84,7 @@ let
       ip = "${lan.subnet}.241";
     };
 
-    # IoT: automation. `wan` is required on every iot device - explicit
-    # true to let it reach the internet, false (the default-safe choice)
-    # to keep it LAN-only.
+    # IoT: automation. `wan` required on every entry; false = LAN-only.
     p1-meter-homewizard = {
       category = "iot";
       mac = "5c:2f:af:36:55:d8";
@@ -193,9 +191,7 @@ let
       wan = false;
     };
 
-    # Services: tag-gated, self-requested IP (no fixed dnsmasq dhcp-host
-    # entry) - ip here is the address it's configured to request, by
-    # convention, not a dnsmasq-enforced guarantee.
+    # Services: tag-gated, self-requested IP - not dnsmasq-enforced.
     home-assistant = {
       category = "services";
       mac = "bc:24:11:f4:1f:43";

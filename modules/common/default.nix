@@ -9,6 +9,7 @@
   imports = [
     ../telemetry/alloy.nix
     ./hardened-services.nix
+    ./firewall.nix
   ];
 
   # Default settings for any host (LXC and physical alike)

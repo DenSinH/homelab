@@ -6,6 +6,13 @@
 }:
 
 {
+  # Monitors other LAN devices by design, so needs allowLan.
+  homelab.egress = {
+    enable = true;
+    allowLan = true;
+  };
+  homelab.ingress.enable = true;
+
   services.gatus = {
     enable = true;
     openFirewall = false;

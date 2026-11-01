@@ -8,6 +8,9 @@ let
   port = 28981;
 in
 {
+  homelab.egress.enable = true;
+  homelab.ingress.enable = true;
+
   sops.secrets."paperless/admin-password" = {
     sopsFile = ../secrets/paperless.yaml;
     owner = config.services.paperless.user;

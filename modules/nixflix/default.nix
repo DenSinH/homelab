@@ -19,6 +19,29 @@ let
   domain = "nixflix.*"; # both nixflix.home AND nixflix.vpn
 in
 {
+  # NAS for media; the rest of the LAN stays blocked.
+  homelab.egress = {
+    enable = true;
+    allowed = [
+      {
+        host = lib.storage.nas.ip;
+        ports = [
+          111
+          2049
+          20048
+          32765
+          32766
+        ];
+        protos = [
+          "tcp"
+          "udp"
+        ];
+        comment = "NFS to NAS";
+      }
+    ];
+  };
+  homelab.ingress.enable = true;
+
   # NFS settings
   services.rpcbind.enable = true;
   boot.supportedFilesystems = [ "nfs" ];

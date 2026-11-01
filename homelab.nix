@@ -1,8 +1,5 @@
-# Central homelab topology: LAN layout, hosts, LXCs, storage/backup, admin
-# keys, known devices. Consumed via the `lib` extension in flake.nix
-# (lib.lan, lib.hosts, lib.lxcs, lib.router, lib.storage, lib.backup,
-# lib.admin, lib.devices) so every module/host/script shares one source of
-# truth instead of hardcoding IPs.
+# Single source of truth for homelab topology; exposed as lib.{lan,hosts,
+# lxcs,router,storage,backup,admin,devices} via flake.nix's lib extension.
 { lib }:
 
 let
