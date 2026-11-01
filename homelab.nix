@@ -81,6 +81,9 @@ let
       provision = {
         powertop = true;
         autoUpdates = true;
+        ssdOptimization = true;
+        consolePowerSaving = true;
+        pvestatdAutoRestart = true;
       };
     };
 
@@ -95,6 +98,9 @@ let
       provision = {
         powertop = true;
         autoUpdates = true;
+        ssdOptimization = true;
+        consolePowerSaving = true;
+        pvestatdAutoRestart = true;
       };
     };
 
@@ -109,6 +115,9 @@ let
       provision = {
         powertop = true;
         autoUpdates = true;
+        ssdOptimization = true;
+        consolePowerSaving = true;
+        pvestatdAutoRestart = true;
       };
     };
   };

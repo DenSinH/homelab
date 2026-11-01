@@ -20,3 +20,16 @@
     - role: pve_unattended_upgrades
       tags: [unattended-upgrades]
       when: pve_unattended_upgrades_enabled | default(false)
+    - role: pve_ssd_optimization
+      tags: [ssd-optimization]
+      when: pve_ssd_optimization_enabled | default(false)
+    - role: pve_console_powersave
+      tags: [console-powersave]
+      when: pve_console_powersave_enabled | default(false)
+    - role: pve_cpu_governor
+      tags: [cpu-governor]
+      # Opt-out, not opt-in: defaults to true unless a host's provision flags say otherwise.
+      when: pve_cpu_governor_enabled | default(true)
+    - role: pve_pvestatd_autorestart
+      tags: [pvestatd-autorestart]
+      when: pve_pvestatd_autorestart_enabled | default(false)

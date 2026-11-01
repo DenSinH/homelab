@@ -11,6 +11,11 @@ let
     ansible_host = host.ip;
     pve_powertop_enabled = (host.provision or { }).powertop or false;
     pve_unattended_upgrades_enabled = (host.provision or { }).autoUpdates or false;
+    pve_ssd_optimization_enabled = (host.provision or { }).ssdOptimization or false;
+    pve_console_powersave_enabled = (host.provision or { }).consolePowerSaving or false;
+    # Opt-out, not opt-in: true unless a host explicitly sets cpuGovernor = false.
+    pve_cpu_governor_enabled = (host.provision or { }).cpuGovernor or true;
+    pve_pvestatd_autorestart_enabled = (host.provision or { }).pvestatdAutoRestart or false;
   }) lib.hosts;
 
   allHosts = builtins.attrNames lib.hosts;
