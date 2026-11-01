@@ -8,7 +8,13 @@ let
 
   # lib.hosts is the only source of inventory data (never lib.lxcs). Shaped
   # for the ansible yaml inventory plugin: group -> hosts -> {host: vars}.
-  hostVars = builtins.mapAttrs (_: host: { ansible_host = host.ip; }) lib.hosts;
+  # provision.* flags become hostvars, so roles can gate on them (e.g.
+  # pve_powertop_enabled below).
+  hostVars = builtins.mapAttrs (_: host: {
+    ansible_host = host.ip;
+    pve_powertop_enabled = (host.provision or { }).powertop or false;
+    pve_unattended_upgrades_enabled = (host.provision or { }).autoUpdates or false;
+  }) lib.hosts;
 
   allHosts = builtins.attrNames lib.hosts;
 

@@ -81,6 +81,10 @@ let
         min = 100;
         max = 199;
       };
+      provision = {
+        powertop = true;
+        autoUpdates = true;
+      };
     };
 
     proxmox2 = {
@@ -91,6 +95,10 @@ let
         min = 200;
         max = 299;
       };
+      provision = {
+        powertop = true;
+        autoUpdates = true;
+      };
     };
 
     proxmox3 = {
@@ -100,6 +108,10 @@ let
       ctidRange = {
         min = 300;
         max = 399;
+      };
+      provision = {
+        powertop = true;
+        autoUpdates = true;
       };
     };
   };
@@ -184,6 +196,10 @@ let
       mac = "bc:24:11:4e:81:b0";
       pveHost = "proxmox1";
       ctid = 109;
+
+      # Not used by any lxc today - shown here as the pattern for future
+      # per-lxc provisioning flags, consumed the same way as hosts.<name>.provision.
+      provision = { };
 
       stateVersion = "26.05";
 

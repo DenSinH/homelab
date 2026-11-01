@@ -1,0 +1,21 @@
+---
+- name: Install powertop
+  ansible.builtin.apt:
+    name: powertop
+    state: present
+    update_cache: true
+
+- name: Install powertop auto-tune service
+  ansible.builtin.copy:
+    src: powertop.service
+    dest: /etc/systemd/system/powertop.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start powertop auto-tune service
+  ansible.builtin.systemd:
+    name: powertop.service
+    enabled: true
+    state: started
+    daemon_reload: true

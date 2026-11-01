@@ -13,3 +13,10 @@
   roles:
     - role: pve_firewall
       tags: [firewall]
+    - role: pve_powertop
+      tags: [powertop]
+      # false just skips this role; it doesn't remove an already-installed service.
+      when: pve_powertop_enabled | default(false)
+    - role: pve_unattended_upgrades
+      tags: [unattended-upgrades]
+      when: pve_unattended_upgrades_enabled | default(false)
