@@ -49,14 +49,18 @@ let
 
   # Trusted by default; iot/services need an explicit allowed entry.
   trustedIngressRanges =
-    map (name: "${lib.lan.rangeAddrs.${name}.lo}-${lib.lan.rangeAddrs.${name}.hi}")
-      [
-        "net"
-        "compute"
-        "storage"
-        "fixed"
-        "dynamic"
-      ];
+    map (name: "${lib.lan.rangeAddrs.${name}.lo}-${lib.lan.rangeAddrs.${name}.hi}") [
+      "net"
+      "compute"
+      "storage"
+      "fixed"
+      "dynamic"
+    ]
+    # Tailscale's CGNAT range: traffic forwarded by subnet-router.nix (plain
+    # IP forwarding, no SNAT) keeps the real tailnet client's 100.x source,
+    # so it never matches a LAN range or the local tailscale0 iifname rule
+    # below. Tailnet membership is already authenticated by Tailscale itself.
+    ++ [ "100.64.0.0/10" ];
 in
 {
   # Blocks outbound LAN by default (stops lateral movement); WAN stays open

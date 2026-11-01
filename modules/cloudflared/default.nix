@@ -82,7 +82,31 @@ let
   proxyListen = "bind 127.0.0.1";
 in
 {
-  homelab.egress.enable = true;
+  homelab.egress = {
+    enable = true;
+    allowed = [
+      {
+        host = lib.lxcs.gatus.ip;
+        ports = [ 80 ];
+        comment = "proxied backend";
+      }
+      {
+        host = lib.lxcs.blog.ip;
+        ports = [ 80 ];
+        comment = "proxied backend";
+      }
+      {
+        host = lib.lxcs.garage.ip;
+        ports = [ 80 ];
+        comment = "proxied backend";
+      }
+      {
+        host = lib.lxcs.cookbook.ip;
+        ports = [ 80 ];
+        comment = "proxied backend";
+      }
+    ];
+  };
   # Caddy only binds loopback - nothing LAN-facing to protect, but harmless.
   homelab.ingress.enable = true;
 

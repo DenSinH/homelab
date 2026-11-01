@@ -346,8 +346,8 @@ in
   # (nor prowlarr's relayed copy of the same message, or its related "may
   # need flaresolverr" notice) - downgrade them to warning instead.
   homelab.alloy.extraLokiProcessConfig = ''
-    # Any unit that tags its own lines with [WRN] (jellyfin, ...) is a warning,
-    # even if the message text contains "error" (e.g. "error receiving data").
+    // Any unit that tags its own lines with [WRN] (jellyfin, ...) is a warning,
+    // even if the message text contains "error" (e.g. "error receiving data").
     stage.match {
       selector = "{unit=~\".+\"} |= \"[WRN]\""
 
