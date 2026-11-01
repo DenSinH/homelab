@@ -1,0 +1,15 @@
+---
+# Run via `nix run .#provision-proxmox`. Targets the Proxmox hosts only,
+# never the lxcs/VMs running on them.
+- name: Configure Proxmox hosts
+  hosts: proxmox
+  gather_facts: true
+
+  # Explicit because the generated inventory lives outside this tree, so
+  # Ansible's implicit group_vars auto-discovery can't find it.
+  vars_files:
+    - ../group_vars/proxmox.yml
+
+  roles:
+    - role: pve_firewall
+      tags: [firewall]

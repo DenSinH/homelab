@@ -1,0 +1,17 @@
+{{ ansible_managed | comment }}
+[OPTIONS]
+enable: {{ 1 if pve_firewall_enabled else 0 }}
+
+[RULES]
+{% for rule in pve_firewall_rules %}
+# {{ rule.comment }}
+{% if rule.macro is defined %}
+IN {{ rule.macro }}(ACCEPT) -source {{ rule.source }}
+{% else %}
+IN ACCEPT -p {{ rule.proto }} -dport {{ rule.dport }} -source {{ rule.source }}
+{% endif %}
+{% endfor %}
+{% if pve_firewall_policy_in in ['DROP', 'REJECT'] %}
+# Host chain doesn't inherit cluster.fw's policy_in; must stay last.
+IN {{ pve_firewall_policy_in }}
+{% endif %}

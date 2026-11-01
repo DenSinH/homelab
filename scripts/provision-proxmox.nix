@@ -1,0 +1,88 @@
+{
+  lib,
+  pkgs,
+}:
+
+let
+  colorsScript = builtins.readFile ./colors.sh;
+
+  # lib.hosts is the only source of inventory data (never lib.lxcs). Shaped
+  # for the ansible yaml inventory plugin: group -> hosts -> {host: vars}.
+  hostVars = builtins.mapAttrs (_: host: { ansible_host = host.ip; }) lib.hosts;
+
+  allHosts = builtins.attrNames lib.hosts;
+
+  inventoryJson = builtins.toJSON {
+    proxmox = {
+      hosts = hostVars;
+    };
+  };
+
+  inventoryFile = pkgs.writeText "proxmox-inventory.json" inventoryJson;
+
+  allHostsSpaceSeparated = builtins.concatStringsSep " " allHosts;
+
+  hostCases = builtins.concatStringsSep "\n" (
+    map (name: ''
+      ${name}) ;;
+    '') allHosts
+  );
+
+  repoRoot = ../.;
+  ansiblePlaybook = "${pkgs.ansible}/bin/ansible-playbook";
+
+in
+
+pkgs.writeShellScript "provision-proxmox" ''
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  ${colorsScript}
+
+  if [ $# -eq 0 ]; then
+      print_error "No host specified"
+      echo "Usage: $0 <proxmox-host> [extra ansible-playbook args...]"
+      echo "       $0 all [extra ansible-playbook args...]"
+      echo "Examples:"
+      echo "  $0 proxmox1 --tags firewall --check"
+      echo "  $0 all --check"
+      exit 1
+  fi
+
+  target="$1"
+  shift
+
+  case "$target" in
+      ${hostCases}
+      all) ;;
+      *)
+          print_error "Unknown host: $target"
+          echo "Known hosts: ${allHostsSpaceSeparated} all"
+          exit 1
+          ;;
+  esac
+
+  extra_args=()
+  if [ "$target" != "all" ]; then
+      extra_args+=(--limit "$target")
+  fi
+
+  if printf '%s\n' "$@" | grep -qx -- '--check' 2>/dev/null; then
+      print_warning "Running in --check (dry-run) mode: no changes will be applied"
+  else
+      print_warning "This will apply changes to real Proxmox host(s): $target"
+  fi
+
+  print_info "Running ansible-playbook against: $target"
+
+  export ANSIBLE_CONFIG="${toString repoRoot}/ansible/ansible.cfg"
+  export ANSIBLE_ROLES_PATH="${toString repoRoot}/ansible/roles"
+
+  ${ansiblePlaybook} \
+      -i "${inventoryFile}" \
+      "''${extra_args[@]}" \
+      "${toString repoRoot}/ansible/playbooks/site.yml" \
+      "$@"
+
+  print_success "Provisioning finished for $target"
+''

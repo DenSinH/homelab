@@ -17,8 +17,9 @@ is declarative — there is no config drift to reason about, only what's in this
 | `hosts/<name>/` | Full NixOS configs for the three non-LXC machines: `nas`, `router`, `offsite-backup`. Each has its own `default.nix`, `hardware-configuration.nix`, and often a `README.md` with machine-specific notes. |
 | `modules/` | Reusable NixOS modules, mostly one per LXC service (`vaultwarden.nix`, `paperless.nix`, ...) or a directory when a service needs multiple files (`modules/cookbook/`, `modules/garage/`, `modules/reporting/`). `modules/common/` and `modules/host/` are the base layers every machine imports. |
 | `lib/` | Nix helper functions: `mkLxc.nix` builds an LXC `nixosSystem` from a `flake.nix` entry; `hardenedService.nix` is the shared systemd sandboxing baseline for self-written services. |
-| `scripts/` | Nix-wrapped shell apps exposed via `nix run .#<name>` (deploy, tailscale login, igpu/proxmox config, security report). |
+| `scripts/` | Nix-wrapped shell apps exposed via `nix run .#<name>` (deploy, tailscale login, igpu/proxmox config, security report, Ansible provisioning). |
 | `secrets/` | `sops-nix`-encrypted secrets, one YAML file per service/host. `.sops.yaml` (repo root) maps each file to the age keys allowed to decrypt it. |
+| `ansible/` | Ansible playbooks/roles for config that lives on the three Proxmox hosts themselves (firewall hardening, etc.) — never the LXCs/VMs they host, which stay NixOS-managed. Run via `nix run .#provision-proxmox`, which generates the inventory from `flake.nix`'s `hosts` map so there's no separate inventory file to drift out of sync. |
 | `docs/` | Freeform operational writeups: disaster recovery runbook, hardware migration logs. |
 
 Two hosts also carry their own `README.md` with context that isn't derivable from the Nix
@@ -54,6 +55,9 @@ VM's setup/network details). Read the relevant one before changing that host.
   run `sops updatekeys secrets/<name>.yaml`.
 - **Formatting**: `nixfmt-tree` is the repo formatter (`formatter.${system}` in `flake.nix`).
   Run `nix fmt` before committing Nix changes.
+- **Comments**: only comment on the non-obvious — a hidden constraint, a workaround, the
+  reason behind a choice. Keep it to one or two short lines; don't restate what the code
+  already says or narrate background that belongs in a commit message instead.
 - **New LXC service checklist**: create `modules/<service>.nix` (or a directory), add an entry
   under `lxcs` in `flake.nix` with the next free IP/MAC/ctid in the owning Proxmox host's range,
   pick a `stateVersion` matching other recent entries, list the needed modules, and (if it needs
@@ -94,6 +98,10 @@ VM's setup/network details). Read the relevant one before changing that host.
 - Prefer `nixos-rebuild build --flake .#<name>` or `nix flake check` to validate before any
   `switch` is suggested, and always confirm with the user before running a `switch`/`deploy`
   against a real host — these are not reversible in the way a local file edit is.
+- Same caution applies to `nix run .#provision-proxmox`: it changes the firewall on real
+  Proxmox hosts and a mistake can lock out SSH/web UI access. Always run with `-- --check`
+  (dry-run) first, apply to a single host before `all`, and confirm with the user before any
+  non-`--check` run.
 - For anything touching ZFS pools/datasets (`hosts/nas/zfs.nix`, `hosts/offsite-backup/zfs.nix`)
   or replication (`replication.nix`), read [docs/RECOVERY.md](docs/RECOVERY.md) first — it
   documents which datasets have no second copy and the exact order of operations that avoids

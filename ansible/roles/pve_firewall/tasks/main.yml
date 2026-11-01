@@ -1,0 +1,46 @@
+---
+# /etc/pve (pmxcfs) rejects Ansible's copy/template writes even with
+# unsafe_writes, so we write via `tee` instead.
+# See https://github.com/ansible/ansible/issues/70535
+
+- name: Render desired datacenter-wide firewall options
+  ansible.builtin.set_fact:
+    pve_cluster_fw_desired: "{{ lookup('ansible.builtin.template', 'cluster.fw.j2') }}"
+
+- name: Read current datacenter-wide firewall options
+  ansible.builtin.slurp:
+    src: /etc/pve/firewall/cluster.fw
+  register: pve_cluster_fw_current
+  failed_when: false
+
+- name: Write datacenter-wide firewall options
+  ansible.builtin.shell:
+    cmd: tee /etc/pve/firewall/cluster.fw > /dev/null
+    stdin: "{{ pve_cluster_fw_desired }}"
+  when: >
+    (pve_cluster_fw_current.content | default('') | b64decode) != pve_cluster_fw_desired
+  notify: Reload pve-firewall
+
+- name: Ensure this node's firewall directory exists
+  # Safety net; pmxcfs normally creates this itself.
+  ansible.builtin.file:
+    path: "/etc/pve/nodes/{{ pve_node_name }}"
+    state: directory
+
+- name: Render desired node firewall rules
+  ansible.builtin.set_fact:
+    pve_host_fw_desired: "{{ lookup('ansible.builtin.template', 'host.fw.j2') }}"
+
+- name: Read current node firewall rules
+  ansible.builtin.slurp:
+    src: "/etc/pve/nodes/{{ pve_node_name }}/host.fw"
+  register: pve_host_fw_current
+  failed_when: false
+
+- name: Write node firewall rules
+  ansible.builtin.shell:
+    cmd: "tee /etc/pve/nodes/{{ pve_node_name }}/host.fw > /dev/null"
+    stdin: "{{ pve_host_fw_desired }}"
+  when: >
+    (pve_host_fw_current.content | default('') | b64decode) != pve_host_fw_desired
+  notify: Reload pve-firewall

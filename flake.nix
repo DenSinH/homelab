@@ -479,6 +479,11 @@
             program = toString (callScript ./scripts/config-proxmox.nix);
           };
 
+          provision-proxmox = {
+            type = "app";
+            program = toString (callScript ./scripts/provision-proxmox.nix);
+          };
+
           security-report = {
             type = "app";
             program = toString (callScript ./scripts/security-report.nix);
@@ -491,6 +496,7 @@
             pkgs.sops
             pkgs.age
             pkgs.ssh-to-age
+            pkgs.ansible
           ];
 
           shellHook = ''

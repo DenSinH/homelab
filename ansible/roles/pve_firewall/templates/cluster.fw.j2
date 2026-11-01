@@ -1,0 +1,5 @@
+{{ ansible_managed | comment }}
+[OPTIONS]
+enable: {{ 1 if pve_firewall_enabled else 0 }}
+policy_in: {{ pve_firewall_policy_in }}
+policy_out: {{ pve_firewall_policy_out }}

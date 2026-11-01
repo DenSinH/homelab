@@ -1,0 +1,21 @@
+---
+# Applied identically to all three (standalone, non-clustered) Proxmox hosts.
+
+pve_firewall_enabled: true
+
+# Verify the allow-list below via --check before trusting DROP.
+pve_firewall_policy_in: "DROP"
+pve_firewall_policy_out: "ACCEPT"
+
+# See hosts/router/README.md for the LAN range convention.
+pve_firewall_management_cidr: "192.168.50.0/24"
+
+# Ordered allow-list, applied before the default policy above.
+pve_firewall_rules:
+  - comment: "SSH from the management LAN"
+    macro: "SSH"
+    source: "{{ pve_firewall_management_cidr }}"
+  - comment: "Proxmox web UI from the management LAN"
+    proto: "tcp"
+    dport: "8006"
+    source: "{{ pve_firewall_management_cidr }}"
