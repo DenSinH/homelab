@@ -1,10 +1,8 @@
 { pkgs, lib, ... }:
 
 let
-  network = import ./network.nix { inherit lib; };
-  inherit (network) lanIf lanSubnet;
-
-  lanNetwork = "${lanSubnet}.0/24";
+  inherit (lib.router) lanIf;
+  lanNetwork = lib.lan.cidr;
 
   # Keep in sync with the nftables input-chain rule in router.nix that
   # allows this port from lanIf.

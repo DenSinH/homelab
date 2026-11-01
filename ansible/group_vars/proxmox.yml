@@ -7,15 +7,15 @@ pve_firewall_enabled: true
 pve_firewall_policy_in: "DROP"
 pve_firewall_policy_out: "ACCEPT"
 
-# See hosts/router/README.md for the LAN range convention.
-pve_firewall_management_cidr: "192.168.50.0/24"
+# pve_firewall_ipsets comes from provision-proxmox.nix via --extra-vars, not from here
+# (Proxmox ipsets only accept IPs/CIDRs, not ranges).
 
 # Ordered allow-list, applied before the default policy above.
 pve_firewall_rules:
-  - comment: "SSH from the management LAN"
+  - comment: "SSH from compute/dynamic/fixed"
     macro: "SSH"
-    source: "{{ pve_firewall_management_cidr }}"
-  - comment: "Proxmox web UI from the management LAN"
+    source: "+management"
+  - comment: "Proxmox web UI from compute/dynamic/fixed"
     proto: "tcp"
     dport: "8006"
-    source: "{{ pve_firewall_management_cidr }}"
+    source: "+management"

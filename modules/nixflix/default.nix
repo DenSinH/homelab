@@ -210,7 +210,7 @@ in
             # for example run ./gen-qbittorrent-password.sh to generate it from stdin
             Password_PBKDF2 = "@ByteArray(kR+FfrNzdOkhVab2ph7Ocg==:kHtoKhAe64dbk7wQJl0eeUF1hYu767BObpRzn1DxON1drcgOBC5zlAA6aGrfRwZCRcaoPqp3K6Yu3UYK2O2sJg==)";
             LocalHostAuth = false;
-            AuthSubnetWhitelist = "192.168.50.0/24";
+            AuthSubnetWhitelist = lib.lan.cidr;
             AuthSubnetWhitelistEnabled = true;
           };
         };

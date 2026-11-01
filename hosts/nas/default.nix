@@ -35,18 +35,18 @@
   networking = {
     hostName = "nas";
     defaultGateway = {
-      address = "192.168.50.1";
+      address = lib.lan.gateway;
       interface = "eno1";
     };
     interfaces.eno1.ipv4.addresses = [
       {
         address = lib.storage.nas.ip;
-        prefixLength = 24;
+        prefixLength = lib.lan.prefixLength;
       }
     ];
     nameservers = [
       # forwarded to piholes
-      "192.168.50.1"
+      lib.lan.gateway
     ];
   };
 

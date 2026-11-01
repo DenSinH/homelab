@@ -23,7 +23,7 @@ let
   ];
   localRecords = [
     ### NETWORK
-    "192.168.50.1 router.home"
+    "${lib.lan.gateway} router.home"
     "${lib.lxcs.ahole.ip} ahole.home"
     "${lib.lxcs.bhole.ip} bhole.home"
     "${lib.lxcs.chole.ip} chole.home"
@@ -32,26 +32,26 @@ let
     "${lib.hosts.proxmox1.ip} proxmox1.home"
     "${lib.hosts.proxmox2.ip} proxmox2.home"
     "${lib.hosts.proxmox3.ip} proxmox3.home"
-    "192.168.50.18 pdm.home"
-    "192.168.50.19 pbs.home"
+    "${lib.lan.subnet}.18 pdm.home"
+    "${lib.lan.subnet}.19 pbs.home"
 
     ### STORAGE
     "${lib.storage.nas.ip} nas.home"
     "${lib.storage.nas.tailnet_ip} nas.vpn"
-    "192.168.50.22 hp-ilo.home"
+    "${lib.lan.subnet}.22 hp-ilo.home"
 
     "${lib.backup.offsite-backup.tailnet_ip} offsite-backup.vpn"
 
     ### SERVICES
     "${lib.lxcs.reporting.ip} reporting.home"
 
-    "192.168.50.31 homeassistant.home"
+    "${lib.devices.home-assistant.ip} homeassistant.home"
     "100.85.36.70 homeassistant.vpn"
 
     # "${lib.lxcs.static-site.ip} static.home"
     # "${lib.lxcs.static-site.tailnet_ip} static.vpn"
 
-    "192.168.50.33 actual.home"
+    "${lib.lan.subnet}.33 actual.home"
 
     "${lib.lxcs.telemetry.ip} telemetry.home"
     "${lib.lxcs.telemetry.tailnet_ip} telemetry.vpn"
@@ -81,10 +81,10 @@ let
     "${lib.lxcs.paperless.ip} paperless.home"
     "${lib.lxcs.paperless.tailnet_ip} paperless.vpn"
 
-    "192.168.50.46 byparr.home"
-    "192.168.50.47 bazarr.home"
+    "${lib.lan.subnet}.46 byparr.home"
+    "${lib.lan.subnet}.47 bazarr.home"
 
-    "192.168.50.203 playstation.home"
+    "${lib.lan.subnet}.203 playstation.home"
   ];
 
   # subdomain mappings for (exposed) nixflix services
@@ -110,7 +110,7 @@ in
     ports = [
       80
     ];
-    hostName = "192.168.50.215";
+    hostName = "${lib.lan.subnet}.215";
   };
 
   services.pihole-ftl = {

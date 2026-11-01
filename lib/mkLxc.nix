@@ -54,14 +54,14 @@ nixpkgs.lib.nixosSystem {
       # networking config (fixed IP, hostname)
       networking = {
         defaultGateway = {
-          address = "192.168.50.1";
+          address = lib.lan.gateway;
           interface = "eth0";
         };
         hostName = hostname;
         interfaces.eth0.ipv4.addresses = [
           {
             address = ip;
-            prefixLength = 24;
+            prefixLength = lib.lan.prefixLength;
           }
         ];
       };

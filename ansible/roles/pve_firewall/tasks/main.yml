@@ -44,3 +44,12 @@
   when: >
     (pve_host_fw_current.content | default('') | b64decode) != pve_host_fw_desired
   notify: Reload pve-firewall
+
+# pve-firewall skips unparseable rules rather than rejecting the whole file
+# (e.g. a range mixed into a -source list), so a bad rule fails silently
+# otherwise - this makes it fail loudly instead.
+- name: Verify the written rules actually parsed
+  ansible.builtin.command: pve-firewall compile
+  register: pve_firewall_compile
+  changed_when: false
+  failed_when: "'errors in rule parameters' in (pve_firewall_compile.stdout + pve_firewall_compile.stderr)"

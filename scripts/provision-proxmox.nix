@@ -20,6 +20,24 @@ let
 
   inventoryFile = pkgs.writeText "proxmox-inventory.json" inventoryJson;
 
+  # Ranges allowed to reach Proxmox SSH/web UI; excludes services/iot.
+  # Individual IPs (not hyphenated ranges - Proxmox ipsets don't accept
+  # those) from lib.lan.rangeIps, fed into the Proxmox "management" ipset.
+  pveFirewallManagementCategories = [
+    "compute"
+    "dynamic"
+    "fixed"
+  ];
+  pveFirewallManagementIps = lib.lists.concatMap (
+    cat: lib.lan.rangeIps.${cat}
+  ) pveFirewallManagementCategories;
+
+  pveFirewallVarsFile = pkgs.writeText "pve-firewall-vars.json" (
+    builtins.toJSON {
+      pve_firewall_ipsets.management = pveFirewallManagementIps;
+    }
+  );
+
   allHostsSpaceSeparated = builtins.concatStringsSep " " allHosts;
 
   hostCases = builtins.concatStringsSep "\n" (
@@ -80,6 +98,7 @@ pkgs.writeShellScript "provision-proxmox" ''
 
   ${ansiblePlaybook} \
       -i "${inventoryFile}" \
+      --extra-vars "@${pveFirewallVarsFile}" \
       "''${extra_args[@]}" \
       "${toString repoRoot}/ansible/playbooks/site.yml" \
       "$@"
