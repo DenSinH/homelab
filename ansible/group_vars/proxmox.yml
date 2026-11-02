@@ -19,3 +19,6 @@ pve_firewall_rules:
     proto: "tcp"
     dport: "8006"
     source: "+management"
+  - comment: "ICMP ping from anywhere (uptime monitoring)"
+    macro: "Ping"
+    source: "0.0.0.0/0"
