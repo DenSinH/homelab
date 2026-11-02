@@ -9,31 +9,9 @@ let
   # Define colors inline for activation scripts
   colorsScript = builtins.readFile ../scripts/colors.sh;
 
-  # Direct LAN-to-LAN tailscale connections bypass the tailscale interface and
-  # use plain LAN IPs, so our LAN-default-deny egress rules need an exception.
-  # Excludes iot: nothing there runs tailscale.
-  tailscaleLanPeerRanges = map (
-    name: "${lib.lan.rangeAddrs.${name}.lo}-${lib.lan.rangeAddrs.${name}.hi}"
-  ) (builtins.filter (name: name != "iot") (builtins.attrNames lib.lan.ranges));
-  tailscaleLanPeerAllowed = map (host: {
-    inherit host;
-    ports = [ config.services.tailscale.port ];
-    protos = [ "udp" ];
-    comment = "tailscale direct-connection UDP (LAN peers)";
-  }) tailscaleLanPeerRanges;
-
-  # WAN tailnet peers (phones away from home) hole-punch straight to this UDP
-  # port before any conntrack entry exists, so the ingress default-deny
-  # policy needs an explicit allow or they're stuck on DERP relay. WireGuard's
-  # own handshake crypto authenticates peers, so opening this port is safe.
-  tailscaleWanPeerAllowed = [
-    {
-      host = "0.0.0.0/0";
-      ports = [ config.services.tailscale.port ];
-      protos = [ "udp" ];
-      comment = "tailscale direct-connection UDP (WAN peers)";
-    }
-  ];
+  # LAN ranges that may run tailscale themselves and need the direct-connection
+  # UDP exception below (iot excluded: nothing there runs tailscale).
+  lanPeerRangeNames = builtins.attrNames (removeAttrs lib.lan.ranges [ "iot" ]);
 in
 {
   services.tailscale = {
@@ -45,9 +23,25 @@ in
     ];
   };
 
-  homelab.egress.allowed = tailscaleLanPeerAllowed;
-  # 0.0.0.0/0 already covers the LAN ranges, so no need to list both here.
-  homelab.ingress.allowed = tailscaleWanPeerAllowed;
+  # Direct (non-DERP) connections use plain IPs on this UDP port, bypassing
+  # the tailscale interface - LAN peers need an egress exception for it.
+  homelab.egress.allowed = map (name: {
+    host = "${lib.lan.rangeAddrs.${name}.lo}-${lib.lan.rangeAddrs.${name}.hi}";
+    ports = [ config.services.tailscale.port ];
+    protos = [ "udp" ];
+    comment = "tailscale direct-connection UDP (LAN peers)";
+  }) lanPeerRangeNames;
+
+  # Same, but for WAN peers (e.g. phones away from home): their hole-punch
+  # probe arrives before any conntrack entry exists, so it needs an explicit allow.
+  homelab.ingress.allowed = [
+    {
+      host = "0.0.0.0/0";
+      ports = [ config.services.tailscale.port ];
+      protos = [ "udp" ];
+      comment = "tailscale direct-connection UDP (WAN peers)";
+    }
+  ];
 
   # Tailscale before the network/control plane is fully up yet, and without
   # a TPM, logs a handful of benign one-shot startup messages at a level

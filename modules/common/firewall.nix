@@ -49,13 +49,14 @@ let
 
   # Trusted by default; iot/services need an explicit allowed entry.
   trustedIngressRanges =
-    map (name: "${lib.lan.rangeAddrs.${name}.lo}-${lib.lan.rangeAddrs.${name}.hi}") [
-      "net"
-      "compute"
-      "storage"
-      "fixed"
-      "dynamic"
-    ]
+    map (name: "${lib.lan.rangeAddrs.${name}.lo}-${lib.lan.rangeAddrs.${name}.hi}") (
+      builtins.attrNames (
+        removeAttrs lib.lan.ranges [
+          "iot"
+          "services"
+        ]
+      )
+    )
     # Tailscale's CGNAT range: covers both tailscale peers terminating here
     # directly and traffic subnet-router.nix forwards keeping their 100.x source.
     ++ [ "100.64.0.0/10" ];
