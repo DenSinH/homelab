@@ -276,6 +276,12 @@ in
           enableTrickplayImageExtraction = false;
           extractTrickplayImagesDuringLibraryScan = false;
           saveTrickplayWithMedia = true;
+
+          subtitleDownloadLanguages = [
+            "eng"
+            "nld"
+          ];
+          saveSubtitlesWithMedia = true;
         };
         Shows = lib.mkForce {
           collectionType = "tvshows";
@@ -287,6 +293,12 @@ in
           enableTrickplayImageExtraction = false;
           extractTrickplayImagesDuringLibraryScan = false;
           saveTrickplayWithMedia = true;
+
+          subtitleDownloadLanguages = [
+            "eng"
+            "nld"
+          ];
+          saveSubtitlesWithMedia = true;
         };
       };
 
