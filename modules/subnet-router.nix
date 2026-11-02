@@ -26,7 +26,7 @@
 
     extraSetFlags = [
       # advertise a larger subnet so LAN takes priority at home
-      "--advertise-routes=192.168.50.0/23"
+      "--advertise-routes=${lib.lan.subnet}.0/23"
     ];
   };
 

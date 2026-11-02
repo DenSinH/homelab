@@ -56,10 +56,8 @@ let
       "fixed"
       "dynamic"
     ]
-    # Tailscale's CGNAT range: traffic forwarded by subnet-router.nix (plain
-    # IP forwarding, no SNAT) keeps the real tailnet client's 100.x source,
-    # so it never matches a LAN range or the local tailscale0 iifname rule
-    # below. Tailnet membership is already authenticated by Tailscale itself.
+    # Tailscale's CGNAT range: covers both tailscale peers terminating here
+    # directly and traffic subnet-router.nix forwards keeping their 100.x source.
     ++ [ "100.64.0.0/10" ];
 in
 {
@@ -96,11 +94,6 @@ in
       type = lib.types.bool;
       default = false;
       description = "Always block inbound from iot, independent of `enable` (set true for every LXC by modules/lxc/default.nix).";
-    };
-    allowTailscale = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Allow inbound from tailscale peers.";
     };
     allowed = lib.mkOption {
       type = lib.types.listOf (lib.types.submodule allowedEntry);
@@ -142,10 +135,6 @@ in
                 ct state established,related accept
                 iifname "lo" accept comment "loopback"
 
-                ${lib.optionalString ingressCfg.allowTailscale ''
-                  iifname "tailscale0" accept comment "tailscale peers"
-                ''}
-
                 ip saddr { ${lib.concatStringsSep ", " trustedIngressRanges} } accept comment "trusted LAN ranges"
                 ${lib.concatStringsSep "\n                " ingressAllowedRuleLines}
               }
@@ -159,9 +148,6 @@ in
               chain input {
                 type filter hook input priority 0; policy accept;
 
-                ${lib.optionalString ingressCfg.allowTailscale ''
-                  iifname "tailscale0" accept comment "tailscale peers"
-                ''}
                 ${lib.concatStringsSep "\n                " ingressAllowedRuleLines}
                 ip saddr ${lib.lan.rangeAddrs.iot.lo}-${lib.lan.rangeAddrs.iot.hi} drop comment "iot always blocked"
               }

@@ -72,7 +72,7 @@ let
   hosts = {
     proxmox1 = {
       hostname = "proxmox1.home";
-      ip = "192.168.50.11";
+      ip = "${lan.subnet}.11";
       mac = "6c:4b:90:5a:74:19";
       ctidRange = {
         min = 100;
@@ -89,7 +89,7 @@ let
 
     proxmox2 = {
       hostname = "proxmox2.home";
-      ip = "192.168.50.12";
+      ip = "${lan.subnet}.12";
       mac = "6c:4b:90:5a:73:9d";
       ctidRange = {
         min = 200;
@@ -106,7 +106,7 @@ let
 
     proxmox3 = {
       hostname = "proxmox3.home";
-      ip = "192.168.50.13";
+      ip = "${lan.subnet}.13";
       mac = "e0:51:d8:1b:fb:9c"; # e0:51:d8:1b:fb:9b unused
       ctidRange = {
         min = 300;
@@ -125,7 +125,7 @@ let
 
   router = rec {
     hostname = "router";
-    ip = "192.168.50.1";
+    ip = "${lan.subnet}.1";
     mac = "00:e0:4c:68:1d:ec";
 
     wanIf = "enp1s0"; # 1Gbit
@@ -181,7 +181,7 @@ let
   storage = {
     nas = {
       hostname = "nas";
-      ip = "192.168.50.20";
+      ip = "${lan.subnet}.20";
       mac = "34:64:a9:9a:44:bc";
       tailnet_ip = "100.109.231.109";
     };
@@ -190,7 +190,7 @@ let
   backup = {
     offsite-backup = {
       hostname = "offsite-backup";
-      ip = "192.168.50.29"; # only obtained if actually on network
+      ip = "${lan.subnet}.29"; # only obtained if actually on network
       mac = "6c:4b:90:78:b6:0a";
       tailnet_ip = "100.110.13.2";
     };
@@ -199,7 +199,7 @@ let
   lxcs = {
     ahole = {
       hostname = "ahole";
-      ip = "192.168.50.2";
+      ip = "${lan.subnet}.2";
       mac = "bc:24:11:4e:81:b0";
       pveHost = "proxmox1";
       ctid = 109;
@@ -218,7 +218,7 @@ let
 
     bhole = {
       hostname = "bhole";
-      ip = "192.168.50.3";
+      ip = "${lan.subnet}.3";
       mac = "bc:24:11:7d:98:4a";
       pveHost = "proxmox2";
       ctid = 204;
@@ -233,7 +233,7 @@ let
 
     chole = {
       hostname = "chole";
-      ip = "192.168.50.4";
+      ip = "${lan.subnet}.4";
       mac = "bc:24:11:f1:b2:39";
       pveHost = "proxmox3";
       ctid = 311;
@@ -248,7 +248,7 @@ let
 
     cloudflared = {
       hostname = "cloudflared";
-      ip = "192.168.50.9";
+      ip = "${lan.subnet}.9";
       mac = "bc:24:11:2f:5f:8b";
       pveHost = "proxmox1";
       ctid = 115;
@@ -262,7 +262,7 @@ let
 
     subnet-router = {
       hostname = "subnet-router";
-      ip = "192.168.50.8";
+      ip = "${lan.subnet}.8";
       mac = "bc:24:11:d4:c8:f5";
       pveHost = "proxmox1";
       ctid = 113;
@@ -276,7 +276,7 @@ let
 
     reporting = {
       hostname = "reporting";
-      ip = "192.168.50.30";
+      ip = "${lan.subnet}.30";
       mac = "bc:24:11:89:1c:f5";
       pveHost = "proxmox1";
       ctid = 110;
@@ -290,7 +290,7 @@ let
 
     telemetry = {
       hostname = "telemetry";
-      ip = "192.168.50.34";
+      ip = "${lan.subnet}.34";
       mac = "bc:24:11:d6:ef:b6";
       tailnet_ip = "100.106.52.64";
       pveHost = "proxmox1";
@@ -311,7 +311,7 @@ let
     # only really useful if  I have something to host, so disabled for now
     # static-site = {
     #   hostname = "static-site";
-    #   ip = "192.168.50.32";
+    #   ip = "${lan.subnet}.32";
     #   mac = "bc:24:11:4f:c7:5f";
     #   tailnet_ip = "100.82.168.99";
     #   pveHost = "proxmox1";
@@ -328,7 +328,7 @@ let
 
     gatus = {
       hostname = "gatus";
-      ip = "192.168.50.35";
+      ip = "${lan.subnet}.35";
       mac = "bc:24:11:a5:a6:f0";
       pveHost = "proxmox1";
       ctid = 100;
@@ -342,7 +342,7 @@ let
 
     immich = {
       hostname = "immich";
-      ip = "192.168.50.36";
+      ip = "${lan.subnet}.36";
       mac = "bc:24:11:a9:1a:9c";
       tailnet_ip = "100.100.52.120";
       pveHost = "proxmox3";
@@ -359,7 +359,7 @@ let
 
     vaultwarden = {
       hostname = "vaultwarden";
-      ip = "192.168.50.37";
+      ip = "${lan.subnet}.37";
       mac = "bc:24:11:e1:2e:dd";
       tailnet_ip = "100.119.210.127";
       pveHost = "proxmox1";
@@ -375,7 +375,7 @@ let
 
     cookbook = {
       hostname = "cookbook";
-      ip = "192.168.50.38";
+      ip = "${lan.subnet}.38";
       mac = "bc:24:11:57:fc:da";
       pveHost = "proxmox1";
       ctid = 105;
@@ -389,7 +389,7 @@ let
 
     blog = {
       hostname = "blog";
-      ip = "192.168.50.39";
+      ip = "${lan.subnet}.39";
       mac = "bc:24:11:34:1b:83";
       pveHost = "proxmox1";
       ctid = 101;
@@ -403,7 +403,7 @@ let
 
     nixflix = {
       hostname = "nixflix";
-      ip = "192.168.50.40";
+      ip = "${lan.subnet}.40";
       mac = "bc:24:11:0f:2d:1a";
       tailnet_ip = "100.84.251.29";
       pveHost = "proxmox3";
@@ -418,7 +418,7 @@ let
 
     dawarich = {
       hostname = "dawarich";
-      ip = "192.168.50.41";
+      ip = "${lan.subnet}.41";
       tailnet_ip = "100.90.160.73";
       mac = "bc:24:11:cc:e8:e7";
       pveHost = "proxmox1";
@@ -434,7 +434,7 @@ let
 
     garage = {
       hostname = "garage";
-      ip = "192.168.50.42";
+      ip = "${lan.subnet}.42";
       mac = "bc:24:11:27:a7:95";
       pveHost = "proxmox1";
       ctid = 108;
@@ -448,7 +448,7 @@ let
 
     bentopdf = {
       hostname = "bentopdf";
-      ip = "192.168.50.43";
+      ip = "${lan.subnet}.43";
       mac = "bc:24:11:07:d8:d0";
       pveHost = "proxmox1";
       ctid = 102;
@@ -462,7 +462,7 @@ let
 
     paperless = {
       hostname = "paperless";
-      ip = "192.168.50.44";
+      ip = "${lan.subnet}.44";
       mac = "bc:24:11:d6:ef:b6";
       tailnet_ip = "100.110.234.20";
       pveHost = "proxmox3";

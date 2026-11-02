@@ -9,21 +9,31 @@ let
   # Define colors inline for activation scripts
   colorsScript = builtins.readFile ../scripts/colors.sh;
 
-  # Direct (non-relayed) connections between two tailscale-enabled LXCs on the
-  # same LAN are negotiated peer-to-peer over plain LAN IPs on tailscaled's
-  # UDP port, bypassing tailscale0 entirely - our own LAN-default-deny egress
-  # and ingress rules would otherwise block that and force everything through
-  # DERP relay instead. Excludes iot: nothing there runs tailscale, and it
-  # must stay blocked regardless.
+  # Direct LAN-to-LAN tailscale connections bypass the tailscale interface and
+  # use plain LAN IPs, so our LAN-default-deny egress rules need an exception.
+  # Excludes iot: nothing there runs tailscale.
   tailscaleLanPeerRanges = map (
     name: "${lib.lan.rangeAddrs.${name}.lo}-${lib.lan.rangeAddrs.${name}.hi}"
   ) (builtins.filter (name: name != "iot") (builtins.attrNames lib.lan.ranges));
   tailscaleLanPeerAllowed = map (host: {
     inherit host;
-    ports = [ 41641 ];
+    ports = [ config.services.tailscale.port ];
     protos = [ "udp" ];
     comment = "tailscale direct-connection UDP (LAN peers)";
   }) tailscaleLanPeerRanges;
+
+  # WAN tailnet peers (phones away from home) hole-punch straight to this UDP
+  # port before any conntrack entry exists, so the ingress default-deny
+  # policy needs an explicit allow or they're stuck on DERP relay. WireGuard's
+  # own handshake crypto authenticates peers, so opening this port is safe.
+  tailscaleWanPeerAllowed = [
+    {
+      host = "0.0.0.0/0";
+      ports = [ config.services.tailscale.port ];
+      protos = [ "udp" ];
+      comment = "tailscale direct-connection UDP (WAN peers)";
+    }
+  ];
 in
 {
   services.tailscale = {
@@ -35,11 +45,9 @@ in
     ];
   };
 
-  # Tailnet peers arrive on tailscale0 with a 100.x address, outside any LAN range.
-  homelab.ingress.allowTailscale = true;
-
   homelab.egress.allowed = tailscaleLanPeerAllowed;
-  homelab.ingress.allowed = tailscaleLanPeerAllowed;
+  # 0.0.0.0/0 already covers the LAN ranges, so no need to list both here.
+  homelab.ingress.allowed = tailscaleWanPeerAllowed;
 
   # Tailscale before the network/control plane is fully up yet, and without
   # a TPM, logs a handful of benign one-shot startup messages at a level
