@@ -36,7 +36,7 @@ let
   releasePins = {
     caddy-crowdsec-bouncer = {
       repo = "hslatman/caddy-crowdsec-bouncer";
-      version = "0.14.1";
+      version = "0.15.0";
     };
   };
 
@@ -159,7 +159,7 @@ in
       plugins = [
         "github.com/${releasePins.caddy-crowdsec-bouncer.repo}@v${releasePins.caddy-crowdsec-bouncer.version}"
       ];
-      hash = "sha256-cEx69XLcug8ZCtpfspZJZVPkSysZkJK67xGbvFi1QOo=";
+      hash = "sha256-2b1OTbGrnHGruJDNQZN7+f3Pmi+BW94/vGEo28DRx/w=";
     };
 
     environmentFile = "/run/crowdsec-caddy-bouncer/env";

@@ -8,14 +8,11 @@
 let
   # Define colors inline for activation scripts
   colorsScript = builtins.readFile ../scripts/colors.sh;
-
-  # LAN ranges that may run tailscale themselves and need the direct-connection
-  # UDP exception below (iot excluded: nothing there runs tailscale).
-  lanPeerRangeNames = builtins.attrNames (removeAttrs lib.lan.ranges [ "iot" ]);
 in
 {
   services.tailscale = {
     enable = true;
+    openFirewall = true;
 
     # disable log uploads
     extraDaemonFlags = [
@@ -25,21 +22,23 @@ in
 
   # Direct (non-DERP) connections use plain IPs on this UDP port, bypassing
   # the tailscale interface - LAN peers need an egress exception for it.
-  homelab.egress.allowed = map (name: {
-    host = "${lib.lan.rangeAddrs.${name}.lo}-${lib.lan.rangeAddrs.${name}.hi}";
-    ports = [ config.services.tailscale.port ];
-    protos = [ "udp" ];
-    comment = "tailscale direct-connection UDP (LAN peers)";
-  }) lanPeerRangeNames;
+  homelab.egress.allowed = [
+    {
+      host = "!= ${lib.lan.rangeAddrs.iot.lo}-${lib.lan.rangeAddrs.iot.hi}";
+      ports = [ config.services.tailscale.port ];
+      protos = [ "udp" ];
+      comment = "tailscale direct-connection UDP (not iot)";
+    }
+  ];
 
   # Same, but for WAN peers (e.g. phones away from home): their hole-punch
   # probe arrives before any conntrack entry exists, so it needs an explicit allow.
   homelab.ingress.allowed = [
     {
-      host = "0.0.0.0/0";
+      host = "!= ${lib.lan.rangeAddrs.iot.lo}-${lib.lan.rangeAddrs.iot.hi}";
       ports = [ config.services.tailscale.port ];
       protos = [ "udp" ];
-      comment = "tailscale direct-connection UDP (WAN peers)";
+      comment = "tailscale direct-connection UDP (WAN peers, not iot)";
     }
   ];
 
@@ -69,6 +68,13 @@ in
     "~magicsock: disco: node"
     "~controlclient direct: (got TSMP disco key|updating discoKey)"
     "~magicsock: derp-[0-9]+ does not know about peer \\[[^]]+\\], removing route"
+
+    # Routine DERP connection status and reconnection messages
+    "~magicsock: [0-9]+ active derp conns:"
+    "~magicsock: adding connection to derp-"
+    "~magicsock: closing connection to derp-.* \\(idle\\)"
+    "~derphttp\\.Client\\.Recv: connecting to derp-"
+    "~magicsock: updated disco key for peer"
   ];
 
   # Check existence of /dev/net/tun

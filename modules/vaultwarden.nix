@@ -34,6 +34,12 @@ in
   };
   homelab.ingress.enable = true;
 
+  # allow access over tailnet
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [
+    80
+    443
+  ];
+
   sops.defaultSopsFile = ../secrets/vaultwarden.yaml;
   sops.secrets = {
     "vaultwarden/cloudflare_dns_api_key" = {

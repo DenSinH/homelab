@@ -78,7 +78,11 @@ in
   services.tailscale.extraSetFlags = [
     # find mullvad exit nodes with
     #   tailscale exit-node list
-    "--exit-node=nl-ams-wg-201.mullvad.ts.net"
+    #
+    # exit node name is "nl-ams-wg-201.mullvad.ts.net"
+    # but it cannot be resolved without DNS having started up, this avoids
+    # race conditions
+    "--exit-node=100.123.199.85"
     "--exit-node-allow-lan-access"
   ];
 
