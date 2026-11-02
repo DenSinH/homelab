@@ -11,6 +11,35 @@ let
   domain = "vault.dennishilhorst.nl";
 in
 {
+  # NAS is a known LAN IP; the rest of the LAN stays blocked.
+  homelab.egress = {
+    enable = true;
+    allowed = [
+      {
+        host = lib.storage.nas.ip;
+        ports = [
+          111
+          2049
+          20048
+          32765
+          32766
+        ];
+        protos = [
+          "tcp"
+          "udp"
+        ];
+        comment = "NFS to NAS (backup)";
+      }
+    ];
+  };
+  homelab.ingress.enable = true;
+
+  # allow access over tailnet
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [
+    80
+    443
+  ];
+
   sops.defaultSopsFile = ../secrets/vaultwarden.yaml;
   sops.secrets = {
     "vaultwarden/cloudflare_dns_api_key" = {

@@ -186,6 +186,23 @@ let
   };
 in
 {
+  # telemetry is a known LAN IP; the rest of the LAN stays blocked.
+  homelab.egress = {
+    enable = true;
+    allowed = [
+      {
+        host = lib.lxcs.telemetry.ip;
+        ports = [
+          3000
+          3100
+          8086
+        ];
+        protos = [ "tcp" ];
+        comment = "InfluxDB/Loki/Grafana on telemetry";
+      }
+    ];
+  };
+
   homelab.hardenedServices = [
     "daily-report"
     "reports-index"

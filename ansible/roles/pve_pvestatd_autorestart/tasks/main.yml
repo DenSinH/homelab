@@ -1,0 +1,21 @@
+---
+# pvestatd can SEGV and stay down (e.g. a broken external metric-server
+# plugin), leaving CT/VM/storage status stuck at "unknown"; this just makes
+# it restart itself instead of needing a manual restart.
+
+- name: Create pvestatd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/pvestatd.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install pvestatd restart-on-failure override
+  ansible.builtin.copy:
+    src: override.conf
+    dest: /etc/systemd/system/pvestatd.service.d/override.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload pvestatd unit

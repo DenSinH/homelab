@@ -59,9 +59,11 @@ in
           "AF_INET6"
         ];
 
-        # Only allow the LAN to connect to usbipd.
+        # Only allow home-assistant to connect to usbipd (see also the
+        # MAC-bound nftables rule in router.nix, which is the real
+        # enforcement since this IP is self-requested, not dnsmasq-fixed).
         IPAddressDeny = "any";
-        IPAddressAllow = "192.168.50.0/24";
+        IPAddressAllow = lib.devices.home-assistant.ip;
       };
   };
 

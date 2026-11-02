@@ -42,6 +42,10 @@ let
   };
 in
 {
+  # Static site, served from the Nix store - no runtime egress needed at all.
+  homelab.egress.enable = true;
+  homelab.ingress.enable = true;
+
   services.nginx = {
     enable = true;
 

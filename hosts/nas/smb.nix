@@ -44,7 +44,7 @@
         "server smb encrypt" = "required";
         "map to guest" = "never";
         "restrict anonymous" = "2";
-        "hosts allow" = "192.168.50. 127.0.0.1";
+        "hosts allow" = "${lib.lan.subnet}. 127.0.0.1";
         "hosts deny" = "0.0.0.0/0";
         "disable netbios" = "yes";
         "smb ports" = "445";

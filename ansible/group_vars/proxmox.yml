@@ -1,0 +1,24 @@
+---
+# Applied identically to all three (standalone, non-clustered) Proxmox hosts.
+
+pve_firewall_enabled: true
+
+# Verify the allow-list below via --check before trusting DROP.
+pve_firewall_policy_in: "DROP"
+pve_firewall_policy_out: "ACCEPT"
+
+# pve_firewall_ipsets comes from provision-proxmox.nix via --extra-vars, not from here
+# (Proxmox ipsets only accept IPs/CIDRs, not ranges).
+
+# Ordered allow-list, applied before the default policy above.
+pve_firewall_rules:
+  - comment: "SSH from compute/dynamic/fixed"
+    macro: "SSH"
+    source: "+management"
+  - comment: "Proxmox web UI from compute/dynamic/fixed"
+    proto: "tcp"
+    dport: "8006"
+    source: "+management"
+  - comment: "ICMP ping from anywhere (uptime monitoring)"
+    macro: "Ping"
+    source: "0.0.0.0/0"

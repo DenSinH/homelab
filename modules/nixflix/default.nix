@@ -19,6 +19,29 @@ let
   domain = "nixflix.*"; # both nixflix.home AND nixflix.vpn
 in
 {
+  # NAS for media; the rest of the LAN stays blocked.
+  homelab.egress = {
+    enable = true;
+    allowed = [
+      {
+        host = lib.storage.nas.ip;
+        ports = [
+          111
+          2049
+          20048
+          32765
+          32766
+        ];
+        protos = [
+          "tcp"
+          "udp"
+        ];
+        comment = "NFS to NAS";
+      }
+    ];
+  };
+  homelab.ingress.enable = true;
+
   # NFS settings
   services.rpcbind.enable = true;
   boot.supportedFilesystems = [ "nfs" ];
@@ -55,7 +78,11 @@ in
   services.tailscale.extraSetFlags = [
     # find mullvad exit nodes with
     #   tailscale exit-node list
-    "--exit-node=nl-ams-wg-201.mullvad.ts.net"
+    #
+    # exit node name is "nl-ams-wg-201.mullvad.ts.net"
+    # but it cannot be resolved without DNS having started up, this avoids
+    # race conditions
+    "--exit-node=100.123.199.85"
     "--exit-node-allow-lan-access"
   ];
 
@@ -210,7 +237,7 @@ in
             # for example run ./gen-qbittorrent-password.sh to generate it from stdin
             Password_PBKDF2 = "@ByteArray(kR+FfrNzdOkhVab2ph7Ocg==:kHtoKhAe64dbk7wQJl0eeUF1hYu767BObpRzn1DxON1drcgOBC5zlAA6aGrfRwZCRcaoPqp3K6Yu3UYK2O2sJg==)";
             LocalHostAuth = false;
-            AuthSubnetWhitelist = "192.168.50.0/24";
+            AuthSubnetWhitelist = lib.lan.cidr;
             AuthSubnetWhitelistEnabled = true;
           };
         };
@@ -323,8 +350,8 @@ in
   # (nor prowlarr's relayed copy of the same message, or its related "may
   # need flaresolverr" notice) - downgrade them to warning instead.
   homelab.alloy.extraLokiProcessConfig = ''
-    # Any unit that tags its own lines with [WRN] (jellyfin, ...) is a warning,
-    # even if the message text contains "error" (e.g. "error receiving data").
+    // Any unit that tags its own lines with [WRN] (jellyfin, ...) is a warning,
+    // even if the message text contains "error" (e.g. "error receiving data").
     stage.match {
       selector = "{unit=~\".+\"} |= \"[WRN]\""
 

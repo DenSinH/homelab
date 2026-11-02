@@ -36,7 +36,7 @@ let
   releasePins = {
     caddy-crowdsec-bouncer = {
       repo = "hslatman/caddy-crowdsec-bouncer";
-      version = "0.14.1";
+      version = "0.15.0";
     };
   };
 
@@ -82,6 +82,34 @@ let
   proxyListen = "bind 127.0.0.1";
 in
 {
+  homelab.egress = {
+    enable = true;
+    allowed = [
+      {
+        host = lib.lxcs.gatus.ip;
+        ports = [ 80 ];
+        comment = "proxied backend";
+      }
+      {
+        host = lib.lxcs.blog.ip;
+        ports = [ 80 ];
+        comment = "proxied backend";
+      }
+      {
+        host = lib.lxcs.garage.ip;
+        ports = [ 80 ];
+        comment = "proxied backend";
+      }
+      {
+        host = lib.lxcs.cookbook.ip;
+        ports = [ 80 ];
+        comment = "proxied backend";
+      }
+    ];
+  };
+  # Caddy only binds loopback - nothing LAN-facing to protect, but harmless.
+  homelab.ingress.enable = true;
+
   imports = [ ./fail2ban.nix ];
 
   # https://search.nixos.org/options?channel=26.05&query=cloudflared
@@ -131,7 +159,7 @@ in
       plugins = [
         "github.com/${releasePins.caddy-crowdsec-bouncer.repo}@v${releasePins.caddy-crowdsec-bouncer.version}"
       ];
-      hash = "sha256-cEx69XLcug8ZCtpfspZJZVPkSysZkJK67xGbvFi1QOo=";
+      hash = "sha256-2b1OTbGrnHGruJDNQZN7+f3Pmi+BW94/vGEo28DRx/w=";
     };
 
     environmentFile = "/run/crowdsec-caddy-bouncer/env";

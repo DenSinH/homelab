@@ -8,6 +8,13 @@
 let
   cfg = config.homelab.alloy;
 
+  # Parsed from lokiUrl (not hardcoded to the LAN IP) so this still works
+  # when lokiUrl is overridden, e.g. to telemetry.tailnet_ip.
+  lokiUrlMatch = builtins.match "https?://([^:/]+):?([0-9]*)/?.*" cfg.lokiUrl;
+  lokiHost = builtins.elemAt lokiUrlMatch 0;
+  lokiPortStr = builtins.elemAt lokiUrlMatch 1;
+  lokiPort = if lokiPortStr == "" then 80 else lib.toInt lokiPortStr;
+
   # True when extraLokiProcessConfig contains anything but whitespace.
   hasExtra = builtins.match "[[:space:]]*" cfg.extraLokiProcessConfig == null;
 
@@ -121,6 +128,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    homelab.egress.allowed = [
+      {
+        host = lokiHost;
+        ports = [ lokiPort ];
+        protos = [ "tcp" ];
+        comment = "alloy -> Loki";
+      }
+    ];
+
     services.alloy = {
       enable = true;
       extraFlags = [

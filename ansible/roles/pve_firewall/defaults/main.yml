@@ -1,0 +1,13 @@
+---
+# Conservative fallbacks: disabled/no rules until group_vars opts in.
+pve_firewall_enabled: false
+pve_firewall_policy_in: "DROP"
+pve_firewall_policy_out: "ACCEPT"
+pve_firewall_rules: []
+
+# pve_firewall_ipsets has no default: must come from the wrapper, so a
+# direct ansible-playbook run fails loudly instead of applying empty ipsets.
+
+# Proxmox's own node name. Matches the inventory alias today; override via
+# host_vars if a node was ever named differently in Proxmox itself.
+pve_node_name: "{{ inventory_hostname }}"

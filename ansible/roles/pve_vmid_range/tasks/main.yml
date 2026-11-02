@@ -1,0 +1,12 @@
+---
+# Each host's VMID range mirrors its ctidRange from homelab.nix, so Proxmox's
+# "next free ID" suggestion never collides with the range owned by another
+# host. Not clustered, so this is local pmxcfs state per host, not shared.
+# Always reapplied: pvesh has no clean way to diff this value beforehand, but
+# setting it to the same value is a harmless no-op on the Proxmox side.
+
+- name: Set VMID range
+  ansible.builtin.command: >
+    pvesh set /cluster/options
+    -next-id lower={{ pve_vmid_range_lower }},upper={{ pve_vmid_range_upper }}
+  changed_when: true

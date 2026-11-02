@@ -6,6 +6,9 @@
 }:
 
 {
+  homelab.egress.enable = true;
+  homelab.ingress.enable = true;
+
   services.bentopdf = {
     enable = true;
     domain = "bentopdf.home";

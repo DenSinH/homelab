@@ -1,0 +1,25 @@
+// Debian security only - Proxmox's repo has Origin "Proxmox", not "Debian",
+// so its packages are excluded by construction here, not just the blacklist below.
+#clear Unattended-Upgrade::Origins-Pattern;
+Unattended-Upgrade::Origins-Pattern {
+    "origin=Debian,codename=${distro_codename},label=Debian-Security";
+    "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+};
+
+// Defense in depth, in case that ever changes.
+Unattended-Upgrade::Package-Blacklist {
+    "pve-.*";
+    "libpve-.*";
+    "proxmox-.*";
+    "qemu-server";
+    "pve-qemu-kvm";
+    "pve-container";
+    "pve-manager";
+    "pve-firmware";
+    "pve-ha-.*";
+    "corosync.*";
+    "ceph.*";
+};
+
+// This host runs VMs/LXCs - never reboot unattended.
+Unattended-Upgrade::Automatic-Reboot "false";

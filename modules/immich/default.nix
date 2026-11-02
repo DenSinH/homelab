@@ -7,6 +7,28 @@
 }:
 
 {
+  homelab.egress = {
+    enable = true;
+    allowed = [
+      {
+        host = lib.storage.nas.ip;
+        ports = [
+          111
+          2049
+          20048
+          32765
+          32766
+        ];
+        protos = [
+          "tcp"
+          "udp"
+        ];
+        comment = "NFS to NAS";
+      }
+    ];
+  };
+  homelab.ingress.enable = true;
+
   sops.defaultSopsFile = ../../secrets/immich.yaml;
   sops.secrets = {
     "immich/secrets" = {

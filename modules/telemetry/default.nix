@@ -17,6 +17,9 @@ let
     "$__file{${secret.path}}";
 in
 {
+  # Pure receiver - no outbound needed (Grafana's own update checks are disabled below).
+  homelab.egress.enable = true;
+
   # secret access management
   users.groups.metrics = { };
   users.users.grafana.extraGroups = [ "metrics" ];

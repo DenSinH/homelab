@@ -1,0 +1,11 @@
+---
+# Physical display setup for proxmox3's kiosk monitor; not host topology, so
+# it lives here rather than in homelab.nix. Override per-host if this role is
+# ever enabled on a host with different hardware.
+pve_grafana_kiosk_main_output: "HDMI-2"
+pve_grafana_kiosk_main_output_width: 1920 # used as the kiosk window's x position in openbox rc.xml
+pve_grafana_kiosk_kiosk_output: "HDMI-3"
+pve_grafana_kiosk_kiosk_mode: "1920x1080"
+pve_grafana_kiosk_main_brightness: "0.8"
+
+pve_grafana_kiosk_firefox_profile_dir: /root/.mozilla/firefox/grafana

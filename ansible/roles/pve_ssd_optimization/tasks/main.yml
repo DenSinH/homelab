@@ -1,0 +1,88 @@
+---
+# Reduces SSD wear: disables unused cluster/HA services (hosts are standalone,
+# not clustered), moves rrdcached writes off disk, ramdisks /tmp, and sets
+# noatime on the root filesystem.
+
+- name: Stop and disable cluster/HA services unused on standalone hosts
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - pve-ha-lrm
+    - pve-ha-crm
+    - corosync.service
+    - pvesr.timer
+  failed_when: false
+
+- name: Set rrdcached WRITE_TIMEOUT
+  ansible.builtin.lineinfile:
+    path: /etc/default/rrdcached
+    regexp: '^#?\s*WRITE_TIMEOUT='
+    line: "WRITE_TIMEOUT=3600"
+  notify: Restart rrdcached
+
+- name: Disable rrdcached JOURNAL_PATH
+  ansible.builtin.lineinfile:
+    path: /etc/default/rrdcached
+    backrefs: true
+    regexp: '^JOURNAL_PATH=(.*)$'
+    line: '#JOURNAL_PATH=\1'
+  notify: Restart rrdcached
+
+- name: Check whether rrdcached init script already honors FLUSH_TIMEOUT
+  ansible.builtin.command: grep -c FLUSH_TIMEOUT /etc/init.d/rrdcached
+  register: pve_rrdcached_flush_grep
+  changed_when: false
+  failed_when: false
+
+# Debian's rrdcached init script may not pass through FLUSH_TIMEOUT; patch the
+# OPTS line so an unset value (the default here) means no forced flush.
+- name: Add FLUSH_TIMEOUT passthrough to rrdcached init script
+  ansible.builtin.lineinfile:
+    path: /etc/init.d/rrdcached
+    backup: true
+    backrefs: true
+    regexp: '^(OPTS=".*)(")$'
+    line: '\1 ${FLUSH_TIMEOUT:+-f ${FLUSH_TIMEOUT}}\2'
+  when: pve_rrdcached_flush_grep.stdout | default("1") == "0"
+  notify: Restart rrdcached
+
+- name: Add log2ram apt repository
+  ansible.builtin.deb822_repository:
+    name: azlux
+    types: deb
+    uris: http://packages.azlux.fr/debian/
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: main
+    signed_by: https://azlux.fr/repo.gpg
+
+- name: Install log2ram and rsync
+  ansible.builtin.apt:
+    name:
+      - log2ram
+      - rsync
+    state: present
+    update_cache: true
+
+- name: Mount /tmp as a ramdisk
+  ansible.posix.mount:
+    path: /tmp
+    src: tmpfs
+    fstype: tmpfs
+    opts: defaults,noatime,nosuid,nodev,mode=1777,size=1G
+    state: mounted
+
+- name: Gather root filesystem mount facts
+  ansible.builtin.set_fact:
+    pve_root_mount: "{{ ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | first }}"
+
+- name: Add noatime to the root filesystem's fstab entry
+  ansible.posix.mount:
+    path: /
+    src: "{{ pve_root_mount.device }}"
+    fstype: "{{ pve_root_mount.fstype }}"
+    # Only edits /etc/fstab (state: present); doesn't remount the live root fs.
+    opts: "{{ (pve_root_mount.options.split(',') + ['noatime']) | unique | join(',') }}"
+    state: present
+  when: "'noatime' not in pve_root_mount.options.split(',')"

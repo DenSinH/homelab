@@ -34,35 +34,33 @@
 }:
 
 let
-  # Network topology + known-device lists shared with other files (e.g.
-  # health.nix) - see network.nix.
-  network = import ./network.nix { inherit lib; };
-  inherit (network)
+  # Topology + known-device lists live in lib.lan/lib.router
+  # (../../homelab.nix), shared with other files (e.g. health.nix).
+  inherit (lib.router)
     wanIf
     lanIf
     wanVlanId
     wanVlanIf
     wanIfs
-    lanSubnet
-    lanGateway
-    netLo
-    netHi
-    computeLo
-    computeHi
-    storageLo
-    storageHi
-    servicesLo
-    servicesHi
-    iotLo
-    iotHi
-    dynamicLo
-    dynamicHi
-    fixedLo
-    fixedHi
     fixedHosts
     iotHosts
     servicesHosts
     ;
+  lanGateway = lib.lan.gateway;
+  netLo = lib.lan.rangeAddrs.net.lo;
+  netHi = lib.lan.rangeAddrs.net.hi;
+  computeLo = lib.lan.rangeAddrs.compute.lo;
+  computeHi = lib.lan.rangeAddrs.compute.hi;
+  storageLo = lib.lan.rangeAddrs.storage.lo;
+  storageHi = lib.lan.rangeAddrs.storage.hi;
+  servicesLo = lib.lan.rangeAddrs.services.lo;
+  servicesHi = lib.lan.rangeAddrs.services.hi;
+  iotLo = lib.lan.rangeAddrs.iot.lo;
+  iotHi = lib.lan.rangeAddrs.iot.hi;
+  dynamicLo = lib.lan.rangeAddrs.dynamic.lo;
+  dynamicHi = lib.lan.rangeAddrs.dynamic.hi;
+  fixedLo = lib.lan.rangeAddrs.fixed.lo;
+  fixedHi = lib.lan.rangeAddrs.fixed.hi;
 
   # TEMPORARY TESTING SWITCH: flip to true to allow SSH from WAN (e.g. when
   # the WAN side is plugged into a network you don't have LAN access to
@@ -77,12 +75,9 @@ let
 
   iotWanAllowed = builtins.filter (h: h.wan or false) iotHosts;
 
-  # home-assistant has no fixed IP (services range is a dynamic-tag pool, see
-  # network.nix), so the usbip nftables rule below binds on this MAC instead.
-  usbipAllowedMac =
-    (lib.findFirst (
-      h: h.name == "home-assistant"
-    ) (throw "home-assistant missing from servicesHosts") servicesHosts).mac;
+  # home-assistant has no dnsmasq-fixed IP (services range is a dynamic-tag
+  # pool), so the usbip nftables rule below binds on its MAC instead.
+  usbipAllowedMac = lib.devices.home-assistant.mac;
 
   # QoS priority tiers for the WAN link - cake diffserv4 tins, see below.
   # Voice > Video > Best Effort (default) > Bulk.
