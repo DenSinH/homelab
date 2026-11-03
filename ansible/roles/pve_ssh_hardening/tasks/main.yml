@@ -1,0 +1,51 @@
+---
+- name: Ensure /root/.ssh exists
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    mode: "0700"
+
+- name: Install admin SSH keys
+  ansible.builtin.copy:
+    dest: /root/.ssh/authorized_keys
+    mode: "0600"
+    content: "{{ pve_ssh_authorized_keys | join('\n') }}\n"
+
+- name: Verify publickey-only SSH works before disabling password auth
+  delegate_to: localhost
+  become: false
+  block:
+    - name: Test publickey-only SSH
+      ansible.builtin.command:
+        argv: "{{ pve_ssh_pubkey_test_args }}"
+      changed_when: false
+  rescue:
+    - name: Abort without touching sshd_config
+      ansible.builtin.fail:
+        msg: >-
+          Publickey-only SSH to {{ inventory_hostname }} ({{ ansible_host }}) failed
+          after installing authorized_keys. NOT hardening sshd, to avoid a lockout -
+          fix key auth first.
+
+- name: Harden sshd
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-homelab-hardening.conf
+    mode: "0644"
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      PermitRootLogin prohibit-password
+  notify:
+    - Validate sshd config
+    - Reload sshd
+
+- name: Apply sshd hardening now, so the next task verifies the real result
+  ansible.builtin.meta: flush_handlers
+
+- name: Verify publickey-only SSH still works after hardening
+  delegate_to: localhost
+  become: false
+  ansible.builtin.command:
+    argv: "{{ pve_ssh_pubkey_test_args }}"
+  changed_when: false

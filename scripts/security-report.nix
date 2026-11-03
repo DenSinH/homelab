@@ -1,15 +1,11 @@
-{ pkgs, ... }:
+{ lib, pkgs }:
 
 let
-  colorsScript = builtins.readFile ./colors.sh;
+  inherit (import ./lib.nix { inherit lib pkgs; }) preamble;
 in
 
 pkgs.writeShellScript "security-report" ''
-  #!/usr/bin/env bash
-  set -euo pipefail
-
-  ${colorsScript}
-
+  ${preamble}
   jq="${pkgs.jq}/bin/jq"
 
   detail=false
