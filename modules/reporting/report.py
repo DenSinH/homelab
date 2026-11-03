@@ -518,6 +518,30 @@ class Loki:
         ]
         return sorted(out, reverse=True)
 
+    def label_values(self, name: str) -> list[str]:
+        """All current values of label `name`."""
+        data = self._get(f"/loki/api/v1/label/{name}/values")
+        return data["data"]
+
+
+def instant_by_host(
+    loki: Loki, build_query: Callable[[str], str], hosts: Sequence[str]
+) -> list[tuple[dict[str, str], float]]:
+    """Run `build_query({host=~"..."})` over `hosts`, merging results. On a
+    max-series error, halve the host set and retry each half recursively."""
+    if not hosts:
+        return []
+    sel = '{host=~"%s"}' % "|".join(re.escape(h) for h in hosts)
+    try:
+        return loki.instant(build_query(sel))
+    except RuntimeError as e:
+        if "maximum number of series" not in str(e) or len(hosts) <= 1:
+            raise
+        mid = len(hosts) // 2
+        return instant_by_host(loki, build_query, hosts[:mid]) + instant_by_host(
+            loki, build_query, hosts[mid:]
+        )
+
 
 def flux_values(
     *,
@@ -702,16 +726,20 @@ def log_errors_section(cfg: Config, loki: Loki, rep: Report) -> None:
     L = cfg["logs"]
     label = L["source_label"]
     err = '| detected_level=~"error|critical|fatal"'
-    sel = '{host=~".+"}'
+    hosts = loki.label_values("host")
 
     err_cur = {
         m.get("host", "?"): v
-        for m, v in loki.instant(f"sum by (host) (count_over_time({sel} {err} [24h]))")
+        for m, v in instant_by_host(
+            loki, lambda sel: f"sum by (host) (count_over_time({sel} {err} [24h]))", hosts
+        )
     }
     err_prev = {
         m.get("host", "?"): v
-        for m, v in loki.instant(
-            f"sum by (host) (count_over_time({sel} {err} [24h] offset 24h))"
+        for m, v in instant_by_host(
+            loki,
+            lambda sel: f"sum by (host) (count_over_time({sel} {err} [24h] offset 24h))",
+            hosts,
         )
     }
     for host, n in sorted(err_cur.items(), key=lambda kv: -kv[1]):
@@ -737,8 +765,10 @@ def log_errors_section(cfg: Config, loki: Loki, rep: Report) -> None:
         )
         return
 
-    top_err = loki.instant(
-        f"topk({2 * L['sources']}, sum by (host, {label}) (count_over_time({sel} {err} [24h])))"
+    top_err = instant_by_host(
+        loki,
+        lambda sel: f"topk({2 * L['sources']}, sum by (host, {label}) (count_over_time({sel} {err} [24h])))",
+        hosts,
     )
     ignore = [re.compile(p) for p in cfg["log_ignore"]]
     rows, hidden, sampled, sources = [], 0, False, 0
@@ -807,16 +837,20 @@ def log_volume_section(cfg: Config, loki: Loki, rep: Report) -> None:
     """Total log volume per host + top producers per host/source."""
     L = cfg["logs"]
     label = L["source_label"]
-    sel = '{host=~".+"}'
+    hosts = loki.label_values("host")
 
     vol_cur = {
         m.get("host", "?"): v
-        for m, v in loki.instant(f"sum by (host) (count_over_time({sel} [24h]))")
+        for m, v in instant_by_host(
+            loki, lambda sel: f"sum by (host) (count_over_time({sel} [24h]))", hosts
+        )
     }
     vol_prev = {
         m.get("host", "?"): v
-        for m, v in loki.instant(
-            f"sum by (host) (count_over_time({sel} [24h] offset 24h))"
+        for m, v in instant_by_host(
+            loki,
+            lambda sel: f"sum by (host) (count_over_time({sel} [24h] offset 24h))",
+            hosts,
         )
     }
 
@@ -861,8 +895,10 @@ def log_volume_section(cfg: Config, loki: Loki, rep: Report) -> None:
         nowrap="_nn",
     )
 
-    top = loki.instant(
-        f"topk({2 * L['sources']}, sum by (host, {label}) (count_over_time({sel} [24h])))"
+    top = instant_by_host(
+        loki,
+        lambda sel: f"topk({2 * L['sources']}, sum by (host, {label}) (count_over_time({sel} [24h])))",
+        hosts,
     )
     producer_rows = []
     for m, n in sorted(top, key=lambda kv: -kv[1])[: 2 * L["sources"]]:
@@ -888,8 +924,10 @@ def failed_units_section(cfg: Config, loki: Loki, rep: Report) -> None:
     host_section() for the standalone NAS/offsite-backup hosts) can't see them.
     """
     rx = r'| regexp "(?P<unit>\\S+): Failed with result"'
-    hits = loki.instant(
-        f'sum by (host, unit) (count_over_time({{host=~".+"}} |= "Failed with result" {rx} [24h]))'
+    hits = instant_by_host(
+        loki,
+        lambda sel: f'sum by (host, unit) (count_over_time({sel} |= "Failed with result" {rx} [24h]))',
+        loki.label_values("host"),
     )
     for m, n in sorted(hits, key=lambda kv: (kv[0].get("host", ""), -kv[1])):
         host, unit = m.get("host", "?"), m.get("unit", "?")
