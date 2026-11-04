@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  pkgs-unstable,
   lib,
   nixflix,
   utils,
@@ -246,6 +247,9 @@ in
 
     jellyfin = {
       enable = true;
+
+      # TODO: remove with 26.11 update
+      package = pkgs-unstable.jellyfin;
 
       apiKey._secret = config.sops.secrets."jellyfin/api_key".path;
       users = {
