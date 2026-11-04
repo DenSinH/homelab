@@ -25,6 +25,8 @@
         - /usr/share/keyrings/azlux-archive-keyring.gpg
 
   roles:
+    - role: pve_ssh_hardening
+      tags: [ssh-hardening]
     - role: pve_firewall
       tags: [firewall]
     - role: pve_vmid_range

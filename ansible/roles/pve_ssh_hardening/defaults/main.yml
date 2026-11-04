@@ -1,0 +1,21 @@
+---
+# pve_ssh_authorized_keys has no default: it must come from the wrapper
+# (provision-proxmox.nix via --extra-vars), same convention as
+# pve_firewall_ipsets - fail loudly rather than wipe authorized_keys empty.
+
+# Used both before and after hardening sshd to confirm key-only auth works,
+# so a broken key never results in a locked-out host.
+pve_ssh_pubkey_test_args:
+  - ssh
+  - -o
+  - PreferredAuthentications=publickey
+  - -o
+  - PasswordAuthentication=no
+  - -o
+  - PubkeyAuthentication=yes
+  - -o
+  - BatchMode=yes
+  - -o
+  - ConnectTimeout=5
+  - "root@{{ ansible_host }}"
+  - "true"

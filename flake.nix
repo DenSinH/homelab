@@ -138,11 +138,6 @@
             program = toString (callScript ./scripts/config-igpu.nix);
           };
 
-          config-proxmox = {
-            type = "app";
-            program = toString (callScript ./scripts/config-proxmox.nix);
-          };
-
           provision-proxmox = {
             type = "app";
             program = toString (callScript ./scripts/provision-proxmox.nix);

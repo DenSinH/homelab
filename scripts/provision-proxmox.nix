@@ -4,7 +4,8 @@
 }:
 
 let
-  colorsScript = builtins.readFile ./colors.sh;
+  scriptLib = import ./lib.nix { inherit lib pkgs; };
+  inherit (scriptLib) preamble requireArgs hostCase;
 
   # Grafana dashboard URL for the kiosk role; reads lib.lxcs.telemetry only to
   # derive this value, not as an inventory target.
@@ -54,13 +55,13 @@ let
     }
   );
 
-  allHostsSpaceSeparated = builtins.concatStringsSep " " allHosts;
-
-  hostCases = builtins.concatStringsSep "\n" (
-    map (name: ''
-      ${name}) ;;
-    '') allHosts
+  pveSshVarsFile = pkgs.writeText "pve-ssh-vars.json" (
+    builtins.toJSON {
+      pve_ssh_authorized_keys = lib.admin.ssh_keys;
+    }
   );
+
+  allHostsSpaceSeparated = builtins.concatStringsSep " " allHosts;
 
   repoRoot = ../.;
   ansiblePlaybook = "${pkgs.ansible}/bin/ansible-playbook";
@@ -68,33 +69,20 @@ let
 in
 
 pkgs.writeShellScript "provision-proxmox" ''
-  #!/usr/bin/env bash
-  set -euo pipefail
-
-  ${colorsScript}
-
-  if [ $# -eq 0 ]; then
-      print_error "No host specified"
-      echo "Usage: $0 <proxmox-host> [extra ansible-playbook args...]"
-      echo "       $0 all [extra ansible-playbook args...]"
-      echo "Examples:"
-      echo "  $0 proxmox1 --tags firewall --check"
-      echo "  $0 all --check"
-      exit 1
-  fi
+  ${preamble}
+  ${requireArgs {
+    usage = "Usage: $0 <proxmox-host> [extra ansible-playbook args...]\n       $0 all [extra ansible-playbook args...]";
+    description = "Examples:\n  $0 proxmox1 --tags firewall --check\n  $0 all --check";
+  }}
 
   target="$1"
   shift
 
-  case "$target" in
-      ${hostCases}
-      all) ;;
-      *)
-          print_error "Unknown host: $target"
-          echo "Known hosts: ${allHostsSpaceSeparated} all"
-          exit 1
-          ;;
-  esac
+  ${hostCase {
+    varName = "target";
+    extraArms = "all) ;;";
+    extraEcho = "Known hosts: ${allHostsSpaceSeparated} all";
+  }}
 
   extra_args=()
   if [ "$target" != "all" ]; then
@@ -115,6 +103,7 @@ pkgs.writeShellScript "provision-proxmox" ''
   ${ansiblePlaybook} \
       -i "${inventoryFile}" \
       --extra-vars "@${pveFirewallVarsFile}" \
+      --extra-vars "@${pveSshVarsFile}" \
       "''${extra_args[@]}" \
       "${toString repoRoot}/ansible/playbooks/site.yml" \
       "$@"

@@ -4,27 +4,8 @@
 }:
 
 let
-  colorsScript = builtins.readFile ./colors.sh;
-
-  # Generate case statements from lib.lxcs with all needed info
-  lxcCases = builtins.concatStringsSep "\n" (
-    builtins.attrValues (
-      builtins.mapAttrs (
-        name: lxc:
-        let
-          pveHost = lib.hosts.${lxc.pveHost};
-        in
-        ''
-          ${name})
-            ctid="${toString lxc.ctid}"
-            pve_ip="${pveHost.ip}"
-            pve_hostname="${pveHost.hostname}"
-            lxc_ip="${lxc.ip}"
-            ;;
-        ''
-      ) lib.lxcs
-    )
-  );
+  scriptLib = import ./lib.nix { inherit lib pkgs; };
+  inherit (scriptLib) preamble requireArgs lxcCase;
 in
 {
   # Main function to create a config script
@@ -36,30 +17,12 @@ in
       addLines, # Bash code to add lines using add_line function
     }:
     pkgs.writeShellScript name ''
-      #!/usr/bin/env bash
-      set -euo pipefail
-
-      ${colorsScript}
-
-      if [ $# -eq 0 ]; then
-          print_error "No host specified"
-          echo "${usage}"
-          ${lib.optionalString (description != "") ''
-            echo ""
-            echo "${description}"
-          ''}
-          exit 1
-      fi
+      ${preamble}
+      ${requireArgs { inherit usage description; }}
 
       host="$1"
 
-      case "$host" in
-          ${lxcCases}
-          *)
-              print_error "Unknown host: $host"
-              exit 1
-              ;;
-      esac
+      ${lxcCase { varName = "host"; }}
 
       print_info "Configuring $host (CTID: $ctid) on $pve_hostname"
 
@@ -122,10 +85,10 @@ in
           sleep 5
 
           # Test if the container is reachable
-          if ping -c 1 -W 2 $lxc_ip >/dev/null 2>&1; then
-              print_success "Container $host is back online at $lxc_ip"
+          if ping -c 1 -W 2 $ip >/dev/null 2>&1; then
+              print_success "Container $host is back online at $ip"
           else
-              print_warning "Container may still be starting up. Check with: ping $lxc_ip"
+              print_warning "Container may still be starting up. Check with: ping $ip"
           fi
       elif [ "$OUTPUT" = "NO_CHANGES_NEEDED" ]; then
           print_success "Configuration already correct"
@@ -134,6 +97,4 @@ in
           exit 1
       fi
     '';
-
-  inherit colorsScript lxcCases;
 }

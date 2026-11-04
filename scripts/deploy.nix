@@ -4,49 +4,43 @@
 }:
 
 let
-  colorsScript = builtins.readFile ./colors.sh;
+  scriptLib = import ./lib.nix { inherit lib pkgs; };
+  inherit (scriptLib) preamble requireArgs lxcCase;
 
-  # Generate case statements from lib.lxcs
-  lxcCases = builtins.concatStringsSep "\n" (
-    builtins.attrValues (
-      builtins.mapAttrs (name: lxc: ''
-        ${name})
-          ip="${lxc.ip}"
-          ctid="${toString lxc.ctid}"
-          ;;
-      '') lib.lxcs
-    )
-  );
-
-  # List of all LXC names
-  allLxcs = builtins.concatStringsSep " " (builtins.attrNames lib.lxcs);
+  allLxcs = scriptLib.spaceSeparated (scriptLib.names lib.lxcs);
 in
 
 pkgs.writeShellScript "deploy" ''
-  #!/usr/bin/env bash
-  set -euo pipefail
+  ${preamble}
+  ${requireArgs { usage = "Usage: $0 <hostname> [hostname ...] | all"; }}
 
-  ${colorsScript}
+  CHECKPOINT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.deploy-checkpoint"
 
-  if [ $# -eq 0 ]; then
-      print_error "No host specified"
-      echo "Usage: $0 <hostname> [hostname ...]"
-      exit 1
-  fi
-
-  # Expand 'all' to all known LXCs
+  # "all" resumes from a previous failed run if a checkpoint exists; an
+  # explicit host list always ignores it.
   if [ $# -eq 1 ] && [ "$1" = "all" ]; then
-      set -- ${allLxcs}
+      if [ -f "$CHECKPOINT" ]; then
+          print_warning "Resuming from checkpoint ($(wc -l < "$CHECKPOINT") host(s) remaining)"
+          mapfile -t hosts < "$CHECKPOINT"
+      else
+          hosts=(${allLxcs})
+      fi
+  else
+      hosts=("$@")
   fi
 
-  for host in "$@"; do
-      case "$host" in
-          ${lxcCases}
-          *)
-              print_error "Unknown host: $host"
-              exit 1
-              ;;
-      esac
+  validate_host() {
+      local host="$1"
+      ${lxcCase { varName = "host"; }}
+  }
+
+  for host in "''${hosts[@]}"; do
+      validate_host "$host"
+  done
+
+  deploy_one() {
+      local host="$1"
+      ${lxcCase { varName = "host"; }}
 
       print_info "Deploying to $host (IP=$ip, CTID=$ctid)"
       print_info "Checking remote CTID..."
@@ -61,14 +55,14 @@ pkgs.writeShellScript "deploy" ''
 
       if [ -z "$actual" ]; then
           print_error "Could not determine CTID from remote system"
-          exit 1
+          return 1
       fi
 
       if [ "$actual" != "$ctid" ]; then
           print_error "CTID mismatch"
           print_warning "Expected: $ctid"
           print_warning "Actual:   $actual"
-          exit 1
+          return 1
       fi
 
       print_success "CTID OK, deploying to $actual@$ip..."
@@ -84,9 +78,20 @@ pkgs.writeShellScript "deploy" ''
       print_success "Deployment finished for $host"
 
       print_info "Cleaning up remote nix store..."
-
       ssh root@$ip '
           nix-collect-garbage -d
       '
+  }
+
+  for ((i = 0; i < ''${#hosts[@]}; i++)); do
+      host="''${hosts[$i]}"
+      if ! ( set -euo pipefail; deploy_one "$host" ); then
+          print_error "Deployment failed for $host"
+          printf '%s\n' "''${hosts[@]:$i}" > "$CHECKPOINT"
+          print_warning "Checkpoint saved; run '$0 all' again to resume from $host"
+          exit 1
+      fi
   done
+
+  rm -f "$CHECKPOINT"
 ''
