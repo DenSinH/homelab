@@ -98,6 +98,11 @@
     ];
   };
 
+  # No excessive disk save logging
+  services.redis.servers.immich = {
+    logLevel = "warning";
+  };
+
   # Helper script for matching up live photos to corresponding videos
   environment.systemPackages = [
     (pkgs.writers.writePython3Bin "immich-link-live-photos" {
