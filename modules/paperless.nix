@@ -39,6 +39,11 @@ in
     };
   };
 
+  # No excessive disk save logging
+  services.redis.servers.paperless = {
+    logLevel = "warning";
+  };
+
   services.nginx.virtualHosts."paperless.home" = {
     forceSSL = lib.mkForce false;
     serverAliases = [ "paperless.vpn" ];
