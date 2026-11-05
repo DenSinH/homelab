@@ -531,7 +531,8 @@ def instant_by_host(
     max-series error, halve the host set and retry each half recursively."""
     if not hosts:
         return []
-    sel = '{host=~"%s"}' % "|".join(re.escape(h) for h in hosts)
+    # Not re.escape(): its "\-" is invalid in Go's RE2 (LogQL).
+    sel = '{host=~"%s"}' % "|".join(h.replace(".", r"\.") for h in hosts)
     try:
         return loki.instant(build_query(sel))
     except RuntimeError as e:
