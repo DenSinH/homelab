@@ -34,6 +34,9 @@
     interval = "monthly"; # recommended and default
   };
 
+  # filter history events from systemd
+  systemd.services.zfs-zed.serviceConfig.LogFilterPatterns = "~class=history_event";
+
   # Pool-level ZFS tuning
   systemd.services.zfs-pool-tuning = {
     description = "Tune ZFS parameters on the tank pool root";

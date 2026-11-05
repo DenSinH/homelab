@@ -36,6 +36,9 @@
     "zfs.zfs_arc_max=12884901888"
   ];
 
+  # filter history events from systemd
+  systemd.services.zfs-zed.serviceConfig.LogFilterPatterns = "~class=history_event";
+
   # dataset tuning
   systemd.services.zfs-dataset-tuning = {
     description = "Tune ZFS parameters for various datasets";
