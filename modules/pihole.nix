@@ -87,6 +87,11 @@ let
     "${lib.lan.subnet}.203 playstation.home"
   ];
 
+  httpsDomains = lib.concatMap lib.httpsDomains (lib.attrValues lib.lxcs);
+  # address= also answers for every subdomain, which covers wildcard certs.
+  httpsRecords = map (d: "${d.ip} ${d.fqdn}") (lib.filter (d: !d.wildcard) httpsDomains);
+  httpsWildcards = map (d: "address=/${d.fqdn}/${d.ip}") (lib.filter (d: d.wildcard) httpsDomains);
+
   # subdomain mappings for (exposed) nixflix services
   cnameRecords = [
     "radarr.nixflix.home,nixflix.home"
@@ -148,8 +153,9 @@ in
     # see: https://docs.pi-hole.net/ftldns/configfile/
     settings = {
       dns.upstreams = upstreams;
-      dns.hosts = localRecords;
+      dns.hosts = localRecords ++ httpsRecords;
       dns.cnameRecords = cnameRecords;
+      misc.dnsmasq_lines = httpsWildcards;
 
       # these can grow pretty big
       dns.queryLogging = false;

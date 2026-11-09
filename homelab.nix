@@ -9,6 +9,12 @@ let
     cidr = "${subnet}.0/${toString prefixLength}";
     gateway = "${subnet}.1";
 
+    # Resolved by pihole only; certs via ACME DNS-01 (modules/https.nix).
+    domains = {
+      home = "home.hlhrst.nl";
+      vpn = "vpn.hlhrst.nl";
+    };
+
     # IP-range-per-purpose convention; see hosts/router/README.md for the
     # human-readable version of this table.
     ranges = {
@@ -454,6 +460,7 @@ let
       ctid = 102;
 
       stateVersion = "26.05";
+      https = { };
 
       modules = [
         ./modules/bentopdf.nix

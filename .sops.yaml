@@ -12,6 +12,7 @@ keys:
   - &nixflix age15e7m3c8f0jxe8qp96ypm2laa88qtx8u2achr8nm53uzrm2tsav6syhgya0
   - &nas age16jqlp2qmjvqhmdehh7xgdu3dwxnm4wlh4dyd9cnf7cgp6t23yddqvsd8rl
   - &offsite-backup age1gj7nmwgkpyfxzq0k9fuqrcspu37pcggmc52ecwd9vzls63suk9tqhr6zwg
+  - &bentopdf age17w494gc8kanpukdmvc4g6qw3k8pytrann65uhyy8zkgp7p2gjfpqufmu2n
 creation_rules:
   - path_regex: secrets/nas\.yaml$
     key_groups:
@@ -56,6 +57,11 @@ creation_rules:
   - path_regex: secrets/nixflix\.yaml$
     key_groups:
     - age: [*master, *admin, *nixflix]
+
+  # Cloudflare DNS token for ACME; add every LXC with `https` in homelab.nix
+  - path_regex: secrets/acme\.yaml$
+    key_groups:
+    - age: [*master, *admin, *bentopdf]
 
   # fallback: admin only
   - path_regex: secrets/[^/]+\.(yaml|json|env|ini)$

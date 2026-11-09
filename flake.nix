@@ -51,6 +51,7 @@
             devices
             ;
           hardenedService = import ./lib/hardenedService.nix;
+          httpsDomains = import ./lib/httpsDomains.nix { lib = final; };
         }
       );
 

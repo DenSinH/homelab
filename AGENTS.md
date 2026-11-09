@@ -95,6 +95,11 @@ VM's setup/network details). Read the relevant one before changing that host.
   | `.50`–`.99` | IoT |
   | `.100`–`.199` | dynamic/unrecognized |
   | `.200`–`.254` | other fixed/known devices |
+- **HTTPS**: an LXC opts in with `https = { names ? [ hostname ]; wildcard ? false; }` in `homelab.nix`.
+  `modules/https.nix` then requests a Let's Encrypt cert (DNS-01, token in `secrets/acme.yaml`) for
+  `<name>.home.hlhrst.nl` (+ `.vpn.hlhrst.nl` if it has a `tailnet_ip`), and pihole gets matching
+  records. The service module puts `config.homelab.https.vhost` on a **named** nginx vhost; never
+  on a `default`/`_` vhost that cloudflared proxies to. Add the LXC's age key to `acme.yaml`'s rule.
 - **Monitoring**: `modules/gatus/config.yaml` is a manually maintained list of uptime-check
   endpoints shown on the status page. Add an entry there if a new service should be monitored —
   it isn't automatic.

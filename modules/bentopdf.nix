@@ -11,9 +11,12 @@
 
   services.bentopdf = {
     enable = true;
-    domain = "bentopdf.home";
+    domain = config.homelab.https.domain;
 
     nginx.enable = true;
+    nginx.virtualHost = config.homelab.https.vhost // {
+      serverAliases = config.homelab.https.vhost.serverAliases ++ [ "bentopdf.home" ];
+    };
   };
 
   # open firewall to nginx
