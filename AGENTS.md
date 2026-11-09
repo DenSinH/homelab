@@ -104,7 +104,8 @@ VM's setup/network details). Read the relevant one before changing that host.
   `extraNames` must also go in `aliases` in `modules/pihole.nix`. Add the LXC's
   age key to `acme.yaml`'s `.sops.yaml` rule, then `sops updatekeys secrets/acme.yaml`.
 - **nftables**: use `networking.nftables.tables`, never `.ruleset` — a ruleset turns on
-  `flushRuleset`, which wipes tailscaled's rules on every reload (router/offsite-backup still do).
+  `flushRuleset`, which wipes tailscaled's rules on every reload. Exception: the router's ruleset
+  owns every table there (no tailscale), so its flush is harmless.
 - **Monitoring**: `modules/gatus/config.yaml` is a manually maintained list of uptime-check
   endpoints shown on the status page. Add an entry there if a new service should be monitored —
   it isn't automatic.
