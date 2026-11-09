@@ -11,10 +11,10 @@ let
 
   proxies = {
     "status.dennishilhorst.nl" = {
-      upstream = "http://${lib.lxcs.gatus.ip}";
+      upstream = "http://${lib.lxcs.gatus.ip}:${toString lib.lan.tunnelPort}";
     };
     "blog.dennishilhorst.nl" = {
-      upstream = "http://${lib.lxcs.blog.ip}";
+      upstream = "http://${lib.lxcs.blog.ip}:${toString lib.lan.tunnelPort}";
     };
     "cdn.dennishilhorst.nl" = {
       # Cache control set via
@@ -26,10 +26,10 @@ let
       # Eligible for cache
       # Edge TTL: Ignore cache-control header and use this TTL: 6 Months
       # Browser TTL: Ignore cache-control header and use this TTL: 6 Months
-      upstream = "http://${lib.lxcs.garage.ip}";
+      upstream = "http://${lib.lxcs.garage.ip}:${toString lib.lan.tunnelPort}";
     };
     "chef.dennishilhorst.nl" = {
-      upstream = "http://${lib.lxcs.cookbook.ip}";
+      upstream = "http://${lib.lxcs.cookbook.ip}:${toString lib.lan.tunnelPort}";
     };
   };
 
@@ -87,22 +87,22 @@ in
     allowed = [
       {
         host = lib.lxcs.gatus.ip;
-        ports = [ 80 ];
+        ports = [ lib.lan.tunnelPort ];
         comment = "proxied backend";
       }
       {
         host = lib.lxcs.blog.ip;
-        ports = [ 80 ];
+        ports = [ lib.lan.tunnelPort ];
         comment = "proxied backend";
       }
       {
         host = lib.lxcs.garage.ip;
-        ports = [ 80 ];
+        ports = [ lib.lan.tunnelPort ];
         comment = "proxied backend";
       }
       {
         host = lib.lxcs.cookbook.ip;
-        ports = [ 80 ];
+        ports = [ lib.lan.tunnelPort ];
         comment = "proxied backend";
       }
     ];

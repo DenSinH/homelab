@@ -11,23 +11,25 @@ let
   publicBuckets = [
     "cookbook"
   ];
+
+  adminNames = lib.filter (lib.hasPrefix "garage-admin.") config.homelab.https.domains;
+  bucketNames = lib.subtractLists adminNames config.homelab.https.domains;
 in
 {
+  homelab.https = {
+    enable = true;
+    tunnel = true;
+    extraNames = [ "garage-admin" ];
+  };
+
   # Reverse proxy / firewall config for the garage instance
   services.nginx = {
     enable = true;
 
-    virtualHosts.default = {
-      listen = [
-        {
-          addr = "0.0.0.0";
-          port = 80;
-        }
-      ];
-
-      serverAliases = [
-        "garage.home"
-      ];
+    # Public buckets: cdn. via the tunnel, garage.* over HTTPS. Default, so stray names never reach the admin UI.
+    virtualHosts.default = config.homelab.https.tunnelVhost // {
+      default = true;
+      serverAliases = bucketNames;
 
       locations."/" = {
         extraConfig = ''
@@ -61,15 +63,19 @@ in
         '';
       };
     };
+
+    virtualHosts.${lib.head adminNames} = config.homelab.https.vhost // {
+      serverAliases = lib.tail adminNames;
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:3909";
+        proxyWebsockets = true;
+        recommendedProxySettings = true;
+      };
+    };
   };
 
   networking.nftables.enable = true;
   networking.firewall = {
-    allowedTCPPorts = [
-      80 # Public HTTP access to nginx
-      3909 # LAN access to webui dashboard
-    ];
-
     # Garage S3 API: only reachable by cookbook LXC
     extraInputRules = ''
       ip saddr ${lib.lxcs.cookbook.ip} tcp dport ${builtins.toString cfg.s3_api_bind_port} accept

@@ -159,10 +159,16 @@ in
     '';
   };
 
+  homelab.https = {
+    enable = true;
+    tunnel = true;
+  };
+
   services.nginx = {
     enable = true;
 
-    virtualHosts.default = {
+    virtualHosts.default = config.homelab.https.tunnelVhost // {
+      serverAliases = config.homelab.https.domains;
       locations."/" = {
         proxyPass = "http://127.0.0.1:${builtins.toString port}";
         proxyWebsockets = true;
@@ -176,12 +182,5 @@ in
         '';
       };
     };
-  };
-
-  # open firewall for cookbook service
-  networking.firewall = {
-    allowedTCPPorts = [
-      80
-    ];
   };
 }

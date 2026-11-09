@@ -67,7 +67,7 @@ let
     builtins.toJSON {
       influx_url = "http://${lib.lxcs.telemetry.ip}:8086";
       loki_url = "http://${lib.lxcs.telemetry.ip}:3100";
-      grafana_url = "http://${lib.lxcs.telemetry.ip}:3000";
+      grafana_url = "https://telemetry.${lib.lan.domains.vpn}";
       # link to the report archive shown in the e-mail footer; adjust to taste
       report_url = "http://${config.networking.hostName}/";
       output_dir = reportsDir;
@@ -193,12 +193,11 @@ in
       {
         host = lib.lxcs.telemetry.ip;
         ports = [
-          3000
           3100
           8086
         ];
         protos = [ "tcp" ];
-        comment = "InfluxDB/Loki/Grafana on telemetry";
+        comment = "InfluxDB/Loki on telemetry";
       }
     ];
   };
@@ -340,6 +339,8 @@ in
     };
   };
 
+  homelab.https.enable = true;
+
   # --- serve the reports over HTTP ----------------------------------------
   # - /             -> index.html (list of all reports, newest first)
   # - /latest.html  -> newest report (updated after every run)
@@ -347,7 +348,8 @@ in
   services.nginx = {
     enable = true;
 
-    virtualHosts."_" = {
+    virtualHosts."_" = config.homelab.https.vhost // {
+      serverAliases = config.homelab.https.domains;
       root = reportsDir;
       locations."/" = {
         index = "index.html";
@@ -355,6 +357,4 @@ in
       };
     };
   };
-
-  networking.firewall.allowedTCPPorts = [ 80 ];
 }

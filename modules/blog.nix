@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   lib,
   ...
@@ -46,10 +47,16 @@ in
   homelab.egress.enable = true;
   homelab.ingress.enable = true;
 
+  homelab.https = {
+    enable = true;
+    tunnel = true;
+  };
+
   services.nginx = {
     enable = true;
 
-    virtualHosts.default = {
+    virtualHosts.default = config.homelab.https.tunnelVhost // {
+      serverAliases = config.homelab.https.domains;
       default = true;
       root = blog;
 
@@ -64,11 +71,5 @@ in
         '';
       };
     };
-  };
-
-  networking.firewall = {
-    allowedTCPPorts = [
-      80
-    ];
   };
 }

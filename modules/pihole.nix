@@ -43,7 +43,6 @@ let
     "${lib.backup.offsite-backup.tailnet_ip} offsite-backup.vpn"
 
     ### SERVICES
-    "${lib.lxcs.reporting.ip} reporting.home"
 
     "${lib.devices.home-assistant.ip} homeassistant.home"
     "100.85.36.70 homeassistant.vpn"
@@ -87,25 +86,33 @@ let
     "${lib.lan.subnet}.203 playstation.home"
   ];
 
-  httpsDomains = lib.concatMap lib.httpsDomains (lib.attrValues lib.lxcs);
-  # address= also answers for every subdomain, which covers wildcard certs.
-  httpsRecords = map (d: "${d.ip} ${d.fqdn}") (lib.filter (d: !d.wildcard) httpsDomains);
-  httpsWildcards = map (d: "address=/${d.fqdn}/${d.ip}") (lib.filter (d: d.wildcard) httpsDomains);
+  inherit (lib.lan) domains;
+  # <name> in every zone; the short zone prefers the tailnet IP.
+  recordsFor =
+    name: l:
+    let
+      vpnIp = l.tailnet_ip or null;
+    in
+    [
+      "address=/${name}.${domains.home}/${l.ip}"
+      "address=/${name}.${domains.short}/${if vpnIp != null then vpnIp else l.ip}"
+    ]
+    ++ lib.optional (vpnIp != null) "address=/${name}.${domains.vpn}/${vpnIp}";
+  lxcRecords = lib.concatMap (l: recordsFor l.hostname l) (lib.attrValues lib.lxcs);
 
-  # subdomain mappings for (exposed) nixflix services
-  cnameRecords = [
-    "radarr.nixflix.home,nixflix.home"
-    "sonarr.nixflix.home,nixflix.home"
-    "jellyfin.nixflix.home,nixflix.home"
-    "prowlarr.nixflix.home,nixflix.home"
-    "qbittorrent.nixflix.home,nixflix.home"
-
-    "radarr.nixflix.vpn,nixflix.vpn"
-    "sonarr.nixflix.vpn,nixflix.vpn"
-    "jellyfin.nixflix.vpn,nixflix.vpn"
-    "prowlarr.nixflix.vpn,nixflix.vpn"
-    "qbittorrent.nixflix.vpn,nixflix.vpn"
-  ];
+  # name -> LXC; must match each module's homelab.https.extraNames, which pihole can't see.
+  aliases = {
+    status = "gatus";
+    garage-admin = "garage";
+    jellyfin = "nixflix";
+    radarr = "nixflix";
+    sonarr = "nixflix";
+    prowlarr = "nixflix";
+    qbittorrent = "nixflix";
+  };
+  aliasRecords = lib.concatLists (
+    lib.mapAttrsToList (name: target: recordsFor name lib.lxcs.${target}) aliases
+  );
 in
 {
   homelab.egress.enable = true;
@@ -153,9 +160,8 @@ in
     # see: https://docs.pi-hole.net/ftldns/configfile/
     settings = {
       dns.upstreams = upstreams;
-      dns.hosts = localRecords ++ httpsRecords;
-      dns.cnameRecords = cnameRecords;
-      misc.dnsmasq_lines = httpsWildcards;
+      dns.hosts = localRecords;
+      misc.dnsmasq_lines = lxcRecords ++ aliasRecords;
 
       # these can grow pretty big
       dns.queryLogging = false;

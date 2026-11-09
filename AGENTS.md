@@ -95,11 +95,16 @@ VM's setup/network details). Read the relevant one before changing that host.
   | `.50`–`.99` | IoT |
   | `.100`–`.199` | dynamic/unrecognized |
   | `.200`–`.254` | other fixed/known devices |
-- **HTTPS**: an LXC opts in with `https = { names ? [ hostname ]; wildcard ? false; }` in `homelab.nix`.
-  `modules/https.nix` then requests a Let's Encrypt cert (DNS-01, token in `secrets/acme.yaml`) for
-  `<name>.home.hlhrst.nl` (+ `.vpn.hlhrst.nl` if it has a `tailnet_ip`), and pihole gets matching
-  records. The service module puts `config.homelab.https.vhost` on a **named** nginx vhost; never
-  on a `default`/`_` vhost that cloudflared proxies to. Add the LXC's age key to `acme.yaml`'s rule.
+- **HTTPS**: pihole resolves `<hostname>` in every `lib.lan.domains` zone for every LXC
+  (`.home.hlhrst.nl` → LAN IP, `.vpn.hlhrst.nl` → tailnet IP, `.hlhrst.nl` → tailnet IP if any, else LAN).
+  A service module sets `homelab.https.enable = true` to get a Let's Encrypt cert (DNS-01, token in
+  `secrets/acme.yaml`) and merges `config.homelab.https.vhost` into its nginx vhost (HTTPS only);
+  :80 only redirects to HTTPS. Tunneled services set `tunnel = true` and use `tunnelVhost`, adding
+  plain HTTP on `lib.lan.tunnelPort` for cloudflared only (its upstreams use that port, never :80).
+  `extraNames` must also go in `aliases` in `modules/pihole.nix`. Add the LXC's
+  age key to `acme.yaml`'s `.sops.yaml` rule, then `sops updatekeys secrets/acme.yaml`.
+- **nftables**: use `networking.nftables.tables`, never `.ruleset` — a ruleset turns on
+  `flushRuleset`, which wipes tailscaled's rules on every reload (router/offsite-backup still do).
 - **Monitoring**: `modules/gatus/config.yaml` is a manually maintained list of uptime-check
   endpoints shown on the status page. Add an entry there if a new service should be monitored —
   it isn't automatic.

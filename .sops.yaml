@@ -13,6 +13,9 @@ keys:
   - &nas age16jqlp2qmjvqhmdehh7xgdu3dwxnm4wlh4dyd9cnf7cgp6t23yddqvsd8rl
   - &offsite-backup age1gj7nmwgkpyfxzq0k9fuqrcspu37pcggmc52ecwd9vzls63suk9tqhr6zwg
   - &bentopdf age17w494gc8kanpukdmvc4g6qw3k8pytrann65uhyy8zkgp7p2gjfpqufmu2n
+  - &gatus age1h09ut34hdxq8mqf3940g323cy3jxjl7wmhnc5rnqpnn67d6hvu4sy3x8yj
+  - &blog age1re0z5634n69q6a0pyk8ew758z6jk7hf39sng3qyp4dzezq809q0qwh62vx
+  - &dawarich age18eprk2e92dl6d2d2echzg9nwtnxum8326krpnlsq2mgf6htkgaxs4xthlp
 creation_rules:
   - path_regex: secrets/nas\.yaml$
     key_groups:
@@ -61,7 +64,7 @@ creation_rules:
   # Cloudflare DNS token for ACME; add every LXC with `https` in homelab.nix
   - path_regex: secrets/acme\.yaml$
     key_groups:
-    - age: [*master, *admin, *bentopdf]
+    - age: [*master, *admin, *bentopdf, *paperless, *dawarich, *nixflix, *immich, *telemetry, *gatus, *cookbook, *blog, *garage, *reporting]
 
   # fallback: admin only
   - path_regex: secrets/[^/]+\.(yaml|json|env|ini)$

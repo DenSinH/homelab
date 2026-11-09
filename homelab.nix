@@ -13,7 +13,10 @@ let
     domains = {
       home = "home.hlhrst.nl";
       vpn = "vpn.hlhrst.nl";
+      short = "hlhrst.nl"; # tailnet IP when there is one, else LAN IP
     };
+    # Plain HTTP for cloudflared only; :80 is redirect-only (modules/https.nix).
+    tunnelPort = 8090;
 
     # IP-range-per-purpose convention; see hosts/router/README.md for the
     # human-readable version of this table.
@@ -460,7 +463,6 @@ let
       ctid = 102;
 
       stateVersion = "26.05";
-      https = { };
 
       modules = [
         ./modules/bentopdf.nix
