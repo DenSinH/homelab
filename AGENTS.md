@@ -125,13 +125,15 @@ VM's setup/network details). Read the relevant one before changing that host.
   new flag there, not a hardcoded `enable: true` in the role.
 - Proxmox ipsets (used by `pve_firewall`) accept only individual IPs/CIDRs, never hyphenated
   ranges — `lib.lan.rangeIps` enumerates individual IPs for exactly this reason.
-- `/etc/pve` (pmxcfs) rejects Ansible's normal `copy`/`template` writes; `pve_firewall` uses
-  `tee` instead (see its `tasks/main.yml`).
+- `pve_firewall` manages rules/ipsets with `community.proxmox.proxmox_firewall` (HTTPS API,
+  `delegate_to: localhost`, proxmoxer in the script's Python env), authenticated by a 15-minute
+  `root@pam` token it creates over SSH and always deletes. Firewall options stay on `pvesh`. Rules
+  live in `group_vars/proxmox.yml` in the module's format (`pos` = order, DROP last).
 - `nft`/Proxmox rule syntax needs a `dport`/`meta l4proto` qualifier — a bare `tcp accept` or
   `udp accept` is a syntax error, not a no-op. This has caused a real lockout before; verify
   generated rules (`nft --check` at NixOS build time, or `pve-firewall compile` on the host).
-- `--check` does **not** exercise `shell`/`command` tasks (Ansible skips them in check mode) —
-  it is not a reliable dry-run for `pve_firewall`. Test on `proxmox3` before `proxmox1`/`2`, and
+- `--check` does **not** exercise `shell`/`command` tasks, and `proxmox_firewall` has no check
+  mode at all — it is not a reliable dry-run for `pve_firewall`. Test on `proxmox3` before `proxmox1`/`2`, and
   keep console/KVM access open when applying firewall changes for real.
 
 ## Making changes safely

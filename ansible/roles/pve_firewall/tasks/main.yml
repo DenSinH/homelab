@@ -1,52 +1,106 @@
 ---
-# /etc/pve (pmxcfs) rejects Ansible's copy/template writes, so we use `tee`.
-# See https://github.com/ansible/ansible/issues/70535
+# Rules/ipsets via community.proxmox (HTTPS API, run locally); the API needs a token,
+# so a short-lived root@pam one is minted over SSH and always removed afterwards.
+# Firewall options aren't covered by the module, so those stay on pvesh.
 
-- name: Render desired datacenter-wide firewall options
-  ansible.builtin.set_fact:
-    pve_cluster_fw_desired: "{{ lookup('ansible.builtin.template', 'cluster.fw.j2') }}"
-
-- name: Read current datacenter-wide firewall options
-  ansible.builtin.slurp:
-    src: /etc/pve/firewall/cluster.fw
-  register: pve_cluster_fw_current
+- name: Remove a token left over from an interrupted run
+  ansible.builtin.command: pveum user token remove root@pam {{ pve_firewall_token_name }}
+  register: pve_firewall_token_cleanup
+  changed_when: pve_firewall_token_cleanup.rc == 0
   failed_when: false
 
-- name: Write datacenter-wide firewall options
-  ansible.builtin.shell:
-    cmd: tee /etc/pve/firewall/cluster.fw > /dev/null
-    stdin: "{{ pve_cluster_fw_desired }}"
+- name: Note that --check can't preview rules/ipsets
+  ansible.builtin.debug:
+    msg: "check mode: community.proxmox rule/ipset tasks are skipped (no check-mode support)"
+  when: ansible_check_mode
+
+- name: Firewall changes with a temporary API token
+  when: not ansible_check_mode
+  block:
+    - name: Create temporary API token
+      ansible.builtin.command: >
+        pveum user token add root@pam {{ pve_firewall_token_name }}
+        --privsep 0 --expire {{ ansible_facts['date_time']['epoch'] | int + 900 }}
+        --comment "ansible provision-proxmox (auto-removed)" --output-format json
+      register: pve_firewall_token
+      no_log: true
+
+    - name: Ipsets
+      community.proxmox.proxmox_firewall:
+        api_host: "{{ ansible_host }}"
+        api_user: root@pam
+        api_token_id: "{{ pve_firewall_token_name }}"
+        api_token_secret: "{{ (pve_firewall_token.stdout | from_json).value }}"
+        validate_certs: false
+        level: cluster
+        ip_sets:
+          - name: "{{ item.key }}"
+            cidrs: "{{ item.value | map('community.general.dict_kv', 'cidr') | list }}"
+      loop: "{{ pve_firewall_ipsets | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      delegate_to: localhost
+
+    # pos = list order; the final DROP must stay last (host chain doesn't inherit policy_in).
+    - name: Node rules
+      community.proxmox.proxmox_firewall:
+        api_host: "{{ ansible_host }}"
+        api_user: root@pam
+        api_token_id: "{{ pve_firewall_token_name }}"
+        api_token_secret: "{{ (pve_firewall_token.stdout | from_json).value }}"
+        validate_certs: false
+        level: node
+        node: "{{ pve_node_name }}"
+        rules: "{{ pve_firewall_rules }}"
+      delegate_to: localhost
+
+    - name: Read node rules
+      ansible.builtin.command: pvesh get /nodes/{{ pve_node_name }}/firewall/rules --output-format json
+      register: pve_firewall_current_rules
+      changed_when: false
+
+    # The module never deletes rules it wasn't given; drop any beyond our list, highest first.
+    - name: Remove stale node rules
+      ansible.builtin.command: pvesh delete /nodes/{{ pve_node_name }}/firewall/rules/{{ item }}
+      loop: "{{ pve_firewall_current_rules.stdout | from_json | map(attribute='pos') | select('ge', pve_firewall_rules | length) | sort | reverse | list }}"
+  always:
+    - name: Remove temporary API token
+      ansible.builtin.command: pveum user token remove root@pam {{ pve_firewall_token_name }}
+      changed_when: false
+      failed_when: false
+
+- name: Read firewall options
+  ansible.builtin.command: pvesh get {{ item }} --output-format json
+  register: pve_firewall_options
+  changed_when: false
+  check_mode: false
+  loop:
+    - /cluster/firewall/options
+    - /nodes/{{ pve_node_name }}/firewall/options
+
+# After rules/ipsets, so the DROP policy never applies before the allow rules exist.
+- name: Datacenter firewall options
+  vars:
+    current: "{{ pve_firewall_options.results[0].stdout | from_json }}"
+  ansible.builtin.command: >
+    pvesh set /cluster/firewall/options --enable {{ pve_firewall_enabled | int }}
+    --policy_in {{ pve_firewall_policy_in }} --policy_out {{ pve_firewall_policy_out }}
   when: >
-    (pve_cluster_fw_current.content | default('') | b64decode) != pve_cluster_fw_desired
-  notify: Reload pve-firewall
+    current.enable | default(0) | int != pve_firewall_enabled | int
+    or current.policy_in | default('') != pve_firewall_policy_in
+    or current.policy_out | default('') != pve_firewall_policy_out
 
-- name: Ensure this node's firewall directory exists
-  # Safety net; pmxcfs normally creates this itself.
-  ansible.builtin.file:
-    path: "/etc/pve/nodes/{{ pve_node_name }}"
-    state: directory
-
-- name: Render desired node firewall rules
-  ansible.builtin.set_fact:
-    pve_host_fw_desired: "{{ lookup('ansible.builtin.template', 'host.fw.j2') }}"
-
-- name: Read current node firewall rules
-  ansible.builtin.slurp:
-    src: "/etc/pve/nodes/{{ pve_node_name }}/host.fw"
-  register: pve_host_fw_current
-  failed_when: false
-
-- name: Write node firewall rules
-  ansible.builtin.shell:
-    cmd: "tee /etc/pve/nodes/{{ pve_node_name }}/host.fw > /dev/null"
-    stdin: "{{ pve_host_fw_desired }}"
-  when: >
-    (pve_host_fw_current.content | default('') | b64decode) != pve_host_fw_desired
-  notify: Reload pve-firewall
+- name: Node firewall options
+  vars:
+    current: "{{ pve_firewall_options.results[1].stdout | from_json }}"
+  ansible.builtin.command: >
+    pvesh set /nodes/{{ pve_node_name }}/firewall/options --enable {{ pve_firewall_enabled | int }}
+  when: current.enable | default(0) | int != pve_firewall_enabled | int
 
 # pve-firewall silently skips unparseable rules instead of failing - catch that here.
-- name: Verify the written rules actually parsed
+- name: Verify the rules actually parsed
   ansible.builtin.command: pve-firewall compile
   register: pve_firewall_compile
   changed_when: false
+  check_mode: false
   failed_when: "'errors in rule parameters' in (pve_firewall_compile.stdout + pve_firewall_compile.stderr)"

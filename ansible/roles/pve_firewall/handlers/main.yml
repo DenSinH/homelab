@@ -1,5 +1,0 @@
----
-- name: Reload pve-firewall
-  ansible.builtin.systemd:
-    name: pve-firewall
-    state: reloaded

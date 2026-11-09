@@ -3,22 +3,36 @@
 
 pve_firewall_enabled: true
 
-# Verify the allow-list below via --check before trusting DROP.
+# --check skips the community.proxmox tasks (no check-mode support); test on proxmox3 first.
 pve_firewall_policy_in: "DROP"
 pve_firewall_policy_out: "ACCEPT"
 
 # pve_firewall_ipsets comes from provision-proxmox.nix via --extra-vars, not from here
 # (Proxmox ipsets only accept IPs/CIDRs, not ranges).
 
-# Ordered allow-list, applied before the default policy above.
+# community.proxmox.proxmox_firewall rule format; pos = order, the DROP must stay last
+# (the host chain doesn't inherit policy_in).
 pve_firewall_rules:
-  - comment: "SSH from compute/dynamic/fixed"
-    macro: "SSH"
+  - pos: 0
+    type: in
+    action: ACCEPT
+    macro: SSH
     source: "+management"
-  - comment: "Proxmox web UI from compute/dynamic/fixed"
-    proto: "tcp"
+    comment: "SSH from compute/dynamic/fixed"
+  - pos: 1
+    type: in
+    action: ACCEPT
+    proto: tcp
     dport: "8006"
     source: "+management"
-  - comment: "ICMP ping from anywhere (uptime monitoring)"
-    macro: "Ping"
+    comment: "Proxmox web UI from compute/dynamic/fixed"
+  - pos: 2
+    type: in
+    action: ACCEPT
+    macro: Ping
     source: "0.0.0.0/0"
+    comment: "ICMP ping from anywhere (uptime monitoring)"
+  - pos: 3
+    type: in
+    action: DROP
+    comment: "Default deny"
