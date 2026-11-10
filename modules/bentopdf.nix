@@ -8,16 +8,13 @@
 {
   homelab.egress.enable = true;
   homelab.ingress.enable = true;
+  homelab.https.enable = true;
 
   services.bentopdf = {
     enable = true;
-    domain = "bentopdf.home";
+    domain = config.homelab.https.domain;
 
     nginx.enable = true;
-  };
-
-  # open firewall to nginx
-  networking.firewall = {
-    allowedTCPPorts = [ 80 ];
+    nginx.virtualHost = config.homelab.https.vhost;
   };
 }

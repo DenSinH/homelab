@@ -4,6 +4,7 @@
   pkgs-unstable,
   lib,
   nixflix,
+  host,
   utils,
   ...
 }:
@@ -17,7 +18,12 @@ let
     mode = "0440";
   };
 
-  domain = "nixflix.*"; # both nixflix.home AND nixflix.vpn
+  # vhosts become "<service>.*", matching every zone
+  domain = "*";
+  arrServices = lib.remove "jellyfin" host.aliases;
+  tls = removeAttrs config.homelab.https.vhost [ "serverAliases" ] // {
+    useACMEHost = lib.mkForce config.homelab.https.vhost.useACMEHost; # nixflix sets null
+  };
 in
 {
   # NAS for media; the rest of the LAN stays blocked.
@@ -86,6 +92,31 @@ in
     "--exit-node=100.123.199.85"
     "--exit-node-allow-lan-access"
   ];
+
+  # ACME bypasses the exit node (Mullvad hijacks DNS, breaking lego's propagation check):
+  # tailscaled's own bypass fwmark routes via main/eth0; restore it on replies for rpfilter.
+  networking.nftables.tables.acme_bypass_exit_node = {
+    family = "inet";
+    content = ''
+      chain output {
+        type route hook output priority mangle; policy accept;
+        meta skuid "acme" meta mark set 0x80000 ct mark set meta mark
+      }
+      chain prerouting {
+        type filter hook prerouting priority mangle; policy accept;
+        ct mark 0x80000 meta mark set ct mark
+      }
+      # source was picked for tailscale0 before the re-route
+      chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname "eth0" ip saddr 100.64.0.0/10 masquerade
+      }
+    '';
+  };
+  # build-time `nft --check` sandbox has no acme user
+  networking.nftables.preCheckRuleset = ''
+    sed 's/skuid "acme"/skuid nobody/g' -i ruleset.conf
+  '';
 
   # see
   # https://kiriwalawren.github.io/nixflix/reference/
@@ -346,21 +377,22 @@ in
     };
   };
 
-  # add root domain mapping to jellyfin
-  services.nginx.virtualHosts."jellyfin.${domain}" = {
-    serverAliases = [ domain ];
+  homelab.https.enable = true;
 
-    # enable access through IP directly in case of DNS failure
-    default = true;
+  # nixflix's own enableACME expects a cert named after its "nixflix.*" domain.
+  services.nginx.virtualHosts = lib.genAttrs (map (s: "${s}.${domain}") arrServices) (_: tls) // {
+    # add root domain mapping to jellyfin
+    "jellyfin.${domain}" = tls // {
+      serverAliases = [ "nixflix.*" ];
+
+      # enable access through IP directly in case of DNS failure
+      default = true;
+    };
+
+    # force disable catchall to route it through the jellyfin virualHost instead
+    # (this is created / enabled in nixflix by default)
+    "_".default = lib.mkForce false;
   };
-
-  # force disable catchall to route it through the jellyfin virualHost instead
-  # (this is created / enabled in nixflix by default)
-  services.nginx.virtualHosts."_".default = lib.mkForce false;
-
-  networking.firewall.allowedTCPPorts = [
-    80 # nginx
-  ];
 
   # Not interested in flaresolverr Cloudflare-challenge timeouts as errors
   # (nor prowlarr's relayed copy of the same message, or its related "may

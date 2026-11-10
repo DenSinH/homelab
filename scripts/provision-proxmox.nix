@@ -30,9 +30,21 @@ let
 
   allHosts = builtins.attrNames lib.hosts;
 
+  # community.proxmox modules run locally (delegate_to: localhost) and need proxmoxer.
+  ansibleEnv = pkgs.python3.withPackages (ps: [
+    ps.ansible
+    ps.ansible-core
+    ps.proxmoxer
+    ps.requests
+  ]);
+
   inventoryJson = builtins.toJSON {
     proxmox = {
       hosts = hostVars;
+    };
+    local.hosts.localhost = {
+      ansible_connection = "local";
+      ansible_python_interpreter = "${ansibleEnv}/bin/python3";
     };
   };
 
@@ -64,7 +76,7 @@ let
   allHostsSpaceSeparated = builtins.concatStringsSep " " allHosts;
 
   repoRoot = ../.;
-  ansiblePlaybook = "${pkgs.ansible}/bin/ansible-playbook";
+  ansiblePlaybook = "${ansibleEnv}/bin/ansible-playbook";
 
 in
 

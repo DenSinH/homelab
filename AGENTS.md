@@ -95,6 +95,17 @@ VM's setup/network details). Read the relevant one before changing that host.
   | `.50`–`.99` | IoT |
   | `.100`–`.199` | dynamic/unrecognized |
   | `.200`–`.254` | other fixed/known devices |
+- **HTTPS**: pihole resolves `<hostname>` in every `lib.lan.domains` zone for every LXC
+  (`.home.hlhrst.nl` → LAN IP, `.vpn.hlhrst.nl` → tailnet IP, `.hlhrst.nl` → tailnet IP if any, else LAN).
+  A service module sets `homelab.https.enable = true` to get a Let's Encrypt cert (DNS-01, token in
+  `secrets/acme.yaml`) and merges `config.homelab.https.vhost` into its nginx vhost (HTTPS only);
+  :80 only redirects to HTTPS. Tunneled services set `tunnel = true` and use `tunnelVhost`, adding
+  plain HTTP on `lib.lan.tunnelPort` for cloudflared only (its upstreams use that port, never :80).
+  Extra names go in the LXC's `aliases` in `homelab.nix`. Add the LXC's
+  age key to `acme.yaml`'s `.sops.yaml` rule, then `sops updatekeys secrets/acme.yaml`.
+- **nftables**: use `networking.nftables.tables`, never `.ruleset` — a ruleset turns on
+  `flushRuleset`, which wipes tailscaled's rules on every reload. Exception: the router's ruleset
+  owns every table there (no tailscale), so its flush is harmless.
 - **Monitoring**: `modules/gatus/config.yaml` is a manually maintained list of uptime-check
   endpoints shown on the status page. Add an entry there if a new service should be monitored —
   it isn't automatic.
@@ -114,13 +125,15 @@ VM's setup/network details). Read the relevant one before changing that host.
   new flag there, not a hardcoded `enable: true` in the role.
 - Proxmox ipsets (used by `pve_firewall`) accept only individual IPs/CIDRs, never hyphenated
   ranges — `lib.lan.rangeIps` enumerates individual IPs for exactly this reason.
-- `/etc/pve` (pmxcfs) rejects Ansible's normal `copy`/`template` writes; `pve_firewall` uses
-  `tee` instead (see its `tasks/main.yml`).
+- `pve_firewall` manages rules/ipsets with `community.proxmox.proxmox_firewall` (HTTPS API,
+  `delegate_to: localhost`, proxmoxer in the script's Python env), authenticated by a 15-minute
+  `root@pam` token it creates over SSH and always deletes. Firewall options stay on `pvesh`. Rules
+  live in `group_vars/proxmox.yml` in the module's format (`pos` = order, DROP last).
 - `nft`/Proxmox rule syntax needs a `dport`/`meta l4proto` qualifier — a bare `tcp accept` or
   `udp accept` is a syntax error, not a no-op. This has caused a real lockout before; verify
   generated rules (`nft --check` at NixOS build time, or `pve-firewall compile` on the host).
-- `--check` does **not** exercise `shell`/`command` tasks (Ansible skips them in check mode) —
-  it is not a reliable dry-run for `pve_firewall`. Test on `proxmox3` before `proxmox1`/`2`, and
+- `--check` does **not** exercise `shell`/`command` tasks, and `proxmox_firewall` has no check
+  mode at all — it is not a reliable dry-run for `pve_firewall`. Test on `proxmox3` before `proxmox1`/`2`, and
   keep console/KVM access open when applying firewall changes for real.
 
 ## Making changes safely

@@ -11,3 +11,5 @@ pve_firewall_rules: []
 # Proxmox's own node name. Matches the inventory alias today; override via
 # host_vars if a node was ever named differently in Proxmox itself.
 pve_node_name: "{{ inventory_hostname }}"
+
+pve_firewall_token_name: "ansible-provision"

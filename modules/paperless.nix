@@ -10,6 +10,7 @@ in
 {
   homelab.egress.enable = true;
   homelab.ingress.enable = true;
+  homelab.https.enable = true;
 
   sops.secrets."paperless/admin-password" = {
     sopsFile = ../secrets/paperless.yaml;
@@ -25,14 +26,17 @@ in
 
     passwordFile = config.sops.secrets."paperless/admin-password".path;
     configureNginx = true;
-    domain = "paperless.home"; # canonical; paperless.vpn is added as an alias below
+    domain = config.homelab.https.domain;
 
     settings = {
-      # PAPERLESS_URL is set automatically to https://${domain} by configureNginx;
-      # override it back to plain http since we're not using TLS
-      PAPERLESS_URL = lib.mkForce "http://paperless.vpn";
-      PAPERLESS_ALLOWED_HOSTS = "paperless.home,paperless.vpn,paperless";
-      PAPERLESS_CSRF_TRUSTED_ORIGINS = "http://paperless.home,http://paperless.vpn";
+      PAPERLESS_URL = lib.mkForce "https://paperless.${lib.lan.domains.vpn}";
+      # "paperless": nginx proxies to the upstream of that name without rewriting Host
+      PAPERLESS_ALLOWED_HOSTS = lib.concatStringsSep "," (
+        config.homelab.https.domains ++ [ "paperless" ]
+      );
+      PAPERLESS_CSRF_TRUSTED_ORIGINS = lib.concatMapStringsSep "," (
+        h: "https://${h}"
+      ) config.homelab.https.domains;
       PAPERLESS_FILENAME_FORMAT = "{{ created_year }}/{{ correspondent }}/{{ title }}";
       PAPERLESS_CONSUMER_RECURSIVE = true;
       PAPERLESS_OCR_LANGUAGE = "eng+nld";
@@ -44,11 +48,8 @@ in
     logLevel = "warning";
   };
 
-  services.nginx.virtualHosts."paperless.home" = {
+  services.nginx.virtualHosts.${config.homelab.https.domain} = config.homelab.https.vhost // {
     forceSSL = lib.mkForce false;
-    serverAliases = [ "paperless.vpn" ];
     extraConfig = "client_max_body_size 50M;";
   };
-
-  networking.firewall.allowedTCPPorts = [ 80 ];
 }

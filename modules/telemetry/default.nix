@@ -449,11 +449,26 @@ in
     "L+ /var/lib/grafana/dashboards/kiosk.json - - - - /etc/grafana/dashboards/kiosk.json"
   ];
 
+  # Grafana only; influx/loki stay plain HTTP for their clients.
+  homelab.https.enable = true;
+  services.nginx = {
+    enable = true;
+    virtualHosts.${config.homelab.https.domain} = config.homelab.https.vhost // {
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString config.services.grafana.settings.server.http_port}";
+        proxyWebsockets = true;
+        recommendedProxySettings = true;
+      };
+    };
+  };
+
   networking.firewall = {
     allowedTCPPorts = [
       8086 # influxdb2
-      3000 # grafana
       3100 # loki
     ];
+    extraInputRules = lib.concatMapStrings (h: ''
+      ip saddr ${h.ip} tcp dport ${toString config.services.grafana.settings.server.http_port} accept comment "grafana kiosk"
+    '') (lib.filter (h: (h.provision or { }).grafanaKiosk or false) (lib.attrValues lib.hosts));
   };
 }

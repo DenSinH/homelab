@@ -103,11 +103,13 @@ in
     };
   };
 
+  # `tables`, not `ruleset`: a ruleset enables flushRuleset, which wipes tailscaled's rules on reload.
   config = lib.mkMerge [
     (lib.mkIf egressCfg.enable {
       networking.nftables.enable = true;
-      networking.nftables.ruleset = ''
-        table inet homelab_egress {
+      networking.nftables.tables.homelab_egress = {
+        family = "inet";
+        content = ''
           chain output {
             type filter hook output priority 0; policy accept;
 
@@ -121,15 +123,16 @@ in
               ip daddr ${lib.lan.cidr} drop comment "LAN blocked by default"
             ''}
           }
-        }
-      '';
+        '';
+      };
     })
     (lib.mkIf (ingressCfg.enable || ingressCfg.blockIot) {
       networking.nftables.enable = true;
-      networking.nftables.ruleset =
-        if ingressCfg.enable then
-          ''
-            table inet homelab_ingress {
+      networking.nftables.tables.homelab_ingress = {
+        family = "inet";
+        content =
+          if ingressCfg.enable then
+            ''
               chain input {
                 type filter hook input priority 0; policy drop;
 
@@ -139,21 +142,19 @@ in
                 ip saddr { ${lib.concatStringsSep ", " trustedIngressRanges} } accept comment "trusted LAN ranges"
                 ${lib.concatStringsSep "\n                " ingressAllowedRuleLines}
               }
-            }
-          ''
-        else
-          # Lightweight mode: only iot is blocked, everything else stays as
-          # open as networking.firewall already allows it.
-          ''
-            table inet homelab_ingress {
+            ''
+          else
+            # Lightweight mode: only iot is blocked, everything else stays as
+            # open as networking.firewall already allows it.
+            ''
               chain input {
                 type filter hook input priority 0; policy accept;
 
                 ${lib.concatStringsSep "\n                " ingressAllowedRuleLines}
                 ip saddr ${lib.lan.rangeAddrs.iot.lo}-${lib.lan.rangeAddrs.iot.hi} drop comment "iot always blocked"
               }
-            }
-          '';
+            '';
+      };
     })
   ];
 }

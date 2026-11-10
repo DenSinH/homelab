@@ -73,7 +73,8 @@ pkgs.writeShellScript "deploy" ''
           -u NIX_LD_LIBRARY_PATH \
           nixos-rebuild switch \
               --flake ".#$host" \
-              --target-host "root@$ip"
+              --target-host "root@$ip" \
+          || return 1 # set -e is ignored inside the `if !` caller below
 
       print_success "Deployment finished for $host"
 

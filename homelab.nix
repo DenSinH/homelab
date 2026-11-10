@@ -9,6 +9,15 @@ let
     cidr = "${subnet}.0/${toString prefixLength}";
     gateway = "${subnet}.1";
 
+    # Resolved by pihole only; certs via ACME DNS-01 (modules/https.nix).
+    domains = {
+      home = "home.hlhrst.nl";
+      vpn = "vpn.hlhrst.nl";
+      short = "hlhrst.nl"; # tailnet IP when there is one, else LAN IP
+    };
+    # Plain HTTP for cloudflared only; :80 is redirect-only (modules/https.nix).
+    tunnelPort = 8090;
+
     # IP-range-per-purpose convention; see hosts/router/README.md for the
     # human-readable version of this table.
     ranges = {
@@ -328,6 +337,7 @@ let
 
     gatus = {
       hostname = "gatus";
+      aliases = [ "status" ];
       ip = "${lan.subnet}.35";
       mac = "bc:24:11:a5:a6:f0";
       pveHost = "proxmox1";
@@ -403,6 +413,13 @@ let
 
     nixflix = {
       hostname = "nixflix";
+      aliases = [
+        "jellyfin"
+        "radarr"
+        "sonarr"
+        "prowlarr"
+        "qbittorrent"
+      ];
       ip = "${lan.subnet}.40";
       mac = "bc:24:11:0f:2d:1a";
       tailnet_ip = "100.84.251.29";
@@ -434,6 +451,7 @@ let
 
     garage = {
       hostname = "garage";
+      aliases = [ "garage-admin" ];
       ip = "${lan.subnet}.42";
       mac = "bc:24:11:27:a7:95";
       pveHost = "proxmox1";

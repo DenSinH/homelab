@@ -268,8 +268,10 @@ in
 
   # set up firewall rules to expose the API / Web UI on the host
   networking.nftables.enable = true;
-  networking.nftables.ruleset = ''
-    table ip pbs_nat {
+  # `tables`, not `ruleset`: a ruleset enables flushRuleset, wiping tailscaled's rules on reload.
+  networking.nftables.tables.pbs_nat = {
+    family = "ip";
+    content = ''
       chain prerouting {
         type nat hook prerouting priority dstnat;
         policy accept;
@@ -283,8 +285,8 @@ in
 
         ip saddr ${vmSubnet}.0/24 oifname != "virbr-pbs" masquerade;
       }
-    }
-  '';
+    '';
+  };
 
   networking.firewall = {
     filterForward = true;

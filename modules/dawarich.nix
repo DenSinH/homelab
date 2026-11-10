@@ -9,6 +9,7 @@
 {
   homelab.egress.enable = true;
   homelab.ingress.enable = true;
+  homelab.https.enable = true;
 
   services.dawarich = {
     enable = true;
@@ -25,11 +26,17 @@
       '';
     });
 
-    localDomain = "dawarich.home";
+    localDomain = config.homelab.https.domain;
 
-    # expose over VPN hostname as well
     environment = {
-      APPLICATION_HOSTS = "127.0.0.1,::1,dawarich.home,dawarich.vpn";
+      APPLICATION_PROTOCOL = "https";
+      APPLICATION_HOSTS = lib.concatStringsSep "," (
+        [
+          "127.0.0.1"
+          "::1"
+        ]
+        ++ config.homelab.https.domains
+      );
       RAILS_LOG_LEVEL = "info";
 
       NOMINATIM_API_HOST = "nominatim.openstreetmap.org";
@@ -59,15 +66,5 @@
     ];
   };
 
-  # expose on vpn as well
-  services.nginx.virtualHosts."dawarich.home" = {
-    serverAliases = [
-      "dawarich.vpn"
-    ];
-  };
-
-  # open firewall to nginx
-  networking.firewall = {
-    allowedTCPPorts = [ 80 ];
-  };
+  services.nginx.virtualHosts.${config.homelab.https.domain} = config.homelab.https.vhost;
 }

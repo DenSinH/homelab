@@ -43,7 +43,6 @@ let
     "${lib.backup.offsite-backup.tailnet_ip} offsite-backup.vpn"
 
     ### SERVICES
-    "${lib.lxcs.reporting.ip} reporting.home"
 
     "${lib.devices.home-assistant.ip} homeassistant.home"
     "100.85.36.70 homeassistant.vpn"
@@ -87,20 +86,23 @@ let
     "${lib.lan.subnet}.203 playstation.home"
   ];
 
-  # subdomain mappings for (exposed) nixflix services
-  cnameRecords = [
-    "radarr.nixflix.home,nixflix.home"
-    "sonarr.nixflix.home,nixflix.home"
-    "jellyfin.nixflix.home,nixflix.home"
-    "prowlarr.nixflix.home,nixflix.home"
-    "qbittorrent.nixflix.home,nixflix.home"
+  inherit (lib.lan) domains;
+  # <name> in every zone; the short zone prefers the tailnet IP.
+  recordsFor =
+    name: l:
+    let
+      vpnIp = l.tailnet_ip or null;
+    in
+    [
+      "address=/${name}.${domains.home}/${l.ip}"
+      "address=/${name}.${domains.short}/${if vpnIp != null then vpnIp else l.ip}"
+    ]
+    ++ lib.optional (vpnIp != null) "address=/${name}.${domains.vpn}/${vpnIp}";
+  lxcRecords = lib.concatMap (l: recordsFor l.hostname l) (lib.attrValues lib.lxcs);
 
-    "radarr.nixflix.vpn,nixflix.vpn"
-    "sonarr.nixflix.vpn,nixflix.vpn"
-    "jellyfin.nixflix.vpn,nixflix.vpn"
-    "prowlarr.nixflix.vpn,nixflix.vpn"
-    "qbittorrent.nixflix.vpn,nixflix.vpn"
-  ];
+  aliasRecords = lib.concatMap (l: lib.concatMap (n: recordsFor n l) (l.aliases or [ ])) (
+    lib.attrValues lib.lxcs
+  );
 in
 {
   homelab.egress.enable = true;
@@ -149,7 +151,7 @@ in
     settings = {
       dns.upstreams = upstreams;
       dns.hosts = localRecords;
-      dns.cnameRecords = cnameRecords;
+      misc.dnsmasq_lines = lxcRecords ++ aliasRecords;
 
       # these can grow pretty big
       dns.queryLogging = false;

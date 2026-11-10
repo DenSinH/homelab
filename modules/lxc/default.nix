@@ -10,6 +10,7 @@
   # container-related settings
   imports = [
     ../common/default.nix
+    ../https.nix
     (modulesPath + "/virtualisation/proxmox-lxc.nix")
   ];
 

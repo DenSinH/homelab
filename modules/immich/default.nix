@@ -57,7 +57,7 @@
 
     host = "0.0.0.0";
     # port = 80;  # default: 2283
-    openFirewall = true;
+    openFirewall = false; # only via nginx on :443
     mediaLocation = "/mnt/photos";
 
     # These are settings I set in the past, I figured I'd just re-use them
@@ -96,6 +96,25 @@
       "network-online.target"
       "mnt-photos.mount"
     ];
+  };
+
+  homelab.https.enable = true;
+  services.nginx = {
+    enable = true;
+    virtualHosts.${config.homelab.https.domain} = config.homelab.https.vhost // {
+      # https://docs.immich.app/administration/reverse-proxy
+      extraConfig = ''
+        client_max_body_size 50000M;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        send_timeout 600s;
+      '';
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:${toString config.services.immich.port}";
+        proxyWebsockets = true;
+        recommendedProxySettings = true;
+      };
+    };
   };
 
   # No excessive disk save logging
