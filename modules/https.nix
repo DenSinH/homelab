@@ -13,18 +13,13 @@ let
   ++ lib.optional ((host.tailnet_ip or null) != null) lib.lan.domains.vpn
   ++ [ lib.lan.domains.short ];
   domains = lib.concatMap (name: map (zone: "${name}.${zone}") zones) (
-    [ host.hostname ] ++ cfg.extraNames
+    [ host.hostname ] ++ host.aliases or [ ]
   );
   certName = host.hostname;
 in
 {
   options.homelab.https = {
     enable = lib.mkEnableOption "a Let's Encrypt cert for <hostname> in every lib.lan.domains zone (.vpn only with a tailnet_ip)";
-    extraNames = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [ ];
-      description = "Extra labels next to the hostname; must match `aliases` in modules/pihole.nix.";
-    };
     tunnel = lib.mkEnableOption "plain HTTP on lib.lan.tunnelPort, reachable by cloudflared only";
 
     domains = lib.mkOption {

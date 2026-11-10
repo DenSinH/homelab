@@ -101,7 +101,7 @@ VM's setup/network details). Read the relevant one before changing that host.
   `secrets/acme.yaml`) and merges `config.homelab.https.vhost` into its nginx vhost (HTTPS only);
   :80 only redirects to HTTPS. Tunneled services set `tunnel = true` and use `tunnelVhost`, adding
   plain HTTP on `lib.lan.tunnelPort` for cloudflared only (its upstreams use that port, never :80).
-  `extraNames` must also go in `aliases` in `modules/pihole.nix`. Add the LXC's
+  Extra names go in the LXC's `aliases` in `homelab.nix`. Add the LXC's
   age key to `acme.yaml`'s `.sops.yaml` rule, then `sops updatekeys secrets/acme.yaml`.
 - **nftables**: use `networking.nftables.tables`, never `.ruleset` — a ruleset turns on
   `flushRuleset`, which wipes tailscaled's rules on every reload. Exception: the router's ruleset

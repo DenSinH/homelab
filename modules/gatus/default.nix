@@ -27,7 +27,6 @@
 
   homelab.https = {
     enable = true;
-    extraNames = [ "status" ];
     tunnel = true;
   };
 

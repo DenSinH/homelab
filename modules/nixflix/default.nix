@@ -4,6 +4,7 @@
   pkgs-unstable,
   lib,
   nixflix,
+  host,
   utils,
   ...
 }:
@@ -19,12 +20,7 @@ let
 
   # vhosts become "<service>.*", matching every zone
   domain = "*";
-  arrServices = [
-    "radarr"
-    "sonarr"
-    "prowlarr"
-    "qbittorrent"
-  ];
+  arrServices = lib.remove "jellyfin" host.aliases;
   tls = removeAttrs config.homelab.https.vhost [ "serverAliases" ] // {
     useACMEHost = lib.mkForce config.homelab.https.vhost.useACMEHost; # nixflix sets null
   };
@@ -381,10 +377,7 @@ in
     };
   };
 
-  homelab.https = {
-    enable = true;
-    extraNames = [ "jellyfin" ] ++ arrServices;
-  };
+  homelab.https.enable = true;
 
   # nixflix's own enableACME expects a cert named after its "nixflix.*" domain.
   services.nginx.virtualHosts = lib.genAttrs (map (s: "${s}.${domain}") arrServices) (_: tls) // {

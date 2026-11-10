@@ -100,18 +100,8 @@ let
     ++ lib.optional (vpnIp != null) "address=/${name}.${domains.vpn}/${vpnIp}";
   lxcRecords = lib.concatMap (l: recordsFor l.hostname l) (lib.attrValues lib.lxcs);
 
-  # name -> LXC; must match each module's homelab.https.extraNames, which pihole can't see.
-  aliases = {
-    status = "gatus";
-    garage-admin = "garage";
-    jellyfin = "nixflix";
-    radarr = "nixflix";
-    sonarr = "nixflix";
-    prowlarr = "nixflix";
-    qbittorrent = "nixflix";
-  };
-  aliasRecords = lib.concatLists (
-    lib.mapAttrsToList (name: target: recordsFor name lib.lxcs.${target}) aliases
+  aliasRecords = lib.concatMap (l: lib.concatMap (n: recordsFor n l) (l.aliases or [ ])) (
+    lib.attrValues lib.lxcs
   );
 in
 {

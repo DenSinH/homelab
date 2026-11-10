@@ -19,7 +19,6 @@ in
   homelab.https = {
     enable = true;
     tunnel = true;
-    extraNames = [ "garage-admin" ];
   };
 
   # Reverse proxy / firewall config for the garage instance

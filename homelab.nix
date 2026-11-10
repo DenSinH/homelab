@@ -337,6 +337,7 @@ let
 
     gatus = {
       hostname = "gatus";
+      aliases = [ "status" ];
       ip = "${lan.subnet}.35";
       mac = "bc:24:11:a5:a6:f0";
       pveHost = "proxmox1";
@@ -412,6 +413,13 @@ let
 
     nixflix = {
       hostname = "nixflix";
+      aliases = [
+        "jellyfin"
+        "radarr"
+        "sonarr"
+        "prowlarr"
+        "qbittorrent"
+      ];
       ip = "${lan.subnet}.40";
       mac = "bc:24:11:0f:2d:1a";
       tailnet_ip = "100.84.251.29";
@@ -443,6 +451,7 @@ let
 
     garage = {
       hostname = "garage";
+      aliases = [ "garage-admin" ];
       ip = "${lan.subnet}.42";
       mac = "bc:24:11:27:a7:95";
       pveHost = "proxmox1";
