@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly trim of running LXC volumes
+
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

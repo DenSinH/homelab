@@ -1,0 +1,26 @@
+---
+- name: Install LXC fstrim script
+  ansible.builtin.copy:
+    src: pve-lxc-fstrim
+    dest: /usr/local/sbin/pve-lxc-fstrim
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install LXC fstrim service and timer
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - pve-lxc-fstrim.service
+    - pve-lxc-fstrim.timer
+
+- name: Enable and start LXC fstrim timer
+  ansible.builtin.systemd:
+    name: pve-lxc-fstrim.timer
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -51,6 +51,9 @@
     - role: pve_pvestatd_autorestart
       tags: [pvestatd-autorestart]
       when: pve_pvestatd_autorestart_enabled | default(false)
+    - role: pve_lxc_fstrim
+      tags: [lxc-fstrim]
+      when: pve_lxc_fstrim_enabled | default(false)
     - role: pve_grafana_kiosk
       tags: [grafana-kiosk]
       when: pve_grafana_kiosk_enabled | default(false)

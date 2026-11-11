@@ -24,7 +24,8 @@
     manageNetwork = false;
     privileged = true;
   };
-  services.fstrim.enable = false; # Let Proxmox host handle fstrim
+  # pve host's pve_lxc_fstrim role runs pct fstrim
+  services.fstrim.enable = false;
 
   boot.isContainer = true;
   boot.loader.grub.enable = false;

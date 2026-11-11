@@ -93,6 +93,7 @@ let
         ssdOptimization = true;
         consolePowerSaving = true;
         pvestatdAutoRestart = true;
+        lxcFstrim = true;
       };
     };
 
@@ -110,6 +111,7 @@ let
         ssdOptimization = true;
         consolePowerSaving = true;
         pvestatdAutoRestart = true;
+        lxcFstrim = true;
       };
     };
 
@@ -127,6 +129,7 @@ let
         ssdOptimization = true;
         consolePowerSaving = true;
         pvestatdAutoRestart = true;
+        lxcFstrim = true;
         grafanaKiosk = true; # has the attached kiosk display
       };
     };

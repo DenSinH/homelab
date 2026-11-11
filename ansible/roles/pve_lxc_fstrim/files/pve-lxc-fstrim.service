@@ -1,0 +1,8 @@
+[Unit]
+Description=Trim running LXC volumes to free thin pool space
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pve-lxc-fstrim
+Nice=19
+IOSchedulingClass=idle

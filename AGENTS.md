@@ -115,7 +115,8 @@ VM's setup/network details). Read the relevant one before changing that host.
 - `ansible/` only ever targets the three Proxmox hosts, never the LXCs/VMs they run. Roles so
   far: `pve_firewall` (host firewall via ipsets), `pve_powertop`, `pve_unattended_upgrades`,
   `pve_ssd_optimization`, `pve_console_powersave`, `pve_cpu_governor` (opt-out, defaults to
-  `true` unlike every other flag here), `pve_pvestatd_autorestart`, `pve_vmid_range` (no flag,
+  `true` unlike every other flag here), `pve_pvestatd_autorestart`, `pve_lxc_fstrim` (weekly `pct fstrim` of running CTs; the
+  host's own `fstrim.timer` never sees CT volumes), `pve_vmid_range` (no flag,
   always applied - derived from each host's mandatory `ctidRange`), `pve_grafana_kiosk`
   (proxmox3 only; display hardware specifics live in the role's own defaults, not
   `homelab.nix`, since they aren't topology).

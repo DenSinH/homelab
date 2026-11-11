@@ -22,6 +22,7 @@ let
     # Opt-out, not opt-in: true unless a host explicitly sets cpuGovernor = false.
     pve_cpu_governor_enabled = (host.provision or { }).cpuGovernor or true;
     pve_pvestatd_autorestart_enabled = (host.provision or { }).pvestatdAutoRestart or false;
+    pve_lxc_fstrim_enabled = (host.provision or { }).lxcFstrim or false;
     pve_vmid_range_lower = host.ctidRange.min;
     pve_vmid_range_upper = host.ctidRange.max;
     pve_grafana_kiosk_enabled = (host.provision or { }).grafanaKiosk or false;

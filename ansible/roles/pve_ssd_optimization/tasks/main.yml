@@ -1,6 +1,7 @@
 ---
 # Reduces SSD wear: disables unused cluster/HA services (hosts are standalone,
-# not clustered), moves rrdcached writes off disk, ramdisks /tmp, and sets
+# not clustered), moves rrdcached writes off disk, ramdisks /tmp, caps journald
+# to fit log2ram, and sets
 # noatime on the root filesystem.
 
 - name: Stop and disable cluster/HA services unused on standalone hosts
@@ -86,3 +87,21 @@
     opts: "{{ (pve_root_mount.options.split(',') + ['noatime']) | unique | join(',') }}"
     state: present
   when: "'noatime' not in pve_root_mount.options.split(',')"
+
+- name: Create journald drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Drop-in rather than editing journald.conf, which the systemd package owns.
+- name: Install journald settings
+  ansible.builtin.copy:
+    src: journald-homelab.conf
+    dest: /etc/systemd/journald.conf.d/homelab.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart journald
