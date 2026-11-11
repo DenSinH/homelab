@@ -86,6 +86,8 @@ let
     "${lib.lan.subnet}.203 playstation.home"
   ];
 
+  webPort = "8080";
+
   inherit (lib.lan) domains;
   # <name> in every zone; the short zone prefers the tailnet IP.
   recordsFor =
@@ -108,7 +110,7 @@ in
   homelab.egress.enable = true;
 
   # DHCP hands every device this host directly as DNS (router.nix option 6),
-  # so port 53 must stay open to all; :80 admin UI keeps the default lockdown.
+  # so port 53 must stay open to all; the admin UI keeps the default lockdown.
   homelab.ingress = {
     enable = true;
     allowed = [
@@ -126,19 +128,32 @@ in
 
   homelab.hardenedServices = [ "pihole-regex-allowlist" ];
 
+  homelab.https.enable = true;
+
+  services.nginx = {
+    enable = true;
+    recommendedProxySettings = true;
+    virtualHosts.${config.homelab.https.domain} = config.homelab.https.vhost // {
+      locations."/".proxyPass = "http://127.0.0.1:${webPort}";
+    };
+  };
+
   services.pihole-web = {
     enable = true;
-    ports = [
-      80
-    ];
-    hostName = "${lib.lan.subnet}.215";
+    ports = [ "127.0.0.1:${webPort}" ];
+    hostName = config.homelab.https.domain;
   };
+
+  sops.secrets."pihole/password".sopsFile = ../secrets/pihole.yaml;
+  sops.templates."pihole.env".content = ''
+    FTLCONF_webserver_api_password=${config.sops.placeholder."pihole/password"}
+  '';
+  systemd.services.pihole-ftl.serviceConfig.EnvironmentFile = config.sops.templates."pihole.env".path;
 
   services.pihole-ftl = {
     enable = true;
 
     openFirewallDNS = true;
-    openFirewallWebserver = true;
 
     lists = map (url: {
       inherit url;
