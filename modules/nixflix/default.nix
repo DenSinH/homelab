@@ -349,6 +349,12 @@ in
           hash = "sha256:1amscar6lg15lf9xj7iblfy4wl8h1g2mas5hpk7irawrwwqqg3i7";
           enabled = true;
         };
+        # pinned to a commit so upstream manifest updates don't break the hash
+        "Subtitle Extract Plus" = {
+          url = "https://raw.githubusercontent.com/jnracreates/subtitle-extract-plus/bec8172d05ae3261134e85eb7fd490a804d227c5/manifest.json";
+          hash = "sha256:0g5clp9hphvh2cjjcwl2mnw4akj6q6bm30pbs9yc4fgih26pamsb";
+          enabled = true;
+        };
       };
 
       plugins = {
@@ -369,9 +375,20 @@ in
           };
         };
 
-        "Subtitle Extract" = {
-          enable = true;
-          config.ExtractionDuringLibraryScan = true;
+        # fork of "Subtitle Extract" that writes text subs next to the media instead of data/subtitles
+        "Subtitle Extract Plus" = {
+          package = fromRepo {
+            version = "5.0.1.0";
+            hash = "sha256-FtWBKIYXJ1XlLCYCRXX8YUCthIuH+/THrd2d4fvxbVU=";
+          };
+          config = {
+            ExtractionDuringLibraryScan = true;
+            SaveWithMedia = true;
+            SelectedLanguages = [
+              "en"
+              "nl"
+            ];
+          };
         };
       };
     };
