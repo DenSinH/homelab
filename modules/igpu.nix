@@ -57,7 +57,7 @@ in
       fi
       print_warning "dev1: /dev/dri/renderD128,gid=104"
       print_warning ""
-      print_warning "Or run: nix run .#config-dri -- $(hostname)"
+      print_warning "Or run: nix run .#config-igpu -- $(hostname)"
     else
       print_success "iGPU passthrough correctly configured"
       print_success "Test by running:"
@@ -72,12 +72,6 @@ in
     fi
   '';
 
-  # Ensure /dev/dri exists and is populated
-  services.udev.extraRules = ''
-    KERNEL=="card*", SUBSYSTEM="drm", GROUP="video", MODE="0660"
-    KERNEL=="renderD*", SUBSYSTEM="drm", GROUP="render", MODE="0660"
-  '';
-
   systemd.tmpfiles.rules = [
     "d /dev/dri 0755 root root -"
   ];
@@ -85,6 +79,13 @@ in
   # Ensure the users exist
   users.groups.video = { };
   users.groups.render = { };
+  # Host's render GID; service users join it via extraGroups = [ "hostrender" ].
+  # On a new install, get the render group GID with:
+  # - on the LXC:
+  #     stat -c %g /dev/dri/renderD128
+  # - on the host:
+  #     getent group render
+  users.groups.hostrender.gid = 993;
 
   hardware.graphics = {
     enable = true;
@@ -92,6 +93,7 @@ in
       # If I ever have a proxmox node with a different GPU,
       # these need to be updated
       pkgs.intel-media-driver
+      pkgs.vpl-gpu-rt # QSV runtime (Gen12+); without it QSV fails with MFX session -9
     ];
   };
 }

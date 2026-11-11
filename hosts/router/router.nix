@@ -263,6 +263,7 @@ in
 
         iifname "lo" accept comment "loopback"
         ct state { established, related } accept comment "return traffic for existing connections"
+        ct state invalid counter drop comment "drop invalid conntrack state"
 
         # WAN: only reply to a few diagnostic ICMP types, nothing else unsolicited
         iifname $wan_ifs icmp type { echo-request, destination-unreachable, time-exceeded } accept comment "allow diagnostic ICMP"
@@ -311,20 +312,16 @@ in
         ip daddr @qos_bulk ip dscp set cs1 comment "QoS: nixflix etc -> Bulk tin"
 
         ct state { established, related } accept comment "return traffic for existing connections"
-
-        # Keep QoS-tagged hosts off the fastpath below: offloaded flows skip
-        # this chain (and the dscp set rules above) for the rest of the
-        # connection, which would un-prioritize long flows like nixflix.
-        ip saddr @qos_voice accept comment "QoS: keep family devices off fastpath so shaping stays effective"
-        ip daddr @qos_voice accept comment "QoS: keep family devices off fastpath so shaping stays effective"
-        ip saddr @qos_video accept comment "QoS: keep immich/cloudflared off fastpath so shaping stays effective"
-        ip daddr @qos_video accept comment "QoS: keep immich/cloudflared off fastpath so shaping stays effective"
-        ip saddr @qos_bulk accept comment "QoS: keep nixflix etc off fastpath so shaping stays effective"
-        ip daddr @qos_bulk accept comment "QoS: keep nixflix etc off fastpath so shaping stays effective"
+        ct state invalid counter drop comment "drop invalid conntrack state (would leak un-NATed)"
 
         iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} ip saddr @iot_wan_allowed meta l4proto { tcp, udp } flow add @fastpath comment "offload explicit iot -> WAN exceptions to the fastpath"
         iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} ip saddr @iot_wan_allowed accept comment "explicit iot -> WAN exceptions (see iotHosts wan=true in router.nix)"
         iifname "${lanIf}" oifname $wan_ifs ip saddr ${iotLo}-${iotHi} counter drop comment "iot blocked from WAN by default"
+
+        # Keep QoS hosts off the fastpath (offloaded flows skip dscp tagging). LAN -> WAN only.
+        iifname "${lanIf}" oifname $wan_ifs ip saddr @qos_voice accept comment "QoS: keep family devices off fastpath so shaping stays effective"
+        iifname "${lanIf}" oifname $wan_ifs ip saddr @qos_video accept comment "QoS: keep immich/cloudflared off fastpath so shaping stays effective"
+        iifname "${lanIf}" oifname $wan_ifs ip saddr @qos_bulk accept comment "QoS: keep nixflix etc off fastpath so shaping stays effective"
 
         iifname "${lanIf}" oifname $wan_ifs meta l4proto { tcp, udp } flow add @fastpath comment "offload LAN -> WAN TCP/UDP flows to the fastpath"
         iifname "${lanIf}" oifname $wan_ifs accept comment "LAN -> WAN for all other clients"
@@ -394,7 +391,7 @@ in
       ];
 
       dhcp-option = [
-        "6,${lib.lxcs.ahole.ip},${lib.lxcs.bhole.ip},${lib.lxcs.bhole.ip}"
+        "6,${lib.lxcs.ahole.ip},${lib.lxcs.bhole.ip},${lib.lxcs.chole.ip}"
       ];
 
       # fill in real MACs; unlisted MACs land in dynamic automatically
@@ -451,8 +448,8 @@ in
     };
 
     script = ''
-      ${pkgs.ethtool}/bin/ethtool --set-eee enp1s0 eee on
-      ${pkgs.ethtool}/bin/ethtool --set-eee enp2s0 eee on
+      ${pkgs.ethtool}/bin/ethtool --set-eee ${wanIf} eee on
+      ${pkgs.ethtool}/bin/ethtool --set-eee ${lanIf} eee on
     '';
   };
 
@@ -482,11 +479,6 @@ in
     script = ''
       for dev in ${wanIf} ${lanIf}; do
         ${pkgs.ethtool}/bin/ethtool -K "$dev" rx on tx on tso on gso on gro on || true
-        # Disable Energy Efficient Ethernet - the link partner drops into a
-        # low-power idle mode after inactivity, and waking it back up for the
-        # first frame adds noticeable one-off latency (same symptom class as
-        # CPU C-states above, just on the wire instead of on the CPU).
-        ${pkgs.ethtool}/bin/ethtool --set-eee "$dev" eee off || true
       done
     '';
   };

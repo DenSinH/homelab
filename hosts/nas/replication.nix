@@ -18,6 +18,23 @@
         useTemplate = [ "production" ];
         recursive = true;
       };
+      # syncoid copies every snapshot but never prunes the target
+      "backup/drive-backup" = {
+        useTemplate = [ "replica" ];
+        recursive = true;
+      };
+      "backup/photos-backup" = {
+        useTemplate = [ "replica" ];
+        recursive = true;
+      };
+    };
+    templates.replica = {
+      hourly = 24;
+      daily = 7;
+      weekly = 4;
+      monthly = 3;
+      autosnap = false;
+      autoprune = true;
     };
     templates.production = {
       # hourly gives same-day rollback for accidental deletes/overwrites,

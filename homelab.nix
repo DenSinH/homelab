@@ -432,6 +432,7 @@ let
       stateVersion = "26.05";
 
       modules = [
+        ./modules/igpu.nix
         ./modules/nixflix/default.nix
       ];
     };
@@ -484,7 +485,7 @@ let
     paperless = {
       hostname = "paperless";
       ip = "${lan.subnet}.44";
-      mac = "bc:24:11:d6:ef:b6";
+      mac = "bc:24:11:3f:e2:53";
       tailnet_ip = "100.110.234.20";
       pveHost = "proxmox3";
       ctid = 300;

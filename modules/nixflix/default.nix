@@ -241,7 +241,7 @@ in
       enable = true;
 
       password = {
-        _secret = config.sops.secrets."prowlarr/password".path;
+        _secret = config.sops.secrets."qbittorrent/password".path;
       };
 
       # see
@@ -260,15 +260,10 @@ in
 
         Preferences = {
           WebUI = {
-            User = "admin";
-
-            # generate with
-            # nix run git+https://codeberg.org/feathecutie/qbittorrent_password -p <password>
-            # or
-            # nix run git+https://codeberg.org/feathecutie/qbittorrent_password -i <password-file>
-            # for example run ./gen-qbittorrent-password.sh to generate it from stdin
-            Password_PBKDF2 = "@ByteArray(kR+FfrNzdOkhVab2ph7Ocg==:kHtoKhAe64dbk7wQJl0eeUF1hYu767BObpRzn1DxON1drcgOBC5zlAA6aGrfRwZCRcaoPqp3K6Yu3UYK2O2sJg==)";
-            LocalHostAuth = false;
+            Username = "admin";
+            # Password_PBKDF2 is derived from the qbittorrent/password secret at start, see below
+            # nginx proxies from localhost, so disabling this would skip auth for everyone
+            LocalHostAuth = true;
             AuthSubnetWhitelist = lib.lan.cidr;
             AuthSubnetWhitelistEnabled = true;
           };
@@ -393,6 +388,37 @@ in
       };
     };
   };
+
+  # Runs after nixpkgs installs qBittorrent.conf from the store; hashes the same secret the *arrs use.
+  systemd.services.qbittorrent.serviceConfig.ExecStartPre = lib.mkAfter [
+    (pkgs.writers.writePython3 "qbittorrent-set-password" { } ''
+      import base64
+      import hashlib
+      import os
+
+      secret = "${config.sops.secrets."qbittorrent/password".path}"
+      conf = "${config.services.qbittorrent.profileDir}/qBittorrent/config/qBittorrent.conf"
+
+      with open(secret) as f:
+          password = f.read().rstrip("\n").encode()
+      salt = os.urandom(16)
+      key = hashlib.pbkdf2_hmac("sha512", password, salt, 100000)
+      b64 = base64.b64encode
+      value = "@ByteArray(%s:%s)" % (b64(salt).decode(), b64(key).decode())
+
+      with open(conf) as f:
+          lines = [
+              line for line in f.read().splitlines()
+              if not line.startswith("WebUI\\Password_PBKDF2=")
+          ]
+      i = lines.index("[Preferences]") + 1
+      lines.insert(i, "WebUI\\Password_PBKDF2=" + value)
+      with open(conf, "w") as f:
+          f.write("\n".join(lines) + "\n")
+    '')
+  ];
+
+  users.users.jellyfin.extraGroups = [ "hostrender" ];
 
   homelab.https.enable = true;
 

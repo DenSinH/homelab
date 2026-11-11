@@ -96,6 +96,7 @@ in
 
     config = {
       ROCKET_PORT = 8222;
+      SIGNUPS_ALLOWED = false;
     };
   };
 

@@ -69,7 +69,7 @@ let
       loki_url = "http://${lib.lxcs.telemetry.ip}:3100";
       grafana_url = "https://telemetry.${lib.lan.domains.vpn}";
       # link to the report archive shown in the e-mail footer; adjust to taste
-      report_url = "http://${config.networking.hostName}/";
+      report_url = "https://${config.homelab.https.domain}/";
       output_dir = reportsDir;
       hosts = standaloneHosts;
       # guests that are supposed to be stopped (anything else stopped is reported as critical)

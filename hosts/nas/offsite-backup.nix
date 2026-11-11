@@ -27,7 +27,7 @@ in
     #   /var/lib/syncoid/.ssh/id_ed25519.pub
     # on the offsite-backup system itself
     openssh.authorizedKeys.keys = [
-      "restrict ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzWXcHoX+a/C2mxkMA663o+L6NCAOvV7KogKgBW6JVY syncoid@offsite-backup"
+      "restrict,from=\"${lib.backup.offsite-backup.tailnet_ip},${lib.backup.offsite-backup.ip}\" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzWXcHoX+a/C2mxkMA663o+L6NCAOvV7KogKgBW6JVY syncoid@offsite-backup"
     ];
 
     # needed for compression / sync buffering

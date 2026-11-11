@@ -20,9 +20,11 @@
     special_time: reboot
     job: /root/down_monitor.sh
 
+# Appends rather than replaces, so other kernel args (iommu, i915, ...) survive.
 - name: Set consoleblank timeout in grub config
   ansible.builtin.lineinfile:
     path: /etc/default/grub
-    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
-    line: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet consoleblank=60"'
+    regexp: '^(GRUB_CMDLINE_LINUX_DEFAULT="(?![^"]*\bconsoleblank=)[^"]*?)\s*"$'
+    line: '\1 consoleblank=60"'
+    backrefs: true
   notify: Update grub

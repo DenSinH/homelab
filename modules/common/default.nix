@@ -46,8 +46,9 @@
     # through the WAN port!
     openFirewall = true;
     settings = {
-      PermitRootLogin = "yes";
+      PermitRootLogin = "prohibit-password";
       PasswordAuthentication = false;
+      KbdInteractiveAuthentication = false;
     };
   };
 
