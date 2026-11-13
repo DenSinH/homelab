@@ -76,8 +76,11 @@ in
       acceptTerms = true;
       defaults.email = "admin@hlhrst.nl";
 
-      # Token from https://dash.cloudflare.com/profile/api-tokens: Zone - Zone - Read and
-      # Zone - DNS - Edit, resources Include - Specific zone - hlhrst.nl.
+      # Token from https://dash.cloudflare.com/profile/api-tokens: 
+      #   Zone - Zone - Read
+      #   Zone - DNS - Edit 
+      # resources 
+      #   Include - Specific zone - hlhrst.nl.
       # See https://go-acme.github.io/lego/dns/cloudflare/#api-tokens
       certs.${certName} = {
         domain = cfg.domain;
