@@ -9,8 +9,6 @@ let
   usbip = config.boot.kernelPackages.usbip;
 in
 {
-  homelab.hardenedServices = [ "usbipd" ];
-
   # USB/IP: exports the zigbee dongle (plugged directly into the router)
   # over the network, so e.g. Home Assistant can use it without a USB
   # extension cord + passthrough into a VM/LXC.
@@ -27,44 +25,47 @@ in
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
 
-    serviceConfig =
-      # usbipd needs full root to bind the USB device to the usbip-host
-      # driver and export it over the network.
-      removeAttrs lib.hardenedService [
+    # usbipd needs full root to bind the USB device to usbip-host and export it.
+    hardening = {
+      enable = true;
+      maxExposure = 5.8;
+      relax = [
         "CapabilityBoundingSet"
         "AmbientCapabilities"
         "PrivateUsers"
         "DevicePolicy"
         "SystemCallFilter"
-      ]
-      // {
-        ExecStart = "${usbip}/bin/usbipd";
-        Restart = "on-failure";
+      ];
+    };
 
-        # suppress messages like
-        # usbipd: info: connection from 192.168.50.31:34106
-        LogLevelMax = "notice";
+    serviceConfig = {
+      ExecStart = "${usbip}/bin/usbipd";
+      Restart = "on-failure";
 
-        RestartSec = 5;
+      # suppress messages like
+      # usbipd: info: connection from 192.168.50.31:34106
+      LogLevelMax = "notice";
 
-        User = "root";
-        Group = "root";
+      RestartSec = 5;
 
-        PrivateDevices = false; # needs the USB device
-        ProtectKernelModules = false; # needs to load/bind usbip-host
+      User = "root";
+      Group = "root";
 
-        # USB/IP needs networking.
-        RestrictAddressFamilies = [
-          "AF_INET"
-          "AF_INET6"
-        ];
+      PrivateDevices = false; # needs the USB device
+      ProtectKernelModules = false; # needs to load/bind usbip-host
 
-        # Only allow home-assistant to connect to usbipd (see also the
-        # MAC-bound nftables rule in router.nix, which is the real
-        # enforcement since this IP is self-requested, not dnsmasq-fixed).
-        IPAddressDeny = "any";
-        IPAddressAllow = lib.devices.home-assistant.ip;
-      };
+      # USB/IP needs networking.
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+      ];
+
+      # Only allow home-assistant to connect to usbipd (see also the
+      # MAC-bound nftables rule in router.nix, which is the real
+      # enforcement since this IP is self-requested, not dnsmasq-fixed).
+      IPAddressDeny = "any";
+      IPAddressAllow = lib.devices.home-assistant.ip;
+    };
   };
 
   # Auto-bind the dongle (Silicon Labs CP210x UART bridge, 10c4:ea60) to the

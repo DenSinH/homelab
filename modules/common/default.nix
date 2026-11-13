@@ -8,7 +8,7 @@
 {
   imports = [
     ../telemetry/alloy.nix
-    ./hardened-services.nix
+    ./hardening.nix
     ./firewall.nix
   ];
 

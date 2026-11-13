@@ -50,7 +50,6 @@
             admin
             devices
             ;
-          hardenedService = import ./lib/hardenedService.nix;
         }
       );
 
@@ -142,12 +141,15 @@
             type = "app";
             program = toString (callScript ./scripts/provision-proxmox.nix);
           };
-
-          security-report = {
-            type = "app";
-            program = toString (callScript ./scripts/security-report.nix);
-          };
         };
+
+      # systemd hardening scores, see modules/common/hardening.nix
+      checks.${system} = lib.concatMapAttrs (
+        host: sys:
+        lib.mapAttrs' (
+          unit: check: lib.nameValuePair "hardening-${host}-${unit}" check
+        ) sys.config.system.build.hardeningChecks
+      ) self.nixosConfigurations;
 
       devShells.${system} = {
         default = pkgs.mkShell {

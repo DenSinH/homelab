@@ -165,11 +165,10 @@ let
     python = reportPython;
   };
 
-  # Hardened systemd services, built on lib.hardenedService. All three run as
-  # the unprivileged `reporting` user and only touch /var/lib/reports.
+  # Sandbox extras on top of the hardening baseline; all three only touch /var/lib/reports.
 
   # report-now needs to reach InfluxDB, Loki, and the SMTP server.
-  reportHardening = lib.hardenedService // {
+  reportHardening = {
     ReadWritePaths = [ reportsDir ];
     RestrictAddressFamilies = [
       "AF_INET"
@@ -180,7 +179,7 @@ let
 
   # report-index/cleanup only read/write local files; no network needed at
   # all, so only AF_UNIX (for syslog) is allowed.
-  indexHardening = lib.hardenedService // {
+  indexHardening = {
     ReadWritePaths = [ reportsDir ];
     RestrictAddressFamilies = [ "AF_UNIX" ];
   };
@@ -201,12 +200,6 @@ in
       }
     ];
   };
-
-  homelab.hardenedServices = [
-    "daily-report"
-    "reports-index"
-    "reports-cleanup"
-  ];
 
   environment.systemPackages = [
     sendMail
@@ -257,6 +250,7 @@ in
     description = "Daily homelab e-mail report";
     wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
+    hardening.enable = true;
     serviceConfig = reportHardening // {
       Type = "oneshot";
       User = "reporting";
@@ -280,6 +274,7 @@ in
   # Bootstrap / refresh index.html at boot, before nginx needs to serve it.
   systemd.services.reports-index = {
     description = "Regenerate the homelab report index";
+    hardening.enable = true;
     serviceConfig = indexHardening // {
       Type = "oneshot";
       RemainAfterExit = true;
@@ -302,6 +297,7 @@ in
   systemd.services.reports-cleanup = {
     description = "Prune homelab reports older than 30 days";
     after = [ "reports-index.service" ];
+    hardening.enable = true;
     serviceConfig = indexHardening // {
       Type = "oneshot";
       User = "reporting";
