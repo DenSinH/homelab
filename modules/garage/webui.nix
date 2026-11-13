@@ -9,8 +9,6 @@ let
   cfg = import ./common.nix { inherit pkgs; };
 in
 {
-  homelab.hardenedServices = [ "garage-webui" ];
-
   # this insecure package is used for the webui package
   nixpkgs.config.permittedInsecurePackages = [
     "pnpm-9.15.9"
@@ -43,7 +41,8 @@ in
     after = [ "garage.service" ];
     requires = [ "garage.service" ];
 
-    serviceConfig = lib.hardenedService // {
+    hardening.enable = true;
+    serviceConfig = {
       ExecStart = "${pkgs.garage-webui}/bin/garage-webui";
 
       EnvironmentFile = config.sops.templates."garage-webui.env".path;

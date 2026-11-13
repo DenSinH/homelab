@@ -9,8 +9,6 @@ let
   webPort = 80;
 in
 {
-  homelab.hardenedServices = [ "darkstat" ];
-
   # darkstat: lightweight passive traffic monitor - shows currently active
   # LAN hosts and per-host traffic on a small built-in web dashboard.
   # Deliberately kept minimal: no --daylog/--export, so nothing is ever
@@ -22,11 +20,11 @@ in
     after = [ "sys-subsystem-net-devices-${lanIf}.device" ];
     bindsTo = [ "sys-subsystem-net-devices-${lanIf}.device" ];
     wantedBy = [ "multi-user.target" ];
-    serviceConfig =
-      # darkstat does its own privilege drop (root -> chroot -> setuid
-      # nobody), which fights with several of our restrictions in practice:
-      # tested and confirmed these have to go.
-      removeAttrs lib.hardenedService [
+    # darkstat does its own privilege drop (root -> chroot -> nobody), which fights these (tested).
+    hardening = {
+      enable = true;
+      maxExposure = 6.9;
+      relax = [
         "CapabilityBoundingSet"
         "AmbientCapabilities"
         "PrivateUsers"
@@ -34,19 +32,21 @@ in
         "NoNewPrivileges"
         "RestrictSUIDSGID"
         "RestrictNamespaces"
-      ]
-      // {
-        ExecStart = "${pkgs.darkstat}/bin/darkstat --no-daemon -i ${lanIf} -l ${lanNetwork} --local-only -p ${toString webPort} -b 0.0.0.0 --chroot /var/empty --user nobody";
-        Restart = "on-failure";
-        RestartSec = 5;
+      ];
+    };
 
-        User = "root";
-        Group = "root";
-        PrivateDevices = false; # needs the NIC for packet capture
+    serviceConfig = {
+      ExecStart = "${pkgs.darkstat}/bin/darkstat --no-daemon -i ${lanIf} -l ${lanNetwork} --local-only -p ${toString webPort} -b 0.0.0.0 --chroot /var/empty --user nobody";
+      Restart = "on-failure";
+      RestartSec = 5;
 
-        # The dashboard is deliberately LAN-only.
-        IPAddressDeny = "any";
-        IPAddressAllow = [ lanNetwork ];
-      };
+      User = "root";
+      Group = "root";
+      PrivateDevices = false; # needs the NIC for packet capture
+
+      # The dashboard is deliberately LAN-only.
+      IPAddressDeny = "any";
+      IPAddressAllow = [ lanNetwork ];
+    };
   };
 }

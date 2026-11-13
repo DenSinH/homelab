@@ -126,8 +126,6 @@ in
     ];
   };
 
-  homelab.hardenedServices = [ "pihole-regex-allowlist" ];
-
   homelab.https.enable = true;
 
   services.nginx = {
@@ -186,7 +184,8 @@ in
     after = [ "pihole-ftl.service" ];
     requires = [ "pihole-ftl.service" ];
 
-    serviceConfig = lib.hardenedService // {
+    hardening.enable = true;
+    serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
 

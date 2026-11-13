@@ -17,8 +17,8 @@ is declarative — there is no config drift to reason about, only what's in this
 | `devices.nix` | Known non-flake LAN devices (phones, IoT, etc.), keyed by name, validated against `lan.ranges`. |
 | `flake.nix` | Imports `homelab.nix`, builds the extended `lib` and `nixosConfigurations`, defines `apps` (deploy/provisioning scripts) and `devShells`. |
 | `hosts/<name>/` | Full NixOS configs for the three non-LXC machines: `nas`, `router`, `offsite-backup`. Each has its own `default.nix`, `hardware-configuration.nix`, and often a `README.md` with machine-specific notes. |
-| `modules/` | Reusable NixOS modules, mostly one per LXC service (`vaultwarden.nix`, `paperless.nix`, ...) or a directory when a service needs multiple files (`modules/cookbook/`, `modules/garage/`, `modules/reporting/`). `modules/common/` (incl. `firewall.nix`, the egress/ingress mechanism) and `modules/host/`/`modules/lxc/` are the base layers every machine imports. |
-| `lib/` | Nix helper functions: `mkLxc.nix` builds an LXC `nixosSystem` from a `homelab.nix` entry; `hardenedService.nix` is the shared systemd sandboxing baseline for self-written services. |
+| `modules/` | Reusable NixOS modules, mostly one per LXC service (`vaultwarden.nix`, `paperless.nix`, ...) or a directory when a service needs multiple files (`modules/cookbook/`, `modules/garage/`, `modules/reporting/`). `modules/common/` (incl. `firewall.nix`, the egress/ingress mechanism, and `hardening.nix`, the systemd sandboxing baseline) and `modules/host/`/`modules/lxc/` are the base layers every machine imports. |
+| `lib/` | Nix helper functions: `mkLxc.nix` builds an LXC `nixosSystem` from a `homelab.nix` entry. |
 | `scripts/` | Nix-wrapped shell apps exposed via `nix run .#<name>` (deploy, tailscale login, igpu/proxmox config, security report, Ansible provisioning). |
 | `secrets/` | `sops-nix`-encrypted secrets, one YAML file per service/host. `.sops.yaml` (repo root) maps each file to the age keys allowed to decrypt it. |
 | `ansible/` | Playbooks/roles for the three Proxmox hosts themselves — never the LXCs/VMs they host, which stay NixOS-managed. See **Ansible / Proxmox provisioning** below. |
@@ -44,15 +44,17 @@ VM's setup/network details). Read the relevant one before changing that host.
   `modules/host/default.nix`.
 - A global extended `lib` (see `flake.nix`, sourced from `homelab.nix`) exposes `lib.lan`,
   `lib.hosts`, `lib.lxcs`, `lib.router`, `lib.storage`, `lib.backup`, `lib.devices`,
-  `lib.admin.ssh_keys`, and `lib.hardenedService` to every module.
+  and `lib.admin.ssh_keys` to every module.
 
 ## Conventions
 
-- **Hardening**: self-written systemd services should start from `lib.hardenedService` (a set
-  of `systemd.service.<name>.serviceConfig` options) and `removeAttrs`/override only what that
-  specific service needs, rather than hand-rolling sandboxing. See `modules/host/default.nix`
-  (powertop) for the override pattern, and the comment in `lib/hardenedService.nix` for what
-  each option does.
+- **Hardening**: self-written systemd services set `systemd.services.<name>.hardening.enable = true`
+  (`modules/common/hardening.nix`) instead of hand-rolling sandboxing. The baseline is applied
+  with `mkDefault`, so plain `serviceConfig` values override it; `hardening.relax = [ ... ]` drops
+  baseline keys entirely. Each hardened unit gets a `system.checks` entry that fails the host's
+  build if `systemd-analyze security` scores it above `hardening.maxExposure` (default 2.0); the
+  check's output (`hardening-<name>` in the build) lists what costs points. See
+  `hosts/router/usbip.nix` for a relaxed example.
 - **Secrets**: never put plaintext credentials in a module. Add them to the relevant
   `secrets/<name>.yaml` via `sops edit secrets/<name>.yaml`, reference them in the module with
   `sops.secrets."<key>"` / `config.sops.secrets."<key>".path`, and add a `path_regex` +

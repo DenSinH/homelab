@@ -24,8 +24,6 @@ let
   port = 8000;
 in
 {
-  homelab.hardenedServices = [ "cookbook" ];
-
   sops.defaultSopsFile = ../../secrets/cookbook.yaml;
   sops.secrets = {
     # S3 secrets (shared with garage)
@@ -102,6 +100,7 @@ in
       "network-online.target"
     ];
 
+    hardening.enable = true;
     serviceConfig = {
       DynamicUser = true;
       SupplementaryGroups = [ "cookbook-secrets" ];
@@ -135,9 +134,7 @@ in
 
       Restart = "on-failure";
       RestartSec = 5;
-    }
-    // lib.hardenedService
-    // {
+
       # StateDirectory remains writable despite ProtectSystem=strict.
       ReadWritePaths = [
         "/var/lib/cookbook"

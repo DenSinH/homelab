@@ -10,8 +10,6 @@
     ../common/default.nix
   ];
 
-  homelab.hardenedServices = [ "powertop" ];
-
   environment.systemPackages = with pkgs; [
     # powertop on boot
     powertop
@@ -41,32 +39,14 @@
       pkgs.kmod
     ];
 
-    serviceConfig =
-      # powertop --auto-tune writes directly to sysfs/sysctl knobs across the
-      # whole system and needs full root to do it.
-      removeAttrs lib.hardenedService [
-        "ProtectSystem"
-        "ProtectKernelTunables"
-        "ProtectKernelModules"
-        "ProtectControlGroups"
-        "ProtectProc"
-        "ProcSubset"
-        "MemoryDenyWriteExecute"
-        "SystemCallFilter"
-        "CapabilityBoundingSet"
-        "AmbientCapabilities"
-        "DevicePolicy"
-        "PrivateMounts"
-        "RemoveIPC"
-        "PrivateUsers"
-      ]
-      // {
-        Type = "oneshot";
-        ExecStart = "${pkgs.powertop}/bin/powertop --auto-tune";
-        RemainAfterExit = true;
+    # not sandboxed: --auto-tune writes sysfs/sysctl knobs system-wide as root
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.powertop}/bin/powertop --auto-tune";
+      RemainAfterExit = true;
 
-        User = "root";
-        UMask = "0077";
-      };
+      User = "root";
+      UMask = "0077";
+    };
   };
 }
